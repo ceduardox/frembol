@@ -34,6 +34,8 @@ Torqvoice is a self-hosted workshop management platform for automotive service b
 
 Docker Compose, in minutes. See the [Quick Start](https://torqvoice.com/docs/installation#quick-start).
 
+Optimized for self-hosted deployments on Coolify and Docker VPS environments.
+
 ## License
 
 [Elastic License 2.0 (ELv2)](LICENSE)
