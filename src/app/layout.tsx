@@ -151,19 +151,19 @@ export const metadata: Metadata = {
       'Sistema de gestión para talleres mecánicos y lavaderos: órdenes de trabajo, presupuestos, facturas, clientes, vehículos, repuestos e historial de servicio.',
     images: [
       {
-        url: '/icons/icon-512.png',
-        width: 512,
-        height: 512,
-        alt: 'Frembol',
+        url: '/images/og-frembol.png',
+        width: 1200,
+        height: 630,
+        alt: 'Frembol — Gestión de Taller y Lavadero',
       },
     ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'Frembol — Gestión de Taller y Lavadero',
     description:
       'Sistema de gestión para talleres mecánicos y lavaderos: órdenes de trabajo, presupuestos, facturas, clientes, vehículos, repuestos e historial de servicio.',
-    images: ['/icons/icon-512.png'],
+    images: ['/images/og-frembol.png'],
   },
 }
 
