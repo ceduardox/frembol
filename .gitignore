@@ -55,3 +55,6 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# local development stack (hot reload); keep it out of the remote / Coolify
+docker-compose.dev.yml
