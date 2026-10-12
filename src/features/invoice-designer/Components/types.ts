@@ -1,0 +1,132 @@
+import type { TaxComponentDefinition } from '@/lib/tax'
+import type { InvoiceLayoutConfig } from '@/features/settings/Schema/invoiceLayoutSchema'
+import type { DesignAutoRule } from '../Lib/designRules'
+
+/**
+ * The documents the designer draws. A certificate is what a completed
+ * inspection prints: the same sheet machinery as an invoice, fed grades
+ * instead of prices. A work order is the job while it is open: the sheet
+ * the customer signs and the technician takes off the board.
+ */
+export type DocumentType = 'invoice' | 'quote' | 'certificate' | 'work_order'
+
+/** The template settings the designer edits, as strings the way settings store them. */
+export interface DesignerTemplate {
+  primaryColor: string
+  backgroundColor: string
+  textColor: string
+  companyTextColor: string
+  frameBorderColor: string
+  frameShadow: string
+  /** Which edge the rail runs down. */
+  frameSide: string
+  /** Rounding, in points, where the rail meets the header band. */
+  frameRadius: number
+  fontFamily: string
+  headerStyle: string
+  logoSize: number
+  /**
+   * A mark for this document alone. Empty means the sheet prints the company
+   * logo, so a workshop that wants one picture everywhere sets it once in
+   * company settings and never thinks about this.
+   */
+  logoUrl: string
+}
+
+/**
+ * A design a workshop saved under a name: the whole arrangement and look at
+ * that moment, so trying another template never costs them their own work.
+ */
+export interface SavedDesign {
+  id: string
+  name: string
+  /** Which document the design was saved for; absent on rows written before certificates. */
+  documentType?: DocumentType
+  savedAt: string
+  layout: InvoiceLayoutConfig
+  template: DesignerTemplate
+  /** The kind of invoice this design prints by itself, or null for only when chosen. */
+  autoRule: DesignAutoRule | null
+}
+
+export interface DesignerWorkshop {
+  name: string
+  address: string
+  phone: string
+  email: string
+  slogan: string
+  orgNumber: string
+  /** The workshop's own caption for the number; empty means the translated one. */
+  orgNumberLabel?: string
+  /** Payment terms from payment settings. Empty prints nothing on the sheet. */
+  paymentTerms: string
+  /** Whether the workshop records the German type key, so the sample car shows one. */
+  typeKeyEnabled?: boolean
+  logoUrl: string
+  /**
+   * The signature of whoever has the designer open, so the Signature section
+   * previews with their own hand. Unset shows a stand-in.
+   */
+  signatureUrl?: string
+  /**
+   * The taxes the workshop splits its tax into, when it does (GST and QST).
+   * The sample job is then taxed the workshop's way, one line per tax, with
+   * each registration number under the business details, so the canvas
+   * shows the sheet the workshop will actually print.
+   */
+  taxComponents?: TaxComponentDefinition[] | null
+}
+
+export interface DesignerState {
+  layout: InvoiceLayoutConfig
+  template: DesignerTemplate
+}
+
+/**
+ * What the canvas draws with, resolved once from the template and the layout so
+ * the canvas and the inspector never disagree about a default.
+ */
+export interface ResolvedTheme {
+  primary: string
+  background: string
+  text: string
+  muted: string
+  accent: string
+  companyText: string
+  fontFamily: string
+  baseSize: number
+  margin: number
+  rowPadding: number
+  stripes: boolean
+  stripeColor: string
+}
+
+/** The CSS stack for a stored font name, mirroring what the PDF embeds. */
+export const FONT_STACKS: Record<string, string> = {
+  Helvetica: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+  'Times-Roman': "'Noto Serif', Georgia, 'Times New Roman', serif",
+  Courier: "'Noto Sans Mono', 'Courier New', monospace",
+  'Open Sans': "'Open Sans', 'Helvetica Neue', Arial, sans-serif",
+  Lato: "'Lato', 'Helvetica Neue', Arial, sans-serif",
+  Montserrat: "'Montserrat', 'Helvetica Neue', Arial, sans-serif",
+  'PT Sans': "'PT Sans', 'Helvetica Neue', Arial, sans-serif",
+}
+
+export function fontStack(name?: string): string {
+  return FONT_STACKS[name || 'Helvetica'] || FONT_STACKS.Helvetica
+}
+
+/**
+ * What the typeface pickers offer, in one place so the section and document
+ * selects cannot drift apart. Values are the names settings store; the first
+ * three are the legacy names kept so nothing has to migrate.
+ */
+export const FONT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Helvetica', label: 'Roboto' },
+  { value: 'Open Sans', label: 'Open Sans' },
+  { value: 'Lato', label: 'Lato' },
+  { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'PT Sans', label: 'PT Sans' },
+  { value: 'Times-Roman', label: 'Noto Serif' },
+  { value: 'Courier', label: 'Noto Sans Mono' },
+]

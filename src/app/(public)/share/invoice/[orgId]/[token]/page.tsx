@@ -1,0 +1,191 @@
+import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
+import { db } from '@/lib/db'
+import { notFound } from 'next/navigation'
+import { InvoiceView } from './invoice-view'
+import { getFeatures } from '@/lib/features'
+import { resolvePortalOrg } from '@/lib/portal-slug'
+import { buildInvoicePrintSpec } from '@/features/invoice-designer/Pdf/buildInvoicePrint'
+import { loadPrintLabels } from '@/features/invoice-designer/Pdf/printLabels'
+import { visitConditionMapIn } from '@/features/condition-map/Lib/loadMarks.server'
+import { linkedCertificateInspectionId } from '@/features/inspections/Lib/linkedCertificate.server'
+import { assembleInvoicePrint } from '@/features/invoices/Lib/assembleInvoicePrint'
+import { resolveCustomerLocale } from '@/i18n/locale-from-request'
+import { getTorqvoiceLogoDataUri } from '@/lib/torqvoice-branding'
+import { headers } from 'next/headers'
+import type { Metadata } from 'next'
+import { documentCustomerId, telegramQrForPrint } from '@/features/invoices/Lib/telegramQr'
+import { offeredPaymentProviders } from '@/features/integrations/Lib/payments'
+import { getAppBaseUrl } from '@/lib/app-url'
+
+/** Rewrites /api/protected/files/[orgId]/[category]/[filename] to /api/public/files/[token]/[category]/[filename] */
+function toPublicFileUrl(fileUrl: string, token: string): string {
+  const match = fileUrl.match(/^\/api\/protected\/files\/[^/]+\/(.+)$/)
+  if (match) return `/api/public/files/${token}/${match[1]}`
+  // Legacy URLs pass through as-is
+  return fileUrl
+}
+
+export const revalidate = 60
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
+
+export default async function PublicInvoicePage({
+  params,
+}: {
+  params: Promise<{ orgId: string; token: string }>
+}) {
+  const { orgId: orgParam, token } = await params
+
+  // Resolve slug (e.g. "egelandauto") or UUID to the real org ID
+  const resolvedOrg = await resolvePortalOrg(orgParam)
+  const orgId = resolvedOrg?.id ?? orgParam
+
+  const shared = await db.serviceRecord.findUnique({
+    where: { publicToken: token },
+    select: { id: true, organizationId: true },
+  })
+  if (!shared || shared.organizationId !== orgId) {
+    notFound()
+  }
+
+  // The document as it was issued, or the live draft: one assembler decides,
+  // and the page a customer opens is the sheet the PDF prints.
+  const assembly = await assembleInvoicePrint(shared.id)
+  if (!assembly) notFound()
+  const { record, settingsMap, org } = assembly
+
+  const features = await getFeatures(orgId)
+
+  const workshop = {
+    name: assembly.workshop.name,
+    address: assembly.workshop.address,
+    phone: assembly.workshop.phone,
+    email: assembly.workshop.email,
+  }
+
+  const currencyCode = resolveCurrencyCode(assembly.invoiceSettings.currencyCode)
+  const currencyFormat: 'symbol' | 'code' = resolveCurrencyFormat(
+    assembly.invoiceSettings.currencyFormat
+  )
+
+  const invoiceSettings = {
+    bankAccount: assembly.invoiceSettings.bankAccount || '',
+    orgNumber: assembly.invoiceSettings.orgNumber || '',
+    paymentTerms: assembly.invoiceSettings.paymentTerms || '',
+    footerNote: assembly.invoiceSettings.footerNote || '',
+    showBankAccount: assembly.invoiceSettings.showBankAccount !== false,
+    showOrgNumber: assembly.invoiceSettings.showOrgNumber !== false,
+    dueDays: assembly.invoiceSettings.dueDays || 0,
+  }
+
+  const showLogo = assembly.template.showLogo !== false
+  const showCompanyName = assembly.template.showCompanyName !== false
+
+  // The vendors the customer can pay through, whichever side of the move
+  // into the integrations catalog they were connected on.
+  const enabledProviders = await offeredPaymentProviders(orgId)
+
+  // What reaches the browser: internal unitCost/markupPercent must never be
+  // in the customer-facing payload, attachment URLs go through the public
+  // file route, and the customer, vehicle and technician are the ones the
+  // sheet prints, frozen at issue or live for a draft.
+  const publicRecord = {
+    ...record,
+    techName: assembly.data.techName,
+    customer: assembly.data.customer,
+    vehicle: assembly.data.vehicle,
+    partItems: record.partItems.map((p) => ({
+      id: p.id,
+      partNumber: p.partNumber,
+      name: p.name,
+      quantity: p.quantity,
+      unit: p.unit,
+      category: p.category,
+      unitPrice: p.unitPrice,
+      total: p.total,
+    })),
+    attachments: record.attachments
+      .filter((att) => att.includeInInvoice !== false)
+      .map((att) => ({
+        ...att,
+        fileUrl: toPublicFileUrl(att.fileUrl, token),
+      })),
+  }
+
+  const acceptLanguage = (await headers()).get('accept-language')
+  const locale = await resolveCustomerLocale(orgId, acceptLanguage)
+  const [labels, conditionMap, certificateInspection] = await Promise.all([
+    loadPrintLabels(locale, assembly.labelSettings),
+    visitConditionMapIn(orgId, assembly.conditionMap, locale),
+    linkedCertificateInspectionId(orgId, record.inspectionId),
+  ])
+
+  // The Telegram code sits in the sheet, where the PDF prints it, so the
+  // shared copy and the download are the same document.
+  const [torqvoiceLogoDataUri, telegramQr] = await Promise.all([
+    features.brandingRemoved ? undefined : getTorqvoiceLogoDataUri(),
+    telegramQrForPrint(orgId, assembly.layoutConfig, documentCustomerId(assembly.record)),
+  ])
+
+  const spec = buildInvoicePrintSpec({
+    data: assembly.data,
+    workshop: assembly.workshop,
+    invoiceSettings: assembly.invoiceSettings,
+    paymentSummary: assembly.paymentSummary,
+    logoDataUri: assembly.logoDataUri,
+    signer: assembly.signer,
+    template: assembly.template,
+    torqvoiceLogoDataUri,
+    telegramQrDataUri: telegramQr?.dataUri,
+    telegramLabel: labels?.telegramConnect,
+    labels,
+    conditionMap,
+    inspectionResults: assembly.inspectionResults,
+  })
+
+  const termsOfSaleUrl =
+    settingsMap['payment.termsOfSaleUrl'] ||
+    (settingsMap['payment.termsOfSale'] ? `/share/terms/${orgId}` : undefined)
+
+  const appUrl = getAppBaseUrl()
+  const portalSlug = org?.portalSlug
+  const portalEnabled = settingsMap['portal.enabled'] === 'true'
+  const portalUrl = portalEnabled ? `${appUrl}/portal/${portalSlug || orgId}` : undefined
+
+  return (
+    <InvoiceView
+      spec={spec}
+      record={publicRecord}
+      workshop={workshop}
+      currencyCode={currencyCode}
+      currencyFormat={currencyFormat}
+      orgId={orgId}
+      token={token}
+      enabledProviders={enabledProviders}
+      invoiceSettings={invoiceSettings}
+      logoUrl={assembly.logoDataUri || ''}
+      showLogo={showLogo}
+      showCompanyName={showCompanyName}
+      showTorqvoiceBranding={!features.brandingRemoved}
+      dateFormat={assembly.invoiceSettings.dateFormat}
+      timezone={assembly.invoiceSettings.timezone}
+      termsOfSaleUrl={termsOfSaleUrl}
+      primaryColor={assembly.template.primaryColor || '#d97706'}
+      headerStyle={assembly.template.headerStyle || 'standard'}
+      logoSize={assembly.template.logoSize || 100}
+      portalUrl={portalUrl}
+      layoutConfig={assembly.layoutConfig}
+      customFields={assembly.data.customFields}
+      findings={assembly.data.findings}
+      serviceType={assembly.serviceType}
+      taxLabel={assembly.taxLabel}
+      certificateUrl={
+        certificateInspection
+          ? `/api/public/share/invoice/${orgParam}/${token}/certificate`
+          : undefined
+      }
+    />
+  )
+}

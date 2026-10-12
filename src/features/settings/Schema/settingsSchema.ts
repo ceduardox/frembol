@@ -1,0 +1,326 @@
+import { z } from 'zod'
+
+export const SETTING_KEYS = {
+  COMPANY_LOGO: 'workshop.logo',
+  WORKSHOP_ADDRESS: 'workshop.address',
+  /// One line under the shop's name on its documents, e.g. what it specialises
+  /// in and where. Empty means the letterhead carries the name alone.
+  WORKSHOP_SLOGAN: 'workshop.slogan',
+  WORKSHOP_PHONE: 'workshop.phone',
+  WORKSHOP_EMAIL: 'workshop.email',
+  DEFAULT_TAX_RATE: 'workshop.defaultTaxRate',
+  TAX_ENABLED: 'workshop.taxEnabled',
+  TAX_INCLUSIVE: 'workshop.taxInclusive',
+  TAX_LABEL: 'workshop.taxLabel',
+  /**
+   * `single` (the default) or `split`. Split means the workshop charges more
+   * than one tax on a document and lists them in TAX_COMPONENTS; the default
+   * rate is then their sum, kept in step by the settings page.
+   */
+  TAX_MODE: 'workshop.taxMode',
+  /** JSON array of tax components; see src/lib/tax-components.ts. */
+  TAX_COMPONENTS: 'workshop.taxComponents',
+  ORG_NUMBER_LABEL: 'workshop.orgNumberLabel',
+  INVOICE_PREFIX: 'workshop.invoicePrefix',
+  INVOICE_START_NUMBER: 'workshop.invoiceStartNumber',
+  CURRENCY_SYMBOL: 'workshop.currencySymbol',
+  CURRENCY_CODE: 'workshop.currencyCode',
+  CURRENCY_FORMAT: 'workshop.currencyFormat',
+  INVOICE_BANK_ACCOUNT: 'invoice.bankAccount',
+  INVOICE_ORG_NUMBER: 'invoice.orgNumber',
+  INVOICE_PAYMENT_TERMS: 'invoice.paymentTerms',
+  INVOICE_FOOTER_NOTE: 'invoice.footerNote',
+  INVOICE_SHOW_BANK_ACCOUNT: 'invoice.showBankAccount',
+  INVOICE_SHOW_ORG_NUMBER: 'invoice.showOrgNumber',
+  INVOICE_LINE_ITEMS_INCL_TAX: 'invoice.lineItemsInclTax',
+  INVOICE_DUE_DAYS: 'invoice.dueDays',
+  /** See src/features/settings/Lib/shopFee.ts. */
+  SHOP_FEE_ENABLED: 'invoice.shopFeeEnabled',
+  SHOP_FEE_LABEL: 'invoice.shopFeeLabel',
+  /** 'flat' | 'percent' */
+  SHOP_FEE_MODE: 'invoice.shopFeeMode',
+  SHOP_FEE_AMOUNT: 'invoice.shopFeeAmount',
+  SHOP_FEE_PERCENT: 'invoice.shopFeePercent',
+  /** 'labor' | 'laborParts': what a percentage fee is a percentage of. */
+  SHOP_FEE_BASE: 'invoice.shopFeeBase',
+  /** Largest a percentage fee may come to; empty for no cap. */
+  SHOP_FEE_CAP: 'invoice.shopFeeCap',
+  /** 'both' | 'workOrders' | 'quotes': which new documents get the fee. */
+  SHOP_FEE_APPLIES_TO: 'invoice.shopFeeAppliesTo',
+  /** See src/lib/document-lock.ts for what these freeze and when. */
+  INVOICE_LOCK_ENABLED: 'invoice.lockEnabled',
+  INVOICE_LOCK_TRIGGER: 'invoice.lockTrigger',
+  QUOTE_LOCK_ENABLED: 'quote.lockEnabled',
+  QUOTE_LOCK_TRIGGER: 'quote.lockTrigger',
+  UNIT_SYSTEM: 'workshop.unitSystem',
+  DEFAULT_TECHNICIAN: 'workshop.defaultTechnician',
+  DEFAULT_TECHNICIAN_ID: 'workshop.defaultTechnicianId',
+  DEFAULT_LABOR_RATE: 'workshop.defaultLaborRate',
+  /**
+   * What a new work order is called before anybody types a title, written
+   * from tags such as {order_number} and {license_plate}. Unset means the
+   * default in src/features/vehicles/Lib/workOrderTitle.ts; saved empty means
+   * the plain "New Service Record" jobs always started as.
+   */
+  WORK_ORDER_TITLE_TEMPLATE: 'workshop.workOrderTitleTemplate',
+  QUOTE_PREFIX: 'workshop.quotePrefix',
+  QUOTE_VALID_DAYS: 'workshop.quoteValidDays',
+  EMAIL_FROM_NAME: 'email.fromName',
+  EMAIL_ENABLED: 'email.enabled',
+  /// Whether a document emailed from Torqvoice carries its PDF. Off sends the
+  /// share link instead, which is the only way to learn whether the customer
+  /// opened it.
+  EMAIL_ATTACH_PDF: 'email.attachPdf',
+  INVOICE_TEMPLATE: 'invoice.template',
+  INVOICE_PRIMARY_COLOR: 'invoice.primaryColor',
+  /// Sheet color behind the document. Empty means the paper stays white.
+  INVOICE_BACKGROUND_COLOR: 'invoice.backgroundColor',
+  /// Body and heading color. Empty means the near-black default.
+  INVOICE_TEXT_COLOR: 'invoice.textColor',
+  /// The company name on the letterhead. Empty leaves each header style its own
+  /// default: white on a colored band, the primary color on white.
+  INVOICE_COMPANY_TEXT_COLOR: 'invoice.companyTextColor',
+  /// Line where the sheet meets a framed letterhead. Empty means no line.
+  INVOICE_FRAME_BORDER_COLOR: 'invoice.frameBorderColor',
+  /// "false" prints the frame flat against the sheet, with no shadow.
+  INVOICE_FRAME_SHADOW: 'invoice.frameShadow',
+  /// Which edge the framed rail runs down: "left" or "right".
+  INVOICE_FRAME_SIDE: 'invoice.frameSide',
+  /// Rounding, in points, where the framed rail meets the header band.
+  INVOICE_FRAME_RADIUS: 'invoice.frameRadius',
+  INVOICE_FONT_FAMILY: 'invoice.fontFamily',
+  INVOICE_SHOW_LOGO: 'invoice.showLogo',
+  INVOICE_SHOW_COMPANY_NAME: 'invoice.showCompanyName',
+  INVOICE_HEADER_STYLE: 'invoice.headerStyle',
+  INVOICE_LOGO_SIZE: 'invoice.logoSize',
+  QUOTE_LOGO_SIZE: 'quote.logoSize',
+  PAYMENT_PROVIDERS_ENABLED: 'payment.providersEnabled',
+  PAYMENT_STRIPE_SECRET_KEY: 'payment.stripe.secretKey',
+  PAYMENT_STRIPE_PUBLISHABLE_KEY: 'payment.stripe.publishableKey',
+  PAYMENT_STRIPE_WEBHOOK_SECRET: 'payment.stripe.webhookSecret',
+  PAYMENT_VIPPS_CLIENT_ID: 'payment.vipps.clientId',
+  PAYMENT_VIPPS_CLIENT_SECRET: 'payment.vipps.clientSecret',
+  PAYMENT_VIPPS_SUBSCRIPTION_KEY: 'payment.vipps.subscriptionKey',
+  PAYMENT_VIPPS_MSN: 'payment.vipps.merchantSerialNumber',
+  PAYMENT_VIPPS_USE_TEST: 'payment.vipps.useTestMode',
+  PAYMENT_PAYPAL_CLIENT_ID: 'payment.paypal.clientId',
+  PAYMENT_PAYPAL_CLIENT_SECRET: 'payment.paypal.clientSecret',
+  PAYMENT_PAYPAL_USE_SANDBOX: 'payment.paypal.useSandbox',
+  PAYMENT_TERMS_OF_SALE: 'payment.termsOfSale',
+  PAYMENT_TERMS_OF_SALE_URL: 'payment.termsOfSaleUrl',
+  LICENSE_KEY: 'license.key',
+  /// The signed token from torqvoice.com. The only licence row the feature
+  /// gate reads; everything else under license.* is a display cache.
+  LICENSE_TOKEN: 'license.token',
+  LICENSE_VALID: 'license.valid',
+  LICENSE_CHECKED_AT: 'license.checkedAt',
+  LICENSE_PLAN: 'license.plan',
+  LICENSE_EXPIRES_AT: 'license.expiresAt',
+  DATE_FORMAT: 'workshop.dateFormat',
+  TIME_FORMAT: 'workshop.timeFormat',
+  TIMEZONE: 'workshop.timezone',
+  /// The zone the last person to save settings had in their browser. What the
+  /// server uses when TIMEZONE is left on automatic, which only the browser
+  /// can resolve.
+  TIMEZONE_DETECTED: 'workshop.timezoneDetected',
+  QUOTE_PRIMARY_COLOR: 'quote.primaryColor',
+  QUOTE_BACKGROUND_COLOR: 'quote.backgroundColor',
+  QUOTE_TEXT_COLOR: 'quote.textColor',
+  QUOTE_COMPANY_TEXT_COLOR: 'quote.companyTextColor',
+  QUOTE_FRAME_BORDER_COLOR: 'quote.frameBorderColor',
+  QUOTE_FRAME_SHADOW: 'quote.frameShadow',
+  QUOTE_FRAME_SIDE: 'quote.frameSide',
+  QUOTE_FRAME_RADIUS: 'quote.frameRadius',
+  /// What the current design is based on: "preset:<id>" or "design:<id>".
+  INVOICE_ACTIVE_DESIGN: 'invoice.activeDesign',
+  QUOTE_ACTIVE_DESIGN: 'quote.activeDesign',
+  CERTIFICATE_ACTIVE_DESIGN: 'certificate.activeDesign',
+  WORK_ORDER_ACTIVE_DESIGN: 'work_order.activeDesign',
+  QUOTE_FONT_FAMILY: 'quote.fontFamily',
+  QUOTE_HEADER_STYLE: 'quote.headerStyle',
+  /// Inspection reminders and the booking link they carry.
+  INSPECTION_DURATION_MINUTES: 'inspectionReminders.durationMinutes',
+  INSPECTION_BOOKING_LEAD_DAYS: 'inspectionReminders.leadDays',
+  INSPECTION_BOOKING_HORIZON_WEEKS: 'inspectionReminders.horizonWeeks',
+  INSPECTION_BOOKING_RESERVE: 'inspectionReminders.walkInReserve',
+  INSPECTION_LINK_VALID_DAYS: 'inspectionReminders.linkValidDays',
+  INSPECTION_BOOKING_MODE: 'inspectionReminders.bookingMode',
+  INSPECTION_CONTACT_PHONE: 'inspectionReminders.phone',
+  INSPECTION_TEMPLATE_SMS: 'inspectionReminders.template.sms',
+  INSPECTION_TEMPLATE_EMAIL_SUBJECT: 'inspectionReminders.template.emailSubject',
+  INSPECTION_TEMPLATE_EMAIL_BODY: 'inspectionReminders.template.emailBody',
+  PREDICTED_MAINTENANCE_ENABLED: 'maintenance.enabled',
+  MAINTENANCE_SERVICE_INTERVAL: 'maintenance.serviceInterval',
+  MAINTENANCE_APPROACHING_THRESHOLD: 'maintenance.approachingThreshold',
+  INVENTORY_MARKUP_MULTIPLIER: 'inventory.markupMultiplier',
+  /// Unit of measure pre-filled on newly created inventory parts ("pcs",
+  /// "l", "qt"...). Empty means new parts start with no unit.
+  INVENTORY_DEFAULT_UNIT: 'inventory.defaultUnit',
+  /**
+   * Whether the desk is told when a technician moves a job from the app.
+   *
+   * On by default: the point of the technician app is that the office stops
+   * having to walk into the bay and ask, and a notification nobody switched on
+   * does not achieve that. A shop that finds it noisy can turn it off.
+   */
+  TECHNICIAN_STATUS_ALERTS: 'workshop.technicianStatusAlerts.inApp',
+
+  LOW_STOCK_ALERTS_ENABLED: 'inventory.lowStockAlerts.enabled',
+  /// Org-wide fallback reorder point, applied to parts with no minQuantity of
+  /// their own. 0 means only explicitly configured parts are watched.
+  LOW_STOCK_DEFAULT_THRESHOLD: 'inventory.lowStockAlerts.defaultThreshold',
+  LOW_STOCK_ALERTS_IN_APP: 'inventory.lowStockAlerts.inApp',
+  LOW_STOCK_ALERTS_EMAIL: 'inventory.lowStockAlerts.email',
+  LOW_STOCK_ALERTS_EMAIL_MIN_INTERVAL_HOURS: 'inventory.lowStockAlerts.emailMinIntervalHours',
+  /// Internal bookkeeping — the last time a digest actually went out, used to
+  /// enforce the minimum interval. Not user-editable.
+  LOW_STOCK_ALERTS_LAST_EMAIL_AT: 'inventory.lowStockAlerts.lastEmailAt',
+  PARTS_DEFAULT_MARKUP_PERCENT: 'parts.defaultMarkupPercent',
+  PARTS_MARKUP_APPLIES_TO_INVENTORY: 'parts.markupAppliesToInventory',
+  SMS_TEMPLATE_INVOICE_READY: 'sms.template.invoiceReady',
+  SMS_TEMPLATE_QUOTE_READY: 'sms.template.quoteReady',
+  SMS_TEMPLATE_INSPECTION_READY: 'sms.template.inspectionReady',
+  SMS_TEMPLATE_STATUS_IN_PROGRESS: 'sms.template.statusInProgress',
+  SMS_TEMPLATE_STATUS_WAITING_PARTS: 'sms.template.statusWaitingParts',
+  SMS_TEMPLATE_STATUS_READY: 'sms.template.statusReady',
+  SMS_TEMPLATE_STATUS_COMPLETED: 'sms.template.statusCompleted',
+  SMS_TEMPLATE_PAYMENT_RECEIVED: 'sms.template.paymentReceived',
+  // Telegram templates
+  TELEGRAM_TEMPLATE_INVOICE_READY: 'telegram.template.invoiceReady',
+  TELEGRAM_TEMPLATE_QUOTE_READY: 'telegram.template.quoteReady',
+  TELEGRAM_TEMPLATE_STATUS_IN_PROGRESS: 'telegram.template.statusInProgress',
+  TELEGRAM_TEMPLATE_STATUS_COMPLETED: 'telegram.template.statusCompleted',
+  TELEGRAM_TEMPLATE_PAYMENT_RECEIVED: 'telegram.template.paymentReceived',
+  PORTAL_ENABLED: 'portal.enabled',
+  PORTAL_DESCRIPTION: 'portal.description',
+  PORTAL_HOURS: 'portal.hours',
+  /// Off by default. Every service request already raises an in-app
+  /// notification; this adds email on top, and stays opt-in because a workshop
+  /// with no mail provider configured would otherwise generate failed sends.
+  SERVICE_REQUEST_ALERTS_EMAIL: 'portal.serviceRequestAlerts.email',
+  /// Optional free-text list of addresses. Empty means the alert goes to every
+  /// owner and admin in the organization.
+  SERVICE_REQUEST_ALERTS_RECIPIENTS: 'portal.serviceRequestAlerts.recipients',
+  PORTAL_BACKGROUND_TYPE: 'portal.background.type',
+  PORTAL_BACKGROUND_TEMPLATE: 'portal.background.template',
+  PORTAL_BACKGROUND_IMAGE: 'portal.background.image',
+  WORKBOARD_WEEK_START_DAY: 'workboard.weekStartDay',
+  WORKBOARD_WORK_DAY_START: 'workboard.workDayStart',
+  WORKBOARD_WORK_DAY_END: 'workboard.workDayEnd',
+  INVOICE_LAYOUT_CONFIG: 'invoice.layoutConfig',
+  QUOTE_LAYOUT_CONFIG: 'quote.layoutConfig',
+  CERTIFICATE_LAYOUT_CONFIG: 'certificate.layoutConfig',
+  WORK_ORDER_LAYOUT_CONFIG: 'work_order.layoutConfig',
+  // A mark for the paperwork alone. Unset means the documents print the
+  // company logo, which is what every sheet did before this existed.
+  INVOICE_LOGO: 'invoice.logo',
+  QUOTE_LOGO: 'quote.logo',
+  CERTIFICATE_LOGO: 'certificate.logo',
+  WORK_ORDER_LOGO: 'work_order.logo',
+  AI_PROVIDER: 'ai.provider',
+  AI_API_KEY: 'ai.apiKey',
+  AI_MODEL: 'ai.model',
+  AI_ENABLED: 'ai.enabled',
+  SERVICE_TYPE: 'workshop.serviceType',
+  WORKSHOP_LOCALE: 'workshop.locale',
+  WORKSHOP_DEFAULT_COUNTRY_CODE: 'workshop.defaultCountryCode',
+  FORCE_CUSTOMER_LOCALE: 'workshop.forceCustomerLocale',
+  /// Feature hints the workshop has already been shown, as a JSON array of
+  /// ids. Kept per workshop rather than per person: the hint announces that
+  /// something appeared in this workshop's sidebar, and once somebody here
+  /// has seen it, the workshop has been told.
+  FEATURE_HINTS_SEEN: 'featureHints.seen',
+  /// Hints raised by a setting being switched on and not yet dismissed.
+  /// Separate from the seen list because being eligible for a hint and
+  /// having been shown one are different things: a workshop that has had
+  /// Telegram on for a year is eligible forever and should never be told.
+  FEATURE_HINTS_PENDING: 'featureHints.pending',
+
+  /// Tire hotel is off until a workshop opts in. Everything about the module
+  /// — sidebar entry, routes, cron sweeps — keys off this one flag, so a shop
+  /// that does not store tires never sees it.
+  TIRE_HOTEL_ENABLED: 'tireHotel.enabled',
+  /// The German type key (HSN/TSN) on vehicles and the documents that name
+  /// them. Off until a workshop turns it on: outside Germany it is two empty
+  /// boxes on every vehicle. Turning it off hides it and keeps what was typed.
+  VEHICLE_TYPE_KEY_ENABLED: 'vehicle.typeKeyEnabled',
+  /// Tread depth below which a summer tire is flagged for replacement, in mm.
+  /// Legal minimums differ by country, so the workshop sets its own.
+  TIRE_HOTEL_SUMMER_REPLACE_MM: 'tireHotel.summerReplaceMm',
+  /// Same for winter tires, which lose grip well above the summer limit.
+  TIRE_HOTEL_WINTER_REPLACE_MM: 'tireHotel.winterReplaceMm',
+  /// Default number of tires a newly created shelf holds.
+  TIRE_HOTEL_DEFAULT_CAPACITY: 'tireHotel.defaultCapacity',
+  /// Warn in-app once the warehouse passes this fraction of total capacity.
+  TIRE_HOTEL_CAPACITY_WARN_PERCENT: 'tireHotel.capacityWarnPercent',
+  /// Prefilled storage fee, offered when a set is billed.
+  TIRE_HOTEL_DEFAULT_SEASONAL_PRICE: 'tireHotel.defaultSeasonalPrice',
+  /// What each kind of prep work is charged at, as JSON keyed by treatment
+  /// type. A type with no price here produces no line, which is how a shop
+  /// that folds washing into the storage fee keeps it off the invoice.
+  TIRE_HOTEL_TREATMENT_PRICES: 'tireHotel.treatmentPrices',
+  /// What a new quote or work order says about warranty before anybody
+  /// touches it: 'none', 'included' or 'not_included'. See
+  /// src/features/settings/Lib/warrantyDefaults.ts.
+  WARRANTY_DEFAULT_STATUS: 'warranty.defaultStatus',
+  WARRANTY_DEFAULT_MONTHS: 'warranty.defaultMonths',
+  WARRANTY_DEFAULT_MILEAGE: 'warranty.defaultMileage',
+  /// The terms printed under an included warranty.
+  WARRANTY_DEFAULT_TERMS: 'warranty.defaultTerms',
+  /// What is printed when the workshop offers no warranty of its own.
+  WARRANTY_NOT_INCLUDED_TEXT: 'warranty.notIncludedText',
+  /// Off when a workshop states its warranty on the invoice only, or on the
+  /// quote only. Unset means on.
+  WARRANTY_APPLY_TO_QUOTES: 'warranty.applyToQuotes',
+  WARRANTY_APPLY_TO_WORK_ORDERS: 'warranty.applyToWorkOrders',
+} as const
+
+export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS]
+
+export const workshopSettingsSchema = z.object({
+  [SETTING_KEYS.WORKSHOP_ADDRESS]: z.string().optional(),
+  [SETTING_KEYS.WORKSHOP_SLOGAN]: z.string().max(160).optional(),
+  [SETTING_KEYS.ORG_NUMBER_LABEL]: z.string().max(40).optional(),
+  [SETTING_KEYS.WORKSHOP_PHONE]: z.string().optional(),
+  [SETTING_KEYS.TIMEZONE_DETECTED]: z.string().max(64).optional(),
+  [SETTING_KEYS.INSPECTION_DURATION_MINUTES]: z.string().regex(/^\d+$/).optional(),
+  [SETTING_KEYS.INSPECTION_BOOKING_LEAD_DAYS]: z.string().regex(/^\d+$/).optional(),
+  [SETTING_KEYS.INSPECTION_BOOKING_HORIZON_WEEKS]: z.string().regex(/^\d+$/).optional(),
+  [SETTING_KEYS.INSPECTION_BOOKING_RESERVE]: z.string().regex(/^\d+$/).optional(),
+  [SETTING_KEYS.INSPECTION_LINK_VALID_DAYS]: z.string().regex(/^\d+$/).optional(),
+  [SETTING_KEYS.INSPECTION_BOOKING_MODE]: z.enum(['direct', 'request']).optional(),
+  [SETTING_KEYS.INSPECTION_CONTACT_PHONE]: z.string().max(40).optional(),
+  [SETTING_KEYS.INSPECTION_TEMPLATE_SMS]: z.string().max(1000).optional(),
+  [SETTING_KEYS.INSPECTION_TEMPLATE_EMAIL_SUBJECT]: z.string().max(200).optional(),
+  [SETTING_KEYS.INSPECTION_TEMPLATE_EMAIL_BODY]: z.string().max(4000).optional(),
+  [SETTING_KEYS.WORKSHOP_EMAIL]: z.string().email('Invalid email').optional().or(z.literal('')),
+  [SETTING_KEYS.DEFAULT_TAX_RATE]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_PREFIX]: z.string().optional(),
+  [SETTING_KEYS.CURRENCY_SYMBOL]: z.string().optional(),
+})
+
+export const invoiceSettingsSchema = z.object({
+  [SETTING_KEYS.INVOICE_BANK_ACCOUNT]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_ORG_NUMBER]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_PAYMENT_TERMS]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_FOOTER_NOTE]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_SHOW_BANK_ACCOUNT]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_SHOW_ORG_NUMBER]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_LINE_ITEMS_INCL_TAX]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_DUE_DAYS]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_ENABLED]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_LABEL]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_MODE]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_AMOUNT]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_PERCENT]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_BASE]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_CAP]: z.string().optional(),
+  [SETTING_KEYS.SHOP_FEE_APPLIES_TO]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_LOCK_ENABLED]: z.string().optional(),
+  [SETTING_KEYS.INVOICE_LOCK_TRIGGER]: z.string().optional(),
+  [SETTING_KEYS.QUOTE_LOCK_ENABLED]: z.string().optional(),
+  [SETTING_KEYS.QUOTE_LOCK_TRIGGER]: z.string().optional(),
+})
+
+export type WorkshopSettings = z.infer<typeof workshopSettingsSchema>
+export type InvoiceSettings = z.infer<typeof invoiceSettingsSchema>

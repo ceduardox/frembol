@@ -1,0 +1,122 @@
+import { NextResponse } from 'next/server'
+import Stripe from 'stripe'
+import { db } from '@/lib/db'
+import { paymentProviderFor } from '@/features/integrations/Lib/payments'
+import { paymentMatchesRecord } from '@/lib/payment-providers/attribution'
+import { fromStripeAmount } from '@/lib/payment-providers/vendor-amounts'
+import { stripeClient } from '@/lib/payment-providers/vendor-hosts'
+import { recordVendorPayment } from '@/lib/payment-providers/record-payment'
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.text()
+    const signature = request.headers.get('stripe-signature')
+
+    // Parse the raw body without trusting it — only to discover which org this
+    // webhook targets, so we can load that org's Stripe credentials. Nothing
+    // from this unverified payload is trusted for recording a payment.
+    let unverifiedEvent: Stripe.Event
+    try {
+      unverifiedEvent = JSON.parse(body) as Stripe.Event
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+
+    if (unverifiedEvent.type !== 'checkout.session.completed') {
+      return NextResponse.json({ received: true })
+    }
+
+    const unverifiedSession = (unverifiedEvent.data as Stripe.Event.Data)
+      .object as Stripe.Checkout.Session
+    const routingOrgId = unverifiedSession.metadata?.orgId
+    const unverifiedSessionId = unverifiedSession.id
+
+    if (!routingOrgId || !unverifiedSessionId) {
+      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
+    }
+
+    // The org's Stripe connection, adopted from the old settings rows if this
+    // is the first payment after the move.
+    const connected = await paymentProviderFor(routingOrgId, 'stripe')
+    const secretKey = connected?.setup.credentials.secretKey
+    if (typeof secretKey !== 'string' || !secretKey) {
+      return NextResponse.json({ error: 'Stripe not configured for this org' }, { status: 400 })
+    }
+    const webhookSecret = connected?.setup.credentials.webhookSecret
+    const signingSecret = typeof webhookSecret === 'string' ? webhookSecret : ''
+
+    const stripe = stripeClient(secretKey)
+
+    // Establish an AUTHENTIC session object. Two trust paths, never the body:
+    //  - webhook secret configured → verify the signature over the raw body;
+    //  - no webhook secret → re-fetch the session straight from Stripe with the
+    //    org's secret key. A forged session id will not resolve to a paid
+    //    session in the org's own Stripe account, so forgery is closed either
+    //    way while real payments keep recording.
+    let session: Stripe.Checkout.Session
+
+    if (signingSecret) {
+      if (!signature) {
+        return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 })
+      }
+      let event: Stripe.Event
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, signingSecret)
+      } catch {
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+      }
+      if (event.type !== 'checkout.session.completed') {
+        return NextResponse.json({ received: true })
+      }
+      session = event.data.object as Stripe.Checkout.Session
+    } else {
+      try {
+        session = await stripe.checkout.sessions.retrieve(unverifiedSessionId)
+      } catch {
+        return NextResponse.json({ error: 'Unknown session' }, { status: 400 })
+      }
+    }
+
+    // From here on `session` is authentic; read every field from it.
+    const orgId = session.metadata?.orgId
+    const serviceRecordId = session.metadata?.serviceRecordId
+
+    if (!orgId || !serviceRecordId) {
+      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
+    }
+
+    // Verify the session is actually paid
+    if (session.payment_status !== 'paid') {
+      return NextResponse.json({ received: true })
+    }
+
+    // Verify service record exists and belongs to this org
+    const record = await db.serviceRecord.findUnique({
+      where: { id: serviceRecordId },
+      select: { id: true, organizationId: true },
+    })
+
+    if (
+      record &&
+      paymentMatchesRecord(
+        { serviceRecordId, organizationId: orgId },
+        { serviceRecordId: record.id, organizationId: record.organizationId ?? '' }
+      )
+    ) {
+      // Once, however many reports arrive together: Stripe retries, and the
+      // customer coming back to the invoice reports the same session.
+      await recordVendorPayment({
+        amount: fromStripeAmount(session.amount_total ?? 0, session.currency),
+        method: 'stripe',
+        provider: 'stripe',
+        externalId: session.id,
+        serviceRecordId,
+      })
+    }
+
+    return NextResponse.json({ received: true })
+  } catch (error) {
+    console.error('[Stripe Webhook] Error:', error)
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+  }
+}

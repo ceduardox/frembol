@@ -1,0 +1,1005 @@
+'use client'
+
+import { useRememberedSort } from '@/hooks/use-remembered-sort'
+import { interactiveRow } from '@/lib/interactive-row'
+import { fitColumnWidth } from '@/lib/table-utils'
+import { useTableKeyboardNav } from '@/hooks/use-table-keyboard-nav'
+import { useState, useCallback, useTransition, useRef, useEffect } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import { DataTablePagination } from '@/components/data-table-pagination'
+import { TableContextMenuHint } from '@/components/table-context-menu-hint'
+import { TableCellLink } from '@/components/table-cell-link'
+import { useGlassModal } from '@/components/glass-modal'
+import { useConfirm } from '@/components/confirm-dialog'
+import { VehicleForm } from '@/features/vehicles/Components/VehicleForm'
+import { deleteVehicle } from '@/features/vehicles/Actions/vehicleActions'
+import { unarchiveVehicle } from '@/features/vehicles/Actions/unarchiveVehicle'
+import { ArchiveVehicleDialog } from '@/features/vehicles/Components/ArchiveVehicleDialog'
+import { ImportWizard } from '@/features/import/Components/ImportWizard'
+import { toast } from 'sonner'
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ExternalLink,
+  Gauge,
+  Grid3X3,
+  LayoutGrid,
+  List,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  Users,
+  Wrench,
+  Send,
+  Car,
+} from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useFormatDate } from '@/lib/use-format-date'
+import { useServiceType } from '@/components/service-type-context'
+import { ListEmpty } from '@/components/list-empty'
+
+interface Vehicle {
+  id: string
+  make: string
+  model: string
+  year: number
+  vin: string | null
+  licensePlate: string | null
+  color: string | null
+  mileage: number
+  fuelType: string | null
+  transmission: string | null
+  engineSize: string | null
+  engineCode: string | null
+  hsn: string | null
+  tsn: string | null
+  imageUrl: string | null
+  customerId: string | null
+  customer: { id: string; name: string; company: string | null } | null
+  inspectionStatus?: { dueAt: Date | string | null; source: string } | null
+  _count: { serviceRecords: number }
+}
+
+interface CustomerOption {
+  id: string
+  name: string
+  company: string | null
+}
+
+interface PaginatedData {
+  vehicles: Vehicle[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+  archivedCount: number
+  hasInspectionData?: boolean
+}
+
+type InspectionDueFilter = 'overdue' | 30 | 90
+
+const VIEW_COOKIE = 'torqvoice-vehicles-view'
+
+/** How urgent a periodic inspection date is, for the badge colour. */
+function inspectionTone(dueAt: Date | string): 'overdue' | 'soon' | 'later' {
+  const days = (new Date(dueAt).getTime() - Date.now()) / 86_400_000
+  if (days < 0) return 'overdue'
+  if (days < 30) return 'soon'
+  return 'later'
+}
+
+const INSPECTION_TONE_CLASS: Record<ReturnType<typeof inspectionTone>, string> = {
+  overdue: 'border-destructive/40 bg-destructive/10 text-destructive',
+  soon: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  later: 'border-border bg-muted text-muted-foreground',
+}
+
+export function VehiclesClient({
+  data,
+  customers,
+  search,
+  sortBy = '',
+  sortOrder = 'desc',
+  initialView = 'table',
+  isArchived = false,
+  archivedCount = 0,
+  inspectionDue,
+  hasInspectionData = false,
+}: {
+  data: PaginatedData
+  customers: CustomerOption[]
+  search: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+  initialView?: 'table' | 'grid' | 'grid6'
+  isArchived?: boolean
+  archivedCount?: number
+  /** Active periodic-inspection filter, from the URL. */
+  inspectionDue?: InspectionDueFilter
+  /** Whether any vehicle has an inspection date, which is when the filter is offered. */
+  hasInspectionData?: boolean
+}) {
+  const serviceType = useServiceType()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const [isPending, startTransition] = useTransition()
+  const t = useTranslations('vehicles.list')
+  const tc = useTranslations('common.buttons')
+  const tcm = useTranslations('common.contextMenu')
+  const { formatDate } = useFormatDate()
+  const [showForm, setShowForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [createCustomerId, setCreateCustomerId] = useState<string | undefined>(undefined)
+  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null)
+  const [view, setView] = useState<'table' | 'grid' | 'grid6'>(initialView)
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string } | null>(null)
+  const tableNav = useTableKeyboardNav()
+  useRememberedSort('vehicles')
+  const modal = useGlassModal()
+  const confirm = useConfirm()
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setCreateCustomerId(searchParams.get('customerId') || undefined)
+      setShowForm(true)
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete('create')
+      params.delete('customerId')
+      const cleanUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+      window.history.replaceState(null, '', cleanUrl)
+    }
+  }, [searchParams, pathname])
+
+  const toggleView = (v: 'table' | 'grid' | 'grid6') => {
+    setView(v)
+    document.cookie = `${VIEW_COOKIE}=${v};path=/;max-age=${60 * 60 * 24 * 365}`
+  }
+
+  const navigate = useCallback(
+    (params: Record<string, string | number | undefined>) => {
+      const newParams = new URLSearchParams(searchParams.toString())
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === '') {
+          newParams.delete(key)
+        } else {
+          newParams.set(key, String(value))
+        }
+      }
+      if (!('page' in params) && ('search' in params || 'sortBy' in params)) {
+        newParams.delete('page')
+      }
+      startTransition(() => {
+        router.push(`${pathname}?${newParams.toString()}`)
+      })
+    },
+    [router, pathname, searchParams]
+  )
+
+  const handleSort = useCallback(
+    (column: string) => {
+      const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc'
+      navigate({ sortBy: column, sortOrder: newOrder })
+    },
+    [navigate, sortBy, sortOrder]
+  )
+
+  const mileageLabel = serviceType === 'marine' ? t('table.mileageMarine') : t('table.mileage')
+  const columnWidths = {
+    plate: fitColumnWidth(
+      t('table.plate'),
+      data.vehicles.map((v) => v.licensePlate)
+    ),
+    mileage: fitColumnWidth(
+      mileageLabel,
+      data.vehicles.map((v) => new Intl.NumberFormat('en-US').format(v.mileage))
+    ),
+    services: fitColumnWidth(
+      t('table.services'),
+      data.vehicles.map((v) => v._count.serviceRecords)
+    ),
+  }
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+    return sortOrder === 'asc' ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    )
+  }
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        navigate({ search: value || undefined })
+      }, 300)
+    },
+    [navigate]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: t('deleteTitle'),
+      description: t('deleteDescription', { name }),
+      confirmLabel: tc('delete'),
+      destructive: true,
+    })
+    if (!ok) return
+    const result = await deleteVehicle(id)
+    if (result.success) {
+      router.refresh()
+    } else {
+      modal.open('error', 'Error', result.error || t('deleteError'))
+    }
+  }
+
+  const handleUnarchive = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: t('unarchiveTitle'),
+      description: t('unarchiveDescription', { name }),
+      confirmLabel: t('unarchive'),
+    })
+    if (!ok) return
+    const result = await unarchiveVehicle(id)
+    if (result.success) {
+      toast.success(t('vehicleUnarchived'))
+      router.refresh()
+    } else {
+      modal.open('error', 'Error', result.error || t('unarchiveError'))
+    }
+  }
+
+  const emptyState =
+    search || isArchived ? (
+      <div className="flex h-32 shrink-0 items-center justify-center rounded-lg border text-muted-foreground">
+        {search ? t('emptySearch') : t('emptyArchived')}
+      </div>
+    ) : (
+      <ListEmpty
+        icon={Car}
+        title={t('empty')}
+        action={
+          <Button onClick={() => setShowForm(true)} className="w-full sm:w-auto">
+            <Plus className="mr-1 h-4 w-4" />
+            {t('addVehicle')}
+          </Button>
+        }
+        secondary={
+          <Button variant="ghost" size="sm" onClick={() => setShowImport(true)}>
+            <Upload className="mr-1 h-3.5 w-3.5" />
+            {t('importVehicles')}
+          </Button>
+        }
+      />
+    )
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      {/* Toolbar */}
+      <div className="flex shrink-0 flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="flex flex-1 items-center gap-2 min-w-0">
+          <div className="flex gap-1 rounded-lg border p-1 shrink-0">
+            <button
+              onClick={() => router.push('/vehicles')}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                !isArchived
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('active')}
+            </button>
+            <button
+              onClick={() => router.push('/vehicles?archived=true')}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                isArchived
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('archived')}
+              {archivedCount > 0 ? ` (${archivedCount})` : ''}
+            </button>
+          </div>
+          {hasInspectionData && !isArchived && (
+            <div className="hidden gap-1 rounded-lg border p-1 shrink-0 sm:flex">
+              {(
+                [
+                  ['overdue', t('inspectionOverdue')],
+                  [30, t('inspectionDue30')],
+                  [90, t('inspectionDue90')],
+                ] as [InspectionDueFilter, string][]
+              ).map(([value, label]) => (
+                <button
+                  key={String(value)}
+                  type="button"
+                  onClick={() =>
+                    router.push(inspectionDue === value ? '/vehicles' : `/vehicles?due=${value}`)
+                  }
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    inspectionDue === value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {inspectionDue && !isArchived && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:inline-flex"
+              onClick={() =>
+                router.push(
+                  `/vehicles/inspection-reminders?due=${inspectionDue === 'overdue' ? 30 : inspectionDue}`
+                )
+              }
+            >
+              <Send className="mr-1.5 h-3.5 w-3.5" />
+              {t('remindCustomers')}
+            </Button>
+          )}
+          <div className="relative flex-1 min-w-0 sm:max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('searchPlaceholder')}
+              defaultValue={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="h-9 pl-9"
+              {...tableNav.searchInputProps}
+            />
+          </div>
+          {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        </div>
+        <div className="flex items-center justify-between gap-2 shrink-0 flex-1 sm:flex-none">
+          <div className="flex items-center rounded-md border">
+            <Button
+              variant={view === 'table' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-9 w-9 rounded-r-none md:h-8 md:w-8"
+              onClick={() => toggleView('table')}
+              aria-label={t('viewTable')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={view === 'grid' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-9 w-9 rounded-l-none border-l md:h-8 md:w-8 lg:rounded-none lg:border-x"
+              onClick={() => toggleView('grid')}
+              aria-label={t('viewGrid')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={view === 'grid6' ? 'secondary' : 'ghost'}
+              size="icon"
+              className="hidden h-9 w-9 rounded-l-none md:h-8 md:w-8 lg:inline-flex"
+              onClick={() => toggleView('grid6')}
+              aria-label={t('viewLargeGrid')}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
+          {!isArchived && (
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowImport(true)}
+                aria-label={t('importVehicles')}
+                title={t('importVehicles')}
+                className="h-9 w-9 p-0 md:h-8 md:w-auto md:px-3"
+              >
+                <Upload className="h-4 w-4 md:mr-1 md:h-3.5 md:w-3.5" />
+                <span className="hidden md:inline">{t('importVehicles')}</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowForm(true)}
+                aria-label={t('addVehicle')}
+                title={t('addVehicle')}
+                className="h-9 w-9 p-0 md:h-8 md:w-auto md:px-3"
+              >
+                <Plus className="h-4 w-4 md:mr-1 md:h-3.5 md:w-3.5" />
+                <span className="hidden md:inline">{t('addVehicle')}</span>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {data.vehicles.length === 0 ? (
+        emptyState
+      ) : view === 'table' ? (
+        <>
+          {/* Card list (phones + small tablets) - only this scrolls */}
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto md:hidden">
+            {data.vehicles.map((v) => (
+              <div key={v.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => router.push(`/vehicles/${v.id}`)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {v.year} {v.make} {v.model}
+                    </span>
+                    {v.licensePlate && (
+                      <span className="shrink-0 font-mono text-sm">{v.licensePlate}</span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    {v.customer && <span className="truncate">{v.customer.name}</span>}
+                    <span className="font-mono">
+                      {new Intl.NumberFormat('en-US').format(v.mileage)}
+                    </span>
+                    <span>
+                      {t('table.services')}: {v._count.serviceRecords}
+                    </span>
+                    {v.inspectionStatus?.dueAt && (
+                      <span
+                        className={`rounded border px-1.5 py-0.5 ${INSPECTION_TONE_CLASS[inspectionTone(v.inspectionStatus.dueAt)]}`}
+                      >
+                        {t('inspectionDue', { date: formatDate(v.inspectionStatus.dueAt) })}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="-mr-1 h-9 w-9 shrink-0"
+                      aria-label={t('openMenu')}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!isArchived && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setEditVehicle(v)
+                          setShowForm(true)
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        {t('edit')}
+                      </DropdownMenuItem>
+                    )}
+                    {isArchived ? (
+                      <DropdownMenuItem
+                        onClick={() => handleUnarchive(v.id, `${v.year} ${v.make} ${v.model}`)}
+                      >
+                        <ArchiveRestore className="mr-2 h-4 w-4" />
+                        {t('unarchive')}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() =>
+                          setArchiveTarget({ id: v.id, name: `${v.year} ${v.make} ${v.model}` })
+                        }
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        {t('archive')}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDelete(v.id, `${v.year} ${v.make} ${v.model}`)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {t('delete')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          {/* Table (md and up) - only the rows scroll */}
+          <div
+            className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border md:flex"
+            {...tableNav.containerProps}
+          >
+            <TableContextMenuHint />
+            <Table containerClassName="min-h-0 flex-1" className="table-fixed">
+              <TableHeader sticky>
+                <TableRow>
+                  <TableHead style={{ width: columnWidths.plate }}>
+                    <button
+                      type="button"
+                      className="flex items-center hover:text-foreground"
+                      onClick={() => handleSort('plate')}
+                    >
+                      {t('table.plate')}
+                      <SortIcon column="plate" />
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="flex items-center hover:text-foreground"
+                      onClick={() => handleSort('vehicle')}
+                    >
+                      {t('table.vehicle')}
+                      <SortIcon column="vehicle" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="hidden w-[24%] sm:table-cell">
+                    <button
+                      type="button"
+                      className="flex items-center hover:text-foreground"
+                      onClick={() => handleSort('customer')}
+                    >
+                      {t('table.customer')}
+                      <SortIcon column="customer" />
+                    </button>
+                  </TableHead>
+                  <TableHead
+                    className="hidden md:table-cell"
+                    style={{ width: columnWidths.mileage }}
+                  >
+                    <button
+                      type="button"
+                      className="ml-auto flex items-center hover:text-foreground"
+                      onClick={() => handleSort('mileage')}
+                    >
+                      {mileageLabel}
+                      <SortIcon column="mileage" />
+                    </button>
+                  </TableHead>
+                  <TableHead style={{ width: columnWidths.services }}>
+                    <button
+                      type="button"
+                      className="mx-auto flex items-center hover:text-foreground"
+                      onClick={() => handleSort('services')}
+                    >
+                      {t('table.services')}
+                      <SortIcon column="services" />
+                    </button>
+                  </TableHead>
+                  <TableHead className="w-[50px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.vehicles.map((v) => (
+                  <ContextMenu key={v.id} modal={false}>
+                    <ContextMenuTrigger asChild>
+                      <TableRow
+                        className="cursor-pointer"
+                        {...interactiveRow(() => router.push(`/vehicles/${v.id}`))}
+                      >
+                        <TableCell className="font-mono text-sm">{v.licensePlate || '-'}</TableCell>
+                        <TableCell className="truncate">
+                          <span className="font-medium">
+                            {v.year} {v.make} {v.model}
+                          </span>
+                          {v.inspectionStatus?.dueAt && (
+                            <span
+                              className={`ml-2 rounded border px-1.5 py-0.5 font-sans text-xs ${INSPECTION_TONE_CLASS[inspectionTone(v.inspectionStatus.dueAt)]}`}
+                            >
+                              {t('inspectionDue', { date: formatDate(v.inspectionStatus.dueAt) })}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden truncate sm:table-cell text-muted-foreground">
+                          {v.customer ? (
+                            <TableCellLink href={`/customers/${v.customer.id}`}>
+                              {v.customer.name}
+                            </TableCellLink>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-right font-mono text-sm">
+                          {new Intl.NumberFormat('en-US').format(v.mileage)}
+                        </TableCell>
+                        <TableCell className="text-center">{v._count.serviceRecords}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label={t('openMenu')}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {!isArchived && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditVehicle(v)
+                                    setShowForm(true)
+                                  }}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  {t('edit')}
+                                </DropdownMenuItem>
+                              )}
+                              {isArchived ? (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleUnarchive(v.id, `${v.year} ${v.make} ${v.model}`)
+                                  }}
+                                >
+                                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                                  {t('unarchive')}
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setArchiveTarget({
+                                      id: v.id,
+                                      name: `${v.year} ${v.make} ${v.model}`,
+                                    })
+                                  }}
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  {t('archive')}
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDelete(v.id, `${v.year} ${v.make} ${v.model}`)
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t('delete')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="min-w-52">
+                      <ContextMenuItem onClick={() => router.push(`/vehicles/${v.id}`)}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {tcm('open')}
+                      </ContextMenuItem>
+                      {v.customer && (
+                        <ContextMenuItem
+                          onClick={() => router.push(`/customers/${v.customer?.id}`)}
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          {tcm('openCustomer')}
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuSeparator />
+                      {!isArchived && (
+                        <ContextMenuItem
+                          onClick={() => {
+                            setEditVehicle(v)
+                            setShowForm(true)
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          {t('edit')}
+                        </ContextMenuItem>
+                      )}
+                      {isArchived ? (
+                        <ContextMenuItem
+                          onClick={() => handleUnarchive(v.id, `${v.year} ${v.make} ${v.model}`)}
+                        >
+                          <ArchiveRestore className="mr-2 h-4 w-4" />
+                          {t('unarchive')}
+                        </ContextMenuItem>
+                      ) : (
+                        <ContextMenuItem
+                          onClick={() =>
+                            setArchiveTarget({ id: v.id, name: `${v.year} ${v.make} ${v.model}` })
+                          }
+                        >
+                          <Archive className="mr-2 h-4 w-4" />
+                          {t('archive')}
+                        </ContextMenuItem>
+                      )}
+                      <ContextMenuItem
+                        variant="destructive"
+                        onClick={() => handleDelete(v.id, `${v.year} ${v.make} ${v.model}`)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('delete')}
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      ) : isPending ? (
+        /* Grid skeleton */
+        <div
+          className={`-m-1 grid min-h-0 flex-1 auto-rows-max content-start gap-4 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3 ${view === 'grid6' ? 'xl:grid-cols-4 2xl:grid-cols-6' : 'xl:grid-cols-4'}`}
+        >
+          {Array.from({ length: view === 'grid6' ? 12 : 6 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden border-0 py-0 gap-0 shadow-sm">
+              <Skeleton className="aspect-[16/10] rounded-none" />
+              <CardContent className="flex items-center justify-between px-4 py-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* Grid view. Rows are sized to their content explicitly: the cards
+           clip their hover zoom with overflow-hidden, which makes each one
+           a scroll container whose minimum height is zero, so auto rows in
+           this fixed-height list would split its height evenly between
+           every row on the page instead. On a phone that was one thin
+           strip per vehicle; on a desktop the title was clipped away. */
+        <div
+          className={`-m-1 grid min-h-0 flex-1 auto-rows-max content-start gap-4 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-3 ${view === 'grid6' ? 'xl:grid-cols-4 2xl:grid-cols-6' : 'xl:grid-cols-4'}`}
+        >
+          {data.vehicles.map((v) => (
+            <ContextMenu key={v.id} modal={false}>
+              <ContextMenuTrigger asChild>
+                <Card className="group overflow-hidden border-0 py-0 gap-0 shadow-sm transition-all hover:shadow-lg hover:-translate-y-0.5">
+                  <Link href={`/vehicles/${v.id}`}>
+                    <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                      <Image
+                        src={v.imageUrl || '/car_placeholder.avif'}
+                        alt={`${v.year} ${v.make} ${v.model}`}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div
+                        className={`absolute inset-x-0 bottom-0 ${view === 'grid6' ? 'p-2' : 'p-4'}`}
+                      >
+                        <h3
+                          className={`font-bold text-white drop-shadow-sm ${view === 'grid6' ? 'text-sm' : 'text-lg'}`}
+                        >
+                          {v.year} {v.make} {v.model}
+                        </h3>
+                        {v.licensePlate && (
+                          <p
+                            className={`font-mono text-white/80 ${view === 'grid6' ? 'text-[10px]' : 'mt-0.5 text-xs'}`}
+                          >
+                            {v.licensePlate}
+                          </p>
+                        )}
+                      </div>
+                      {/* Action menu - desktop only */}
+                      <div className="absolute right-2 top-2 hidden sm:block opacity-0 transition-opacity group-hover:opacity-100">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={t('openMenu')}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!isArchived && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setEditVehicle(v)
+                                  setShowForm(true)
+                                }}
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                {t('edit')}
+                              </DropdownMenuItem>
+                            )}
+                            {isArchived ? (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  handleUnarchive(v.id, `${v.year} ${v.make} ${v.model}`)
+                                }}
+                              >
+                                <ArchiveRestore className="mr-2 h-4 w-4" />
+                                {t('unarchive')}
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setArchiveTarget({
+                                    id: v.id,
+                                    name: `${v.year} ${v.make} ${v.model}`,
+                                  })
+                                }}
+                              >
+                                <Archive className="mr-2 h-4 w-4" />
+                                {t('archive')}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                handleDelete(v.id, `${v.year} ${v.make} ${v.model}`)
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              {t('delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <CardContent
+                      className={`flex items-center justify-between ${view === 'grid6' ? 'px-2 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+                    >
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Gauge className={view === 'grid6' ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                        <span className="font-medium">
+                          {new Intl.NumberFormat('en-US').format(v.mileage)}
+                        </span>
+                      </div>
+                      <div
+                        className={`flex items-center ${view === 'grid6' ? 'gap-2' : 'gap-3'} text-foreground`}
+                      >
+                        {v.customer && (
+                          <span
+                            className={
+                              view === 'grid6' ? 'text-[10px] hidden xl:inline' : 'text-xs'
+                            }
+                          >
+                            {v.customer.name}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Wrench className={view === 'grid6' ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                          <span>{v._count.serviceRecords}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </Card>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="min-w-52">
+                <ContextMenuItem onClick={() => router.push(`/vehicles/${v.id}`)}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {tcm('open')}
+                </ContextMenuItem>
+                {v.customer && (
+                  <ContextMenuItem onClick={() => router.push(`/customers/${v.customer?.id}`)}>
+                    <Users className="mr-2 h-4 w-4" />
+                    {tcm('openCustomer')}
+                  </ContextMenuItem>
+                )}
+                <ContextMenuSeparator />
+                {!isArchived && (
+                  <ContextMenuItem
+                    onClick={() => {
+                      setEditVehicle(v)
+                      setShowForm(true)
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('edit')}
+                  </ContextMenuItem>
+                )}
+                {isArchived ? (
+                  <ContextMenuItem
+                    onClick={() => handleUnarchive(v.id, `${v.year} ${v.make} ${v.model}`)}
+                  >
+                    <ArchiveRestore className="mr-2 h-4 w-4" />
+                    {t('unarchive')}
+                  </ContextMenuItem>
+                ) : (
+                  <ContextMenuItem
+                    onClick={() =>
+                      setArchiveTarget({ id: v.id, name: `${v.year} ${v.make} ${v.model}` })
+                    }
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    {t('archive')}
+                  </ContextMenuItem>
+                )}
+                <ContextMenuItem
+                  variant="destructive"
+                  onClick={() => handleDelete(v.id, `${v.year} ${v.make} ${v.model}`)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t('delete')}
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          ))}
+        </div>
+      )}
+
+      <DataTablePagination
+        total={data.total}
+        page={data.page}
+        pageSize={data.pageSize}
+        totalPages={data.totalPages}
+        onNavigate={navigate}
+      />
+
+      <ImportWizard open={showImport} onOpenChange={setShowImport} entity="vehicles" lockEntity />
+
+      <VehicleForm
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open)
+          if (!open) {
+            setEditVehicle(null)
+            setCreateCustomerId(undefined)
+          }
+        }}
+        vehicle={editVehicle ?? undefined}
+        customers={customers}
+        defaultCustomerId={createCustomerId}
+      />
+
+      <ArchiveVehicleDialog
+        open={!!archiveTarget}
+        onOpenChange={(open) => {
+          if (!open) setArchiveTarget(null)
+        }}
+        vehicleId={archiveTarget?.id ?? ''}
+        vehicleName={archiveTarget?.name ?? ''}
+      />
+    </div>
+  )
+}

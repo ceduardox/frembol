@@ -1,0 +1,149 @@
+{
+  "weekdays": {
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
+  },
+  "months": {
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
+  },
+  "stats": {
+    "services": "Services",
+    "overdue": "Overdue",
+    "pendingQuotes": "Pending Quotes",
+    "revenue": "Revenue"
+  },
+  "today": "Today",
+  "workOrder": "Work Order",
+  "allDay": "All day",
+  "openDay": "Open {date}",
+  "dayTotal": "{count, plural, =1 {1 event} other {# events}}",
+  "views": {
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "schedule": "Schedule",
+    "fourDays": "4 days"
+  },
+  "options": {
+    "showWeekends": "Show weekends",
+    "showCompleted": "Show completed",
+    "showWeekNumbers": "Show week numbers"
+  },
+  "toolbar": {
+    "previous": "Previous",
+    "next": "Next",
+    "create": "Create",
+    "showSidebar": "Show side panel",
+    "hideSidebar": "Hide side panel"
+  },
+  "sidebar": {
+    "calendars": "Calendars",
+    "legend": "Status colours"
+  },
+  "schedule": {
+    "empty": "Nothing scheduled",
+    "emptyHint": "No work orders, reminders, quotes or messages in this period."
+  },
+  "peek": {
+    "close": "Close",
+    "open": {
+      "service": "Open work order",
+      "reminder": "Open reminder",
+      "quote": "Open quote",
+      "message": "Open messages",
+      "external": "Open"
+    }
+  },
+  "filters": {
+    "services": "Work orders",
+    "reminders": "Reminders",
+    "quotes": "Quotes",
+    "messages": "Messages",
+    "external": "Connected calendars"
+  },
+  "selectVehicle": "Select Vehicle for Work Order",
+  "dateChoice": {
+    "title": "Work Order Date",
+    "description": "You have {selectedDate} selected. Which date should this work order be for?",
+    "useSelected": "Use {date}",
+    "useToday": "Use today"
+  },
+  "more": "+ {count} more",
+  "monthTotal": "{count} events",
+  "contextMenu": {
+    "newWorkOrder": "New work order",
+    "newWorkOrderAt": "New work order at {time}",
+    "newReminder": "New reminder",
+    "newQuote": "New quote",
+    "openEvent": "Open ({count})",
+    "hint": "Tip: right-click a day for actions",
+    "scheduleMessage": "Schedule message"
+  },
+  "eventMenu": {
+    "open": "Open",
+    "markDone": "Mark as done",
+    "markNotDone": "Mark as not done",
+    "deleteReminder": "Delete reminder",
+    "deleteReminderConfirm": "Delete the reminder \"{title}\"? This cannot be undone.",
+    "deleteMessage": "Delete scheduled message",
+    "deleteMessageConfirm": "Delete the scheduled message \"{title}\"? It will not be sent.",
+    "deleted": "Deleted",
+    "updated": "Updated",
+    "failed": "That did not work. Try again."
+  },
+  "events": {
+    "status": {
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "waitingParts": "Waiting Parts",
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "sent": "Sent",
+      "approved": "Approved",
+      "draft": "Draft",
+      "done": "Done",
+      "overdue": "Overdue",
+      "upcoming": "Upcoming",
+      "failed": "Failed",
+      "queued": "Queued",
+      "busy": "Busy"
+    },
+    "type": {
+      "service": "Work order",
+      "reminder": "Reminder",
+      "quote": "Quote",
+      "message": "Message",
+      "external": "Connected calendar"
+    },
+    "noEvents": "No events",
+    "selectDay": "Select a day with events or create a new work order.",
+    "external": {
+      "source": "From {source}",
+      "sourceUnknown": "From a connected calendar",
+      "allDay": "All day",
+      "open": "Open in {source}",
+      "openGeneric": "Open in calendar",
+      "noLink": "This calendar does not give a link to the event.",
+      "readOnly": "Busy time from a connected calendar. Change it there and it updates here on the next sync."
+    }
+  },
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month"
+}

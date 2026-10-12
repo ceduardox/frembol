@@ -1,0 +1,871 @@
+'use server'
+
+import {
+  documentTotals,
+  readWorkshopTax,
+  taxFieldsForNewDocument,
+  WORKSHOP_TAX_SETTING_KEYS,
+} from '@/features/settings/Lib/workshopTax'
+import {
+  readWarrantyDefaults,
+  WARRANTY_SETTING_KEYS,
+  warrantyFieldsForNewDocument,
+} from '@/features/settings/Lib/warrantyDefaults'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+import { db } from '@/lib/db'
+import { withAuth } from '@/lib/with-auth'
+import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { createDraftRecord } from '@/features/vehicles/Lib/createDraftRecord'
+import { retotalServiceRecord } from '@/features/vehicles/Lib/retotalServiceRecord'
+import { OPEN_SERVICE_STATUSES } from '@/lib/service-record'
+import { onInventoryChanged } from '@/features/inventory/Lib/onInventoryChanged'
+import { addTireLineToRecord } from '../Lib/addTireLine'
+import { copySetFilesToJob } from '../Lib/copySetFilesToJob'
+import { resolveInvoicePrefix } from '@/lib/invoice-utils'
+import { matchStock, parseTireSize, formatTireSize, sizesMatch } from '../Lib/tireMatching'
+import { TREATMENT_TYPES } from '../Lib/treatments'
+import { billablePrep, storageLine, treatmentLines } from '../Lib/jobLines'
+import { jobNoteWords, seasonNames } from '../Lib/serverMessages'
+import { isTireHotelEnabled, requireTireHotel } from '../Lib/tireHotelSettings'
+import { assertInvoiceEditable } from '@/lib/document-lock.server'
+import { releaseFiles } from '@/lib/files/manager'
+
+const READ = [{ action: PermissionAction.READ, subject: PermissionSubject.TIRE_HOTEL }]
+const QUOTE = [
+  { action: PermissionAction.READ, subject: PermissionSubject.TIRE_HOTEL },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.QUOTES },
+]
+const JOB = [
+  { action: PermissionAction.READ, subject: PermissionSubject.TIRE_HOTEL },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.SERVICES },
+]
+
+const fromSetSchema = z.object({
+  tireSetId: z.string().min(1),
+  /// The operator ticks the lines they want. Everything billable is ticked
+  /// when the dialog opens, but a swap where the customer supplies the tires,
+  /// or where the wash is a goodwill, should not force a line onto the job.
+  includeTires: z.boolean().default(true),
+  /// How many tires the line covers. Defaults to the size of the stored set,
+  /// which is the usual answer, but a customer replacing two of four should
+  /// not have to fix the line afterwards.
+  quantity: z.coerce.number().int().min(1).max(99).optional(),
+  includeTreatments: z.array(z.enum(TREATMENT_TYPES)).optional(),
+  /// The storage fee, billed on the same document as the work rather than on
+  /// a schedule of its own. The period is not a rule, it is what prints on
+  /// the line so the customer can see what they paid for.
+  includeStorage: z.boolean().default(false),
+  /// Copies the set's photos onto the job, so they reach the invoice PDF the
+  /// way any other attachment does. Documents stay with the set.
+  includeAttachments: z.boolean().default(true),
+  /// Bills the customer directly instead of raising a job on a vehicle, for
+  /// the customer who only ever stores tires and never brings the car in.
+  asInvoice: z.boolean().default(false),
+  storageAmount: z.coerce.number().min(0).max(1_000_000).optional(),
+  storageFrom: z.coerce.date().optional(),
+  storageTo: z.coerce.date().optional(),
+  /// Stocked part to quote, chosen by the operator from the matches. Omitted
+  /// when nothing matched, which leaves a blank priced line to fill in.
+  inventoryPartId: z.string().min(1).optional().nullable(),
+  /// Unit price the operator settled on, since tire prices move weekly and
+  /// the stocked figure is a starting point.
+  unitPrice: z.coerce.number().min(0).max(1_000_000).optional(),
+})
+
+async function loadSet(organizationId: string, tireSetId: string) {
+  const set = await db.tireSet.findFirst({
+    where: { id: tireSetId, organizationId },
+    select: {
+      id: true,
+      reference: true,
+      season: true,
+      size: true,
+      quantity: true,
+      withRims: true,
+      hasTpms: true,
+      brand: true,
+      customerId: true,
+      vehicleId: true,
+      location: { select: { code: true, warehouse: { select: { name: true } } } },
+      customer: { select: { id: true, taxExempt: true } },
+      treatments: { select: { type: true, status: true } },
+      // Copied onto the job when the set is billed, so the invoice carries the
+      // photos the technician took. Photos only: a PDF held against the set
+      // would be appended to the invoice page for page.
+      attachments: {
+        where: { includeInInvoice: true, fileType: { startsWith: 'image/' } },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        select: {
+          fileName: true,
+          fileUrl: true,
+          fileType: true,
+          fileSize: true,
+          description: true,
+        },
+      },
+    },
+  })
+  if (!set) throw new Error('Tire set not found')
+  return set
+}
+
+const searchSchema = z.object({
+  tireSetId: z.string().min(1),
+  query: z.string().trim().max(120),
+})
+
+/**
+ * Free search of the parts catalogue from inside the job dialog.
+ *
+ * The fitment matches are a shortcut, not the answer. A shop carries a dozen
+ * brands in the same size, sells a wider tire on request, and sometimes has
+ * the right tire filed under a name no size parser will ever recognise, so
+ * the operator needs to be able to go and find it.
+ *
+ * Terms are ANDed, which is how people search: "michelin 225" should mean
+ * both, not either.
+ */
+export async function searchTireStock(input: unknown) {
+  return withAuth(
+    async ({ organizationId }) => {
+      await requireTireHotel(organizationId)
+      const data = searchSchema.parse(input)
+      // One character matches most of the catalogue, which is not a search.
+      if (data.query.length < 2) return []
+
+      const set = await loadSet(organizationId, data.tireSetId)
+      const terms = data.query.split(/\s+/).filter(Boolean).slice(0, 5)
+
+      const parts = await db.inventoryPart.findMany({
+        where: {
+          organizationId,
+          isArchived: false,
+          AND: terms.map((term) => ({
+            OR: [
+              { name: { contains: term, mode: 'insensitive' as const } },
+              { partNumber: { contains: term, mode: 'insensitive' as const } },
+              { description: { contains: term, mode: 'insensitive' as const } },
+            ],
+          })),
+        },
+        select: {
+          id: true,
+          name: true,
+          partNumber: true,
+          description: true,
+          category: true,
+          quantity: true,
+          unitCost: true,
+          sellPrice: true,
+        },
+        take: 40,
+      })
+
+      const target = parseTireSize(set.size)
+      return parts
+        .map((part) => ({
+          ...part,
+          inStock: part.quantity >= set.quantity,
+          // Whether it is the size on the shelf. Not a filter: selling the
+          // customer something else is allowed, it just should not happen by
+          // accident, so a mismatch is labelled rather than hidden. A set with
+          // no size recorded has nothing to disagree with, so nothing is
+          // flagged rather than everything.
+          fits:
+            !target ||
+            sizesMatch(parseTireSize(part.name), target) ||
+            sizesMatch(parseTireSize(part.partNumber), target) ||
+            sizesMatch(parseTireSize(part.description), target),
+        }))
+        .sort((a, b) => {
+          if (a.fits !== b.fits) return a.fits ? -1 : 1
+          if (a.inStock !== b.inStock) return a.inStock ? -1 : 1
+          return a.sellPrice - b.sellPrice
+        })
+        .slice(0, 20)
+    },
+    { requiredPermissions: READ }
+  )
+}
+
+/** Human label for the tires, used as the quote line and the job title. */
+/**
+ * What to call a set on a quote, a work order or an invoice line.
+ *
+ * The season phrase is passed in rather than looked up here, so an action
+ * resolves it once instead of once per line, and never inside a transaction.
+ * Falls back to the raw season word if a locale is missing the phrase, which
+ * reads oddly but still identifies the tires.
+ */
+function describeSet(
+  set: {
+    quantity: number
+    season: string
+    size: string | null
+    brand: string | null
+  },
+  seasons: Record<string, string>
+): string {
+  const parsed = parseTireSize(set.size)
+  const size = parsed ? formatTireSize(parsed) : set.size
+  const season = seasons[set.season] ?? `${set.season} tires`
+  return [`${set.quantity}x`, set.brand, size, season].filter(Boolean).join(' ')
+}
+
+/**
+ * Stocked tires that fit the stored set, so the operator can quote from what
+ * the shop actually has rather than retyping the size into a search.
+ */
+export async function getJobDraftForSet(tireSetId: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      await requireTireHotel(organizationId)
+      const set = await loadSet(organizationId, tireSetId)
+      const seasons = await seasonNames()
+
+      // Narrow on the rim diameter before matching properly, so a large
+      // catalogue is not pulled into memory whole.
+      const target = parseTireSize(set.size)
+      const candidates = target
+        ? await db.inventoryPart.findMany({
+            where: {
+              organizationId,
+              isArchived: false,
+              OR: [
+                { name: { contains: String(target.rim) } },
+                { partNumber: { contains: String(target.rim) } },
+                { description: { contains: String(target.rim) } },
+              ],
+            },
+            select: {
+              id: true,
+              name: true,
+              partNumber: true,
+              description: true,
+              category: true,
+              quantity: true,
+              unitCost: true,
+              sellPrice: true,
+            },
+            take: 500,
+          })
+        : []
+
+      return {
+        size: set.size,
+        parsedSize: target ? formatTireSize(target) : null,
+        quantity: set.quantity,
+        description: describeSet(set, seasons),
+        matches: matchStock(candidates, set.size, set.quantity),
+        // What the prep would add, so the dialog can list it and let the
+        // operator drop any of it before it lands on the job.
+        prep: await billablePrep(organizationId, set.treatments),
+        // What would travel onto the document, so the dialog can say so and
+        // let it be left off.
+        attachments: set.attachments.length,
+      }
+    },
+    { requiredPermissions: READ }
+  )
+}
+
+/**
+ * Quote for a new set of tires, built from what is already known.
+ *
+ * The stored set carries the size, the count and the owner, so none of it has
+ * to be typed again. Priced from stock when something matches, and left at
+ * zero when nothing does, which is honest: an unpriced line is obvious, a
+ * guessed one is not.
+ */
+export async function createQuoteFromTireSet(input: unknown) {
+  return withAuth(
+    async ({ organizationId, userId }) => {
+      await requireTireHotel(organizationId)
+      const data = fromSetSchema.parse(input)
+      const set = await loadSet(organizationId, data.tireSetId)
+      const seasons = await seasonNames()
+
+      const part = data.inventoryPartId
+        ? await db.inventoryPart.findFirst({
+            where: { id: data.inventoryPartId, organizationId, isArchived: false },
+            select: {
+              id: true,
+              name: true,
+              partNumber: true,
+              unit: true,
+              category: true,
+              unitCost: true,
+              sellPrice: true,
+            },
+          })
+        : null
+
+      const settings = await db.appSetting.findMany({
+        where: {
+          organizationId,
+          key: {
+            in: [
+              'workshop.quotePrefix',
+              'workshop.quoteValidDays',
+              ...WORKSHOP_TAX_SETTING_KEYS,
+              ...WARRANTY_SETTING_KEYS,
+            ],
+          },
+        },
+      })
+      const map = new Map(settings.map((s) => [s.key, s.value]))
+
+      const { taxRate, taxInclusive, taxComponents } = taxFieldsForNewDocument(
+        readWorkshopTax(Object.fromEntries(map)),
+        { customerExempt: set.customer?.taxExempt }
+      )
+
+      const prefix = resolveInvoicePrefix(map.get('workshop.quotePrefix') ?? 'QT-')
+      const lastQuote = await db.quote.findFirst({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+        select: { quoteNumber: true },
+      })
+      const lastNumber = Number(lastQuote?.quoteNumber?.match(/(\d+)$/)?.[1])
+      const quoteNumber = `${prefix}${Number.isFinite(lastNumber) ? lastNumber + 1 : 1001}`
+
+      const validDays = Number(map.get('workshop.quoteValidDays')) || 30
+      const validUntil = new Date()
+      validUntil.setDate(validUntil.getDate() + validDays)
+
+      const unitPrice = data.unitPrice ?? part?.sellPrice ?? 0
+      const lineQuantity = data.quantity ?? set.quantity
+      const lineTotal = data.includeTires ? Math.round(unitPrice * lineQuantity * 100) / 100 : 0
+      const labor = await treatmentLines(organizationId, set.treatments, data.includeTreatments)
+      if (data.includeStorage) labor.push(await storageLine(set, data))
+      const laborTotal = labor.reduce((sum, line) => sum + line.total, 0)
+      const subtotal = Math.round((lineTotal + laborTotal) * 100) / 100
+      const totals = documentTotals({
+        subtotal,
+        discountAmount: 0,
+        taxRate,
+        taxInclusive,
+        taxComponents,
+      })
+
+      const quote = await db.quote.create({
+        data: {
+          quoteNumber,
+          title: describeSet(set, seasons),
+          status: 'draft',
+          validUntil,
+          subtotal,
+          taxRate,
+          taxAmount: totals.taxAmount,
+          taxInclusive,
+          taxComponents: totals.taxComponents,
+          totalAmount: totals.totalAmount,
+          customerId: set.customerId,
+          vehicleId: set.vehicleId,
+          tireSetId: set.id,
+          organizationId,
+          userId,
+          // Every new quote starts from the workshop's standing warranty.
+          ...warrantyFieldsForNewDocument(readWarrantyDefaults(Object.fromEntries(map)), 'quote'),
+          ...(data.includeTires
+            ? {
+                partItems: {
+                  create: [
+                    {
+                      name: part?.name ?? describeSet(set, seasons),
+                      partNumber: part?.partNumber ?? null,
+                      quantity: lineQuantity,
+                      unit: part?.unit ?? null,
+                      category: part?.category ?? null,
+                      unitCost: part?.unitCost ?? 0,
+                      unitPrice,
+                      total: lineTotal,
+                      inventoryPartId: part?.id ?? null,
+                    },
+                  ],
+                },
+              }
+            : {}),
+          ...(labor.length > 0 ? { laborItems: { create: labor } } : {}),
+        },
+      })
+
+      revalidatePath('/quotes')
+      revalidatePath(`/tire-hotel/${set.id}`)
+      return { id: quote.id, quoteNumber: quote.quoteNumber, tireSetId: set.id }
+    },
+    {
+      requiredPermissions: QUOTE,
+      audit: ({ result }) => ({
+        action: 'tire_set.create_quote',
+        entity: 'Quote',
+        entityId: result.id,
+        details: { key: 'tire_set_create_quote', params: { ref: result.quoteNumber ?? result.id } },
+        metadata: { tireSetId: result.tireSetId },
+      }),
+    }
+  )
+}
+
+/**
+ * Straight to a job, skipping the quote.
+ *
+ * The common case in season: the customer has already said swap them, and a
+ * quote would only be a step between them asking and the work happening. The
+ * set is linked to the record so the technician who picks the job up can see
+ * which tires it is and, above all, which shelf to fetch them from.
+ */
+export async function createWorkOrderFromTireSet(input: unknown) {
+  return withAuth(
+    async ({ organizationId, userId }) => {
+      await requireTireHotel(organizationId)
+      const data = fromSetSchema.parse(input)
+      const set = await loadSet(organizationId, data.tireSetId)
+      const seasons = await seasonNames()
+
+      if (!data.asInvoice && !set.vehicleId) {
+        throw new Error('Link a vehicle to this set before creating a work order')
+      }
+      if (data.asInvoice && !set.customerId) {
+        throw new Error('Link a customer to this set before invoicing them')
+      }
+
+      // A work order hangs off the vehicle, so it reaches the board, the
+      // vehicle history and the technician's day. A plain invoice does not,
+      // which is exactly what a storage-only customer wants.
+      const record = await createDraftRecord(
+        { organizationId, userId },
+        {
+          vehicleId: data.asInvoice ? null : set.vehicleId,
+          customerId: data.asInvoice ? set.customerId : null,
+          customerExempt: set.customer?.taxExempt ?? false,
+          title: describeSet(set, seasons),
+        }
+      )
+
+      const part = data.inventoryPartId
+        ? await db.inventoryPart.findFirst({
+            where: { id: data.inventoryPartId, organizationId, isArchived: false },
+            select: {
+              id: true,
+              name: true,
+              partNumber: true,
+              unit: true,
+              category: true,
+              unitCost: true,
+              sellPrice: true,
+            },
+          })
+        : null
+
+      const unitPrice = data.unitPrice ?? part?.sellPrice ?? 0
+      const lineQuantity = data.quantity ?? set.quantity
+      const labor = await treatmentLines(organizationId, set.treatments, data.includeTreatments)
+      if (data.includeStorage) labor.push(await storageLine(set, data))
+
+      await db.$transaction(async (tx) => {
+        // The tires themselves, which a quote and an add-to-existing already
+        // put on the job. Without this the operator picks a tire and a price
+        // and gets a work order with nothing but the prep on it.
+        if (data.includeTires) {
+          await addTireLineToRecord(tx, organizationId, userId, {
+            serviceRecordId: record.id,
+            name: part?.name ?? describeSet(set, seasons),
+            partNumber: part?.partNumber ?? null,
+            quantity: lineQuantity,
+            unit: part?.unit ?? null,
+            category: part?.category ?? null,
+            unitPrice,
+            unitCost: part?.unitCost ?? 0,
+            inventoryPartId: part?.id ?? null,
+            recordLabel: record.invoiceNumber || describeSet(set, seasons),
+          })
+        }
+
+        // Independent of the lines: a job can carry the photos without
+        // carrying a charge, which is what an inspection amounts to.
+        if (data.includeAttachments) {
+          await copySetFilesToJob(tx, record.id, set.attachments)
+        }
+
+        if (labor.length > 0) {
+          await tx.serviceLabor.createMany({
+            data: labor.map((line) => ({ ...line, serviceRecordId: record.id })),
+          })
+        }
+
+        if (data.includeTires || labor.length > 0) {
+          await retotalServiceRecord(record.id, tx)
+        }
+      })
+
+      if (data.includeTires && part) await onInventoryChanged(organizationId)
+
+      const notes = await jobNoteWords()
+      const shelf = set.location
+        ? `${set.location.code} (${set.location.warehouse.name})`
+        : (notes.notOnShelf ?? 'not on a shelf')
+
+      await db.serviceRecord.update({
+        where: { id: record.id },
+        data: {
+          tireSetId: set.id,
+          // Repeated in the notes as well as the relation: the printed job
+          // sheet and the PDF do not render the relation, and the shelf is
+          // the one fact the technician needs before touching anything.
+          diagnosticNotes: [
+            (notes.set ?? 'Tire set {reference}')
+              .replace('{reference}', set.reference ?? '')
+              .trim(),
+            (notes.shelf ?? 'Shelf: {shelf}').replace('{shelf}', shelf),
+            set.withRims ? (notes.onRims ?? 'On rims') : (notes.tiresOnly ?? 'Tires only'),
+            set.hasTpms ? (notes.tpms ?? 'Has TPMS sensors') : null,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        },
+      })
+
+      if (set.vehicleId) revalidatePath(`/vehicles/${set.vehicleId}`)
+      revalidatePath('/billing')
+      revalidatePath(`/tire-hotel/${set.id}`)
+      return {
+        id: record.id,
+        invoiceNumber: record.invoiceNumber,
+        vehicleId: data.asInvoice ? null : set.vehicleId,
+        tireSetId: set.id,
+      }
+    },
+    {
+      requiredPermissions: JOB,
+      audit: ({ result }) => ({
+        action: 'tire_set.create_work_order',
+        entity: 'ServiceRecord',
+        entityId: result.id,
+        details: {
+          key: 'tire_set_create_work_order',
+          params: { ref: result.invoiceNumber ?? result.id },
+        },
+        metadata: { tireSetId: result.tireSetId },
+      }),
+    }
+  )
+}
+
+/**
+ * Open jobs this set could be added to.
+ *
+ * Scoped to the set's own vehicle: a tire change belongs on the job for the
+ * car the tires go on, and offering another vehicle's job would put the line
+ * on a bill the wrong customer receives.
+ */
+export async function getOpenWorkOrdersForSet(tireSetId: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      await requireTireHotel(organizationId)
+      const set = await loadSet(organizationId, tireSetId)
+      if (!set.vehicleId) return []
+
+      return db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          vehicleId: set.vehicleId,
+          status: { in: [...OPEN_SERVICE_STATUSES] },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          title: true,
+          invoiceNumber: true,
+          status: true,
+          totalAmount: true,
+          serviceDate: true,
+          tireSetId: true,
+        },
+      })
+    },
+    { requiredPermissions: READ }
+  )
+}
+
+/**
+ * Puts the tires and their prep onto a job that already exists.
+ *
+ * The common case is a car already booked in for something else: the customer
+ * mentions the swap while it is on the ramp, and raising a second job for it
+ * would split one visit across two invoices.
+ */
+export async function addTireSetToWorkOrder(input: unknown) {
+  return withAuth(
+    async ({ organizationId, userId }) => {
+      await requireTireHotel(organizationId)
+      const data = fromSetSchema.extend({ serviceRecordId: z.string().min(1) }).parse(input)
+      // Adds part and labor lines and retotals the job, so it is an edit to
+      // what the invoice says it is owed and a locked one refuses it.
+      await assertInvoiceEditable(data.serviceRecordId, organizationId)
+      const set = await loadSet(organizationId, data.tireSetId)
+      const seasons = await seasonNames()
+
+      const record = await db.serviceRecord.findFirst({
+        where: { id: data.serviceRecordId, organizationId },
+        select: { id: true, invoiceNumber: true, vehicleId: true, tireSetId: true },
+      })
+      if (!record) throw new Error('That job no longer exists')
+      if (set.vehicleId && record.vehicleId && record.vehicleId !== set.vehicleId) {
+        throw new Error('That job is for a different vehicle')
+      }
+
+      const part = data.inventoryPartId
+        ? await db.inventoryPart.findFirst({
+            where: { id: data.inventoryPartId, organizationId, isArchived: false },
+            select: {
+              id: true,
+              name: true,
+              partNumber: true,
+              unit: true,
+              category: true,
+              unitCost: true,
+              sellPrice: true,
+            },
+          })
+        : null
+
+      const unitPrice = data.unitPrice ?? part?.sellPrice ?? 0
+      const lineQuantity = data.quantity ?? set.quantity
+      const labor = await treatmentLines(organizationId, set.treatments, data.includeTreatments)
+      if (data.includeStorage) labor.push(await storageLine(set, data))
+
+      await db.$transaction(async (tx) => {
+        if (data.includeTires) {
+          await addTireLineToRecord(tx, organizationId, userId, {
+            serviceRecordId: record.id,
+            name: part?.name ?? describeSet(set, seasons),
+            partNumber: part?.partNumber ?? null,
+            quantity: lineQuantity,
+            unit: part?.unit ?? null,
+            category: part?.category ?? null,
+            unitPrice,
+            unitCost: part?.unitCost ?? 0,
+            inventoryPartId: part?.id ?? null,
+            recordLabel: record.invoiceNumber || describeSet(set, seasons),
+          })
+        }
+        // Independent of the lines: a job can carry the photos without
+        // carrying a charge, which is what an inspection amounts to.
+        if (data.includeAttachments) {
+          await copySetFilesToJob(tx, record.id, set.attachments)
+        }
+
+        if (labor.length > 0) {
+          await tx.serviceLabor.createMany({
+            data: labor.map((line) => ({ ...line, serviceRecordId: record.id })),
+          })
+        }
+
+        // Only claim the job if it is not already about another set, so
+        // adding a second set never quietly rewrites the first one's link.
+        if (!record.tireSetId) {
+          await tx.serviceRecord.update({
+            where: { id: record.id },
+            data: { tireSetId: set.id },
+          })
+        }
+
+        await retotalServiceRecord(record.id, tx)
+      })
+
+      if (data.includeTires && part) await onInventoryChanged(organizationId)
+
+      revalidatePath(`/tire-hotel/${set.id}`)
+      if (record.vehicleId) revalidatePath(`/vehicles/${record.vehicleId}`)
+      return {
+        id: record.id,
+        invoiceNumber: record.invoiceNumber,
+        vehicleId: record.vehicleId,
+        tireSetId: set.id,
+        reference: set.reference,
+      }
+    },
+    {
+      requiredPermissions: JOB,
+      audit: ({ result }) => ({
+        action: 'tire_set.add_to_work_order',
+        entity: 'ServiceRecord',
+        entityId: result.id,
+        details: {
+          key: 'tire_set_add_to_work_order',
+          params: {
+            ref: result.reference ?? result.tireSetId,
+            jobRef: result.invoiceNumber ?? result.id,
+          },
+        },
+        metadata: { tireSetId: result.tireSetId },
+      }),
+    }
+  )
+}
+
+/**
+ * Takes the tire set off a job.
+ *
+ * The link goes, and so do the files that were copied over from the set: they
+ * only ever pointed at the set's own uploads, so removing the rows loses
+ * nothing, and leaving them would keep the set's photos on an invoice that is
+ * no longer about those tires. Only the rows are deleted, never the bytes on
+ * disk, which the set still owns.
+ *
+ * The parts and labour lines stay, because they are what is being charged and
+ * someone may have edited them since; deciding on the operator's behalf that
+ * a billed line should vanish would be a worse surprise than leaving it
+ * visible for them to remove.
+ *
+ * The shelf written into the job notes also stays. It is free text by now and
+ * may have been added to, so rewriting it is not this action's business.
+ */
+export async function unlinkTireSetFromWorkOrder(serviceRecordId: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      await requireTireHotel(organizationId)
+      const record = await db.serviceRecord.findFirst({
+        where: { id: serviceRecordId, organizationId },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          vehicleId: true,
+          tireSet: { select: { id: true, reference: true } },
+        },
+      })
+      if (!record) throw new Error('Work order not found')
+      if (!record.tireSet) throw new Error('This job is not linked to a tire set')
+
+      const copies = await db.serviceAttachment.findMany({
+        where: { serviceRecordId: record.id, category: 'tire_hotel' },
+        select: { fileUrl: true },
+      })
+      await db.$transaction([
+        db.serviceRecord.update({
+          where: { id: record.id },
+          data: { tireSetId: null },
+        }),
+        db.serviceAttachment.deleteMany({
+          where: { serviceRecordId: record.id, category: 'tire_hotel' },
+        }),
+      ])
+      // The set still holds these files, so the file manager keeps them; only
+      // a file the set itself has since let go is removed.
+      await releaseFiles(
+        copies.map((c) => c.fileUrl),
+        { organizationId, reason: 'tire set unlinked from work order' }
+      )
+
+      revalidatePath(`/tire-hotel/${record.tireSet.id}`)
+      if (record.vehicleId) {
+        revalidatePath(`/vehicles/${record.vehicleId}/service/${record.id}`)
+      }
+      return {
+        id: record.id,
+        invoiceNumber: record.invoiceNumber,
+        tireSetId: record.tireSet.id,
+        reference: record.tireSet.reference,
+      }
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.SERVICES },
+      ],
+      audit: ({ result }) => ({
+        action: 'tire_set.unlink_work_order',
+        entity: 'ServiceRecord',
+        entityId: result.id,
+        details: {
+          key: 'tire_set_unlink_work_order',
+          params: {
+            ref: result.reference ?? result.tireSetId,
+            jobRef: result.invoiceNumber ?? result.id,
+          },
+        },
+        metadata: { tireSetId: result.tireSetId },
+      }),
+    }
+  )
+}
+
+/**
+ * Stored sets belonging to one vehicle.
+ *
+ * Returns nothing when the module is off rather than throwing, since the
+ * vehicle page is not a tire hotel screen and should not fail because a
+ * feature it does not depend on is disabled.
+ */
+export async function getTireSetsForVehicle(vehicleId: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      if (!(await isTireHotelEnabled(organizationId))) return []
+
+      return db.tireSet.findMany({
+        where: { vehicleId, organizationId },
+        // Stored first: a released set is history, and the question on a
+        // vehicle page is almost always about tires that are still here.
+        orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
+        take: 10,
+        select: {
+          id: true,
+          reference: true,
+          season: true,
+          size: true,
+          quantity: true,
+          status: true,
+          location: { select: { code: true } },
+          measurements: {
+            orderBy: { measuredAt: 'desc' },
+            take: 8,
+            select: { condition: true },
+          },
+          treatments: { select: { type: true, status: true } },
+        },
+      })
+    },
+    { requiredPermissions: READ }
+  )
+}
+
+/** Quotes and jobs already raised for a set, for the detail page. */
+export async function getJobsForSet(tireSetId: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      await requireTireHotel(organizationId)
+
+      const [quotes, workOrders] = await Promise.all([
+        db.quote.findMany({
+          where: { tireSetId, organizationId },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            quoteNumber: true,
+            status: true,
+            totalAmount: true,
+            createdAt: true,
+            convertedToId: true,
+          },
+        }),
+        db.serviceRecord.findMany({
+          where: { tireSetId, organizationId },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            totalAmount: true,
+            serviceDate: true,
+            vehicleId: true,
+          },
+        }),
+      ])
+
+      return { quotes, workOrders }
+    },
+    { requiredPermissions: READ }
+  )
+}

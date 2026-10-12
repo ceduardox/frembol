@@ -1,0 +1,209 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useGlassModal } from '@/components/glass-modal'
+import { toast } from 'sonner'
+import { createReminder, updateReminder } from '../Actions/reminderActions'
+import { Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { clearableInput } from '@/lib/clearable'
+import { useDateSettings } from '@/components/date-settings-context'
+import { zonedDateInput, zonedTimeInput } from '@/lib/timezone'
+
+interface ReminderData {
+  id: string
+  title: string
+  description: string | null
+  dueDate: Date | null
+  hasDueTime?: boolean
+  dueMileage: number | null
+  notifyInApp?: boolean
+  notifyEmail?: boolean
+}
+
+interface ReminderFormProps {
+  vehicleId: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  reminder?: ReminderData
+}
+
+export function ReminderForm({ vehicleId, open, onOpenChange, reminder }: ReminderFormProps) {
+  const router = useRouter()
+  const modal = useGlassModal()
+  const t = useTranslations('vehicles.reminders')
+  const tc = useTranslations('common.buttons')
+  const { timezone } = useDateSettings()
+  const [loading, setLoading] = useState(false)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  // '' means a day-only reminder
+  const [dueTime, setDueTime] = useState('')
+  const [dueMileage, setDueMileage] = useState('')
+  const [notifyInApp, setNotifyInApp] = useState(true)
+  const [notifyEmail, setNotifyEmail] = useState(false)
+
+  const isEdit = !!reminder
+
+  useEffect(() => {
+    if (open && reminder) {
+      setTitle(reminder.title)
+      setDescription(reminder.description || '')
+      const due = reminder.dueDate ? new Date(reminder.dueDate) : null
+      // The workshop's calendar day and clock, because that is how these two
+      // fields are read back on save. Filled from the browser's instead, a
+      // reminder due at 14:00 opened from another zone showed a different
+      // time and was moved by saving the form.
+      setDueDate(due ? zonedDateInput(due, timezone) : '')
+      setDueTime(due && reminder.hasDueTime ? zonedTimeInput(due, timezone) : '')
+      setDueMileage(reminder.dueMileage ? String(reminder.dueMileage) : '')
+      setNotifyInApp(reminder.notifyInApp ?? true)
+      setNotifyEmail(reminder.notifyEmail ?? false)
+    } else if (open) {
+      setTitle('')
+      setDescription('')
+      setDueDate('')
+      setDueTime('')
+      setDueMileage('')
+      setNotifyInApp(true)
+      setNotifyEmail(false)
+    }
+  }, [open, reminder, timezone])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setLoading(true)
+
+    const payload = {
+      vehicleId,
+      title,
+      // When editing, emptied fields are sent as cleared ('' or null) so the
+      // update action drops the old value.
+      description: clearableInput(description, Boolean(reminder)),
+      // The workshop's wall clock, read in its zone on the server; a
+      // day-only reminder sits at midday so it stays on its day everywhere.
+      dueDate: clearableInput(
+        dueDate ? `${dueDate}T${dueTime || '12:00'}:00` : '',
+        Boolean(reminder)
+      ),
+      hasDueTime: Boolean(dueDate && dueTime),
+      dueMileage: dueMileage ? Number(dueMileage) : reminder ? null : undefined,
+      notifyInApp,
+      notifyEmail,
+    }
+
+    const result = isEdit
+      ? await updateReminder({ ...payload, id: reminder.id })
+      : await createReminder(payload)
+
+    if (result.success) {
+      toast.success(isEdit ? t('reminderUpdated') : t('reminderCreated'))
+      onOpenChange(false)
+      router.refresh()
+    } else {
+      modal.open('error', 'Error', result.error || t('saveError'))
+    }
+
+    setLoading(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t('editTitle') : t('addTitle')}</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="reminder-title">{t('titleLabel')}</Label>
+            <Input
+              id="reminder-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('titlePlaceholder')}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reminder-description">{t('descriptionLabel')}</Label>
+            <Textarea
+              id="reminder-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('descriptionPlaceholder')}
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="reminder-dueDate">{t('dueDateLabel')}</Label>
+              <DateInput id="reminder-dueDate" value={dueDate} onChange={setDueDate} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reminder-dueTime">{t('dueTimeLabel')}</Label>
+              <Input
+                id="reminder-dueTime"
+                type="time"
+                value={dueTime}
+                onChange={(e) => setDueTime(e.target.value)}
+                disabled={!dueDate}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reminder-dueMileage">{t('dueMileageLabel')}</Label>
+              <Input
+                id="reminder-dueMileage"
+                type="number"
+                value={dueMileage}
+                onChange={(e) => setDueMileage(e.target.value)}
+                placeholder={t('dueMileagePlaceholder')}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('notifyLabel')}</Label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 text-sm font-normal">
+                <Checkbox
+                  checked={notifyInApp}
+                  onCheckedChange={(v) => setNotifyInApp(v === true)}
+                />
+                {t('notifyInApp')}
+              </label>
+              <label className="flex items-center gap-2 text-sm font-normal">
+                <Checkbox
+                  checked={notifyEmail}
+                  onCheckedChange={(v) => setNotifyEmail(v === true)}
+                />
+                {t('notifyEmail')}
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button data-save-shortcut type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEdit ? tc('saveChanges') : t('addTitle')}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}

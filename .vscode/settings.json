@@ -1,0 +1,24 @@
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "never",
+    "source.removeUnusedImports": "always",
+    "source.organizeImports.biome": "always"
+  },
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#1f4e8c",
+    "titleBar.activeForeground": "#ffffff",
+    "titleBar.inactiveBackground": "#1f4e8c99",
+    "titleBar.inactiveForeground": "#ffffffaa"
+  }
+}

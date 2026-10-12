@@ -1,0 +1,372 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { db } from '@/lib/db'
+import { assertOwnedCustomer, assertOwnedVehicle } from '@/lib/owned-records'
+import { withAuth } from '@/lib/with-auth'
+import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { demoGuard } from '@/lib/demo'
+import {
+  createScheduledMessageSchema,
+  updateScheduledMessageSchema,
+} from '../Schema/scheduledMessageSchema'
+import { dispatchScheduledMessage, nextSendAt } from '../Lib/dispatchScheduledMessage'
+import { parseWorkshopDateTime, workshopDayRange } from '@/lib/workshop-datetime'
+import { workshopTimeZone } from '@/lib/workshop-timezone'
+import { requireFeature } from '@/lib/features'
+
+export type ScheduledMessageListItem = {
+  id: string
+  channel: string
+  subject: string | null
+  body: string
+  recipient: string | null
+  status: string
+  sendAt: Date
+  frequency: string
+  endDate: Date | null
+  sentAt: Date | null
+  runCount: number
+  errorMessage: string | null
+  customer: { id: string; name: string } | null
+  vehicle: { id: string; make: string; model: string; year: number } | null
+}
+
+const listSelect = {
+  id: true,
+  channel: true,
+  subject: true,
+  body: true,
+  recipient: true,
+  status: true,
+  sendAt: true,
+  frequency: true,
+  endDate: true,
+  sentAt: true,
+  runCount: true,
+  errorMessage: true,
+  customer: { select: { id: true, name: true } },
+  vehicle: { select: { id: true, make: true, model: true, year: true } },
+} as const
+
+/**
+ * Parse the local wall-clock the workshop typed ("2026-08-20T09:00") as local
+ * time, never UTC, so the message goes out at the hour they see on screen.
+ */
+/** A minute of grace, so a form filled in at 09:00 and saved at 09:00:20 still goes. */
+const PAST_GRACE_MS = 60_000
+
+/**
+ * A message cannot be scheduled for a moment that has passed: the dispatcher
+ * would fire it at once, and nobody meant that.
+ */
+function assertNotPast(sendAt: Date) {
+  if (sendAt.getTime() < Date.now() - PAST_GRACE_MS) {
+    throw new Error('The send time has already passed')
+  }
+}
+
+export async function getScheduledMessages(params?: { status?: string }) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const messages = await db.scheduledMessage.findMany({
+        where: {
+          organizationId,
+          ...(params?.status ? { status: params.status } : {}),
+        },
+        select: listSelect,
+        orderBy: [{ status: 'asc' }, { sendAt: 'asc' }],
+        take: 500,
+      })
+      return messages as ScheduledMessageListItem[]
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.READ, subject: PermissionSubject.CUSTOMERS },
+      ],
+    }
+  )
+}
+
+/** Everything queued or already sent inside a date window, for the calendar. */
+export async function getScheduledMessagesInRange(params: { start: string; end: string }) {
+  return withAuth(
+    async ({ organizationId }) => {
+      // The keys are workshop days, so the window is whole days on its clock
+      const timeZone = await workshopTimeZone(organizationId)
+      const now = new Date()
+      const sendAt = workshopDayRange(params.start, params.end, timeZone, { start: now, end: now })
+
+      return db.scheduledMessage.findMany({
+        where: {
+          organizationId,
+          status: { not: 'cancelled' },
+          sendAt,
+        },
+        select: listSelect,
+        orderBy: { sendAt: 'asc' },
+      })
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.READ, subject: PermissionSubject.CUSTOMERS },
+      ],
+    }
+  )
+}
+
+export async function createScheduledMessage(input: unknown) {
+  return withAuth(
+    async ({ organizationId, userId }) => {
+      demoGuard()
+      const data = createScheduledMessageSchema.parse(input)
+      const timeZone = await workshopTimeZone(organizationId)
+      const sendAt = parseWorkshopDateTime(data.sendAt, timeZone)
+      assertNotPast(sendAt)
+      // The channel list in the form is built from the plan; the action has
+      // to agree with it, or a hand-made request schedules a paid channel.
+      if (data.channel === 'sms' || data.channel === 'whatsapp' || data.channel === 'telegram') {
+        await requireFeature(organizationId, data.channel)
+      }
+
+      if (data.customerId) {
+        const customer = await db.customer.findFirst({
+          where: { id: data.customerId, organizationId },
+          select: { id: true },
+        })
+        if (!customer) throw new Error('Customer not found')
+      }
+      if (data.vehicleId) {
+        const vehicle = await db.vehicle.findFirst({
+          where: { id: data.vehicleId, organizationId },
+          select: { id: true },
+        })
+        if (!vehicle) throw new Error('Vehicle not found')
+      }
+
+      const message = await db.scheduledMessage.create({
+        data: {
+          channel: data.channel,
+          subject: data.subject?.trim() || null,
+          body: data.body,
+          recipient: data.recipient?.trim() || null,
+          customerId: data.customerId || null,
+          vehicleId: data.vehicleId || null,
+          sendAt,
+          frequency: data.frequency,
+          endDate: data.endDate ? parseWorkshopDateTime(data.endDate, timeZone) : null,
+          organizationId,
+          createdById: userId,
+        },
+      })
+
+      revalidatePath('/messages')
+      revalidatePath('/calendar')
+      return message
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.CREATE, subject: PermissionSubject.CUSTOMERS },
+      ],
+      audit: ({ result }) => ({
+        action: 'scheduled_message.create',
+        entity: 'ScheduledMessage',
+        entityId: result.id,
+        details: {
+          key: 'scheduled_message_create',
+          params: { channel: result.channel, sendAt: result.sendAt.toISOString() },
+        },
+        metadata: { channel: result.channel, frequency: result.frequency },
+      }),
+    }
+  )
+}
+
+export async function updateScheduledMessage(input: unknown) {
+  return withAuth(
+    async ({ organizationId }) => {
+      demoGuard()
+      const data = updateScheduledMessageSchema.parse(input)
+
+      const existing = await db.scheduledMessage.findFirst({
+        where: { id: data.id, organizationId },
+        select: { id: true },
+      })
+      if (!existing) throw new Error('Scheduled message not found')
+      // Same check as on create: the ids written must be ours.
+      await assertOwnedCustomer(data.customerId, organizationId)
+      await assertOwnedVehicle(data.vehicleId, organizationId)
+      const timeZone = await workshopTimeZone(organizationId)
+      if (data.sendAt) assertNotPast(parseWorkshopDateTime(data.sendAt, timeZone))
+
+      const message = await db.scheduledMessage.update({
+        where: { id: data.id },
+        data: {
+          ...(data.channel ? { channel: data.channel } : {}),
+          ...(data.subject !== undefined ? { subject: data.subject?.trim() || null } : {}),
+          ...(data.body ? { body: data.body } : {}),
+          ...(data.recipient !== undefined ? { recipient: data.recipient?.trim() || null } : {}),
+          ...(data.customerId !== undefined ? { customerId: data.customerId || null } : {}),
+          ...(data.vehicleId !== undefined ? { vehicleId: data.vehicleId || null } : {}),
+          ...(data.sendAt ? { sendAt: parseWorkshopDateTime(data.sendAt, timeZone) } : {}),
+          ...(data.frequency ? { frequency: data.frequency } : {}),
+          ...(data.endDate !== undefined
+            ? { endDate: data.endDate ? parseWorkshopDateTime(data.endDate, timeZone) : null }
+            : {}),
+          ...(data.status ? { status: data.status } : {}),
+          // Rescheduling clears the last failure, so a fixed address doesn't
+          // keep showing the error that has already been dealt with
+          ...(data.sendAt || data.status === 'scheduled' ? { errorMessage: null } : {}),
+        },
+      })
+
+      revalidatePath('/messages')
+      revalidatePath('/calendar')
+      return message
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.CUSTOMERS },
+      ],
+      audit: ({ result }) => ({
+        action: 'scheduled_message.update',
+        entity: 'ScheduledMessage',
+        entityId: result.id,
+        details: { key: 'scheduled_message_update', params: { channel: result.channel } },
+      }),
+    }
+  )
+}
+
+/** Stops a message without losing the record of it. */
+export async function cancelScheduledMessage(id: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      demoGuard()
+      const existing = await db.scheduledMessage.findFirst({
+        where: { id, organizationId },
+        select: { id: true },
+      })
+      if (!existing) throw new Error('Scheduled message not found')
+
+      const message = await db.scheduledMessage.update({
+        where: { id },
+        data: { status: 'cancelled' },
+      })
+
+      revalidatePath('/messages')
+      revalidatePath('/calendar')
+      return message
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.CUSTOMERS },
+      ],
+      audit: ({ result }) => ({
+        action: 'scheduled_message.cancel',
+        entity: 'ScheduledMessage',
+        entityId: result.id,
+        details: { key: 'scheduled_message_cancel' },
+      }),
+    }
+  )
+}
+
+export async function deleteScheduledMessage(id: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      demoGuard()
+      const existing = await db.scheduledMessage.findFirst({
+        where: { id, organizationId },
+        select: { id: true },
+      })
+      if (!existing) throw new Error('Scheduled message not found')
+
+      await db.scheduledMessage.delete({ where: { id } })
+
+      revalidatePath('/messages')
+      revalidatePath('/calendar')
+      return { id }
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.DELETE, subject: PermissionSubject.CUSTOMERS },
+      ],
+      audit: ({ result }) => ({
+        action: 'scheduled_message.delete',
+        entity: 'ScheduledMessage',
+        entityId: result.id,
+        details: { key: 'scheduled_message_delete' },
+      }),
+    }
+  )
+}
+
+/** Sends now, ahead of schedule. A repeating message keeps its next slot. */
+export async function sendScheduledMessageNow(id: string) {
+  return withAuth(
+    async ({ organizationId }) => {
+      demoGuard()
+      const message = await db.scheduledMessage.findFirst({
+        where: { id, organizationId },
+        select: {
+          id: true,
+          channel: true,
+          subject: true,
+          body: true,
+          recipient: true,
+          organizationId: true,
+          customerId: true,
+          vehicleId: true,
+          sendAt: true,
+          frequency: true,
+          endDate: true,
+          runCount: true,
+        },
+      })
+      if (!message) throw new Error('Scheduled message not found')
+
+      const now = new Date()
+      const timeZone = await workshopTimeZone(organizationId)
+      const following = nextSendAt(message.sendAt, message.frequency, message.endDate, timeZone)
+
+      try {
+        await dispatchScheduledMessage(message)
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        await db.scheduledMessage.update({
+          where: { id },
+          data: { lastRunAt: now, errorMessage },
+        })
+        throw error
+      }
+
+      const updated = await db.scheduledMessage.update({
+        where: { id },
+        data: {
+          status: following ? 'scheduled' : 'sent',
+          sendAt: following ?? message.sendAt,
+          sentAt: now,
+          lastRunAt: now,
+          runCount: message.runCount + 1,
+          errorMessage: null,
+        },
+      })
+
+      revalidatePath('/messages')
+      revalidatePath('/calendar')
+      return updated
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.CUSTOMERS },
+      ],
+      audit: ({ result }) => ({
+        action: 'scheduled_message.send_now',
+        entity: 'ScheduledMessage',
+        entityId: result.id,
+        details: { key: 'scheduled_message_send_now', params: { channel: result.channel } },
+      }),
+    }
+  )
+}

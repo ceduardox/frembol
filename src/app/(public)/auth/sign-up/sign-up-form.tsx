@@ -1,0 +1,315 @@
+'use client'
+
+import { safeRedirectPath } from '@/lib/safe-redirect'
+import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { signIn, signUp } from '@/lib/auth-client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ArrowRight, Loader2, XCircle } from 'lucide-react'
+import { AuthLogo } from '@/components/auth-logo'
+import { AuthCard, AuthShell } from '@/components/auth/auth-shell'
+import { GoogleMark } from '@/components/auth/google-mark'
+import { Separator } from '@/components/ui/separator'
+import { TERMS_URL } from '@/lib/marketing-urls'
+import { acceptInvitation } from '@/features/team/Actions/acceptInvitation'
+
+export function SignUpForm({
+  inviteToken,
+  emailVerificationRequired,
+  redirectTo,
+  cloudMode = false,
+  googleEnabled = false,
+  oauthFailed = false,
+}: {
+  inviteToken?: string
+  emailVerificationRequired?: boolean
+  redirectTo?: string
+  cloudMode?: boolean
+  googleEnabled?: boolean
+  /** Better Auth sent a failed Google round-trip back here with ?error=... */
+  oauthFailed?: boolean
+}) {
+  const t = useTranslations('auth.signUp')
+  const tc = useTranslations('common')
+  const tSocial = useTranslations('auth.social')
+  // Someone who came here with a destination keeps it when they switch to
+  // sign-in; the sign-in form does the same in the other direction.
+  const signInHref = `/auth/sign-in${
+    redirectTo ? `?redirect=${encodeURIComponent(safeRedirectPath(redirectTo))}` : ''
+  }`
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [error, setError] = useState(() => (oauthFailed ? tSocial('failed') : ''))
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
+  const [showTermsError, setShowTermsError] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const termsRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+
+  // The pitch sits beside the form for a fresh cloud sign-up. An invited
+  // colleague is joining a workshop that already chose Torqvoice, so they
+  // get the plain card and a title that says what is happening.
+  const pitch = cloudMode && !inviteToken
+
+  const handleGoogleSignUp = async () => {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      // An invited person comes back to this page with the token, which
+      // accepts the invitation server-side and sends them on. Everyone else
+      // who is new lands in onboarding; an existing account goes home.
+      const invitePath = inviteToken
+        ? `/auth/sign-up?invite=${encodeURIComponent(inviteToken)}${
+            redirectTo ? `&redirect=${encodeURIComponent(redirectTo)}` : ''
+          }`
+        : null
+      const onboardingPath = redirectTo
+        ? `/onboarding?redirect=${encodeURIComponent(redirectTo)}`
+        : '/onboarding'
+      await signIn.social({
+        provider: 'google',
+        callbackURL: invitePath ?? safeRedirectPath(redirectTo),
+        newUserCallbackURL: invitePath ?? onboardingPath,
+        errorCallbackURL: invitePath ?? '/auth/sign-up',
+      })
+    } catch {
+      setError(tSocial('failed'))
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validate terms before hitting the API — gives clear feedback instead of a silent disabled button
+    if (!termsAccepted) {
+      setError(t('errors.termsRequired'))
+      setShowTermsError(true)
+      termsRef.current?.focus()
+      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setEmailAlreadyExists(false)
+    setShowTermsError(false)
+
+    try {
+      const result = await signUp.email({ name, email, password })
+      if (result.error) {
+        const message = result.error.message || t('errors.couldNotCreate')
+        const lower = message.toLowerCase()
+        const isDisabled = lower.includes('disabled') || lower.includes('failed to create')
+        const isDuplicate =
+          ('code' in result.error &&
+            typeof result.error.code === 'string' &&
+            result.error.code.toLowerCase().includes('exist')) ||
+          lower.includes('already') ||
+          lower.includes('exist')
+        if (isDuplicate) {
+          setEmailAlreadyExists(true)
+          setError(t('errors.emailExists'))
+        } else {
+          setError(isDisabled ? t('errors.registrationDisabled') : message)
+        }
+      } else if (inviteToken) {
+        const acceptResult = await acceptInvitation({ token: inviteToken })
+        if (acceptResult.success) {
+          // They are on the team now. Whether they verify their address first
+          // is the same question as for anyone else who just signed up.
+          router.push(
+            emailVerificationRequired ? '/auth/verify-email' : safeRedirectPath(redirectTo)
+          )
+          router.refresh()
+        } else {
+          setError(acceptResult.error || t('errors.invitationFailed'))
+          router.push(
+            redirectTo ? `/onboarding?redirect=${encodeURIComponent(redirectTo)}` : '/onboarding'
+          )
+          router.refresh()
+        }
+      } else if (emailVerificationRequired) {
+        router.push('/auth/verify-email')
+        router.refresh()
+      } else {
+        router.push(
+          redirectTo ? `/onboarding?redirect=${encodeURIComponent(redirectTo)}` : '/onboarding'
+        )
+        router.refresh()
+      }
+    } catch {
+      setError(tc('errors.unexpected'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const title = inviteToken ? t('title') : pitch ? t('titleCloud') : t('title')
+  const description = inviteToken
+    ? t('descriptionInvite')
+    : pitch
+      ? t('descriptionCloud')
+      : t('descriptionDefault')
+  const submitLabel = inviteToken
+    ? t('createAccountJoin')
+    : pitch
+      ? t('createAccountCloud')
+      : t('createAccount')
+
+  return (
+    <AuthShell pitch={pitch}>
+      <AuthCard>
+        <div className={pitch ? 'mb-6 text-center lg:text-left' : 'mb-8 text-center'}>
+          <div className={`mb-4 inline-flex items-center gap-2 ${pitch ? 'lg:hidden' : ''}`}>
+            <AuthLogo alt={tc('brandName')} />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+
+        {error && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="flex-1">
+              <p>{error}</p>
+              {emailAlreadyExists && (
+                <p className="mt-1 text-xs">
+                  <Link href={signInHref} className="font-medium underline">
+                    {t('signInInstead')}
+                  </Link>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {googleEnabled && (
+          <div className="mb-5">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full text-base"
+              disabled={googleLoading || loading}
+              onClick={handleGoogleSignUp}
+            >
+              {googleLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleMark className="mr-2 h-4.5 w-4.5" />
+              )}
+              {tSocial('google')}
+            </Button>
+            <div className="relative mt-5">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background/50 px-2 text-muted-foreground">
+                  {tSocial('orEmail')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">{t('fullName')}</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder={t('fullNamePlaceholder')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="name"
+              className="h-11 bg-background/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">{tc('form.email')}</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder={tc('form.emailPlaceholder')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="h-11 bg-background/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">{tc('form.password')}</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder={t('passwordPlaceholder')}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="h-11 bg-background/50"
+            />
+            <p className="text-xs text-muted-foreground">{t('passwordHint')}</p>
+          </div>
+
+          <div
+            className={`flex items-center gap-2 rounded-md p-2 transition-colors ${
+              showTermsError ? 'bg-destructive/10 ring-1 ring-destructive/40' : ''
+            }`}
+          >
+            <input
+              ref={termsRef}
+              id="terms"
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => {
+                setTermsAccepted(e.target.checked)
+                if (e.target.checked) setShowTermsError(false)
+              }}
+              className="h-4 w-4 shrink-0 rounded border-border accent-primary"
+            />
+            <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground">
+              {t('agreeToTerms')}{' '}
+              <a
+                href={TERMS_URL}
+                target="_blank"
+                rel="noopener"
+                className="font-medium text-primary hover:underline"
+              >
+                {tc('terms.termsOfService')}
+              </a>
+            </Label>
+          </div>
+
+          <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {submitLabel}
+            {pitch && !loading && <ArrowRight className="ml-1 h-4 w-4" />}
+          </Button>
+
+          {pitch && <p className="text-center text-xs text-muted-foreground">{t('noCardNote')}</p>}
+        </form>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          {t('alreadyHaveAccount')}{' '}
+          <Link href={signInHref} className="font-medium text-primary hover:underline">
+            {tc('buttons.signIn')}
+          </Link>
+        </p>
+      </AuthCard>
+    </AuthShell>
+  )
+}

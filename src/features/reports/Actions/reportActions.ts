@@ -1,0 +1,1063 @@
+'use server'
+
+import { db } from '@/lib/db'
+import { listOrgEntries } from '@/features/time-tracking/Lib/timeEntries'
+import { withAuth } from '@/lib/with-auth'
+import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { earnedLineTotal, netLineTotal } from '@/lib/tax'
+import { TaxByRateTable } from '../Lib/taxByRate'
+import { zonedDate, zonedDayKey, zonedParts } from '@/lib/timezone'
+import { workshopDayRange, workshopMonthKey } from '@/lib/workshop-datetime'
+import { isShopFeeLine } from '@/features/settings/Lib/shopFee'
+import { workshopTimeZone } from '@/lib/workshop-timezone'
+
+/** Hours a labour line stands for. A shop fee line is one unit of a charge, not an hour. */
+const laborHours = (line: { hours: number; pricingType: string }) =>
+  isShopFeeLine(line) ? 0 : line.hours
+
+/** The date range a report covers, and whether it counts finished work only. */
+interface ReportRange {
+  startDate?: string
+  endDate?: string
+  /** Only work orders marked completed; open ones are left out. */
+  completedOnly?: boolean
+}
+
+/**
+ * Which work orders a report counts: every job in the window, or with the
+ * switch on, only those marked completed. The stored status is one of the
+ * four system values, whatever the workshop calls its own stages, so
+ * `completed` is the same job for every workshop.
+ */
+function statusScope(completedOnly?: boolean) {
+  return completedOnly ? { status: 'completed' } : {}
+}
+
+/**
+ * The report window on the workshop's calendar. The picker sends bare
+ * YYYY-MM-DD keys, so "to 31 Dec" must cover the whole of that day in the
+ * workshop, and the default start is 1 January of the workshop's current
+ * year, not the server's. `end` is exclusive: query with `lt`.
+ */
+async function reportWindow(organizationId: string, params: ReportRange) {
+  const tz = await workshopTimeZone(organizationId)
+  const now = new Date()
+  const { gte, lt } = workshopDayRange(params.startDate, params.endDate, tz, {
+    start: zonedDate(zonedParts(now, tz).year, 1, 1, 0, 0, tz),
+    end: now,
+  })
+  return { tz, start: gte, end: lt }
+}
+
+export async function getRevenueReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { tz, start, end } = await reportWindow(organizationId, params)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+        },
+        select: {
+          serviceDate: true,
+          startDateTime: true,
+          totalAmount: true,
+          cost: true,
+          type: true,
+          taxRate: true,
+          taxInclusive: true,
+          subtotal: true,
+          discountAmount: true,
+          manuallyPaid: true,
+          payments: { select: { amount: true } },
+          partItems: { select: { unitCost: true, quantity: true, total: true } },
+          laborItems: { select: { total: true } },
+        },
+        orderBy: [{ startDateTime: { sort: 'asc', nulls: 'last' } }, { serviceDate: 'asc' }],
+      })
+
+      // Monthly breakdown.
+      // `revenue` is the gross customer-facing total (what was charged).
+      // `partsRevenue` and `laborRevenue` are NET (pre-tax) and carry their
+      // share of the job's discount, so they add up consistently with
+      // `partsCost` (which is always net) for profit math.
+      const monthly: Record<
+        string,
+        {
+          revenue: number
+          collected: number
+          count: number
+          partsCost: number
+          partsRevenue: number
+          laborRevenue: number
+        }
+      > = {}
+      let totalRevenue = 0
+      let totalCollected = 0
+      let totalCount = 0
+      let totalPartsCost = 0
+      let totalPartsRevenue = 0
+      let totalLaborRevenue = 0
+
+      // Type breakdown
+      const byType: Record<string, { revenue: number; count: number }> = {}
+
+      for (const r of records) {
+        const total = r.totalAmount > 0 ? r.totalAmount : r.cost
+        const paid = r.manuallyPaid ? total : r.payments.reduce((s, p) => s + p.amount, 0)
+        const partsCost = r.partItems.reduce((s, p) => s + p.unitCost * p.quantity, 0)
+        const partsRevenue = r.partItems.reduce((s, p) => s + earnedLineTotal(p.total, r), 0)
+        const laborRevenue = r.laborItems.reduce((s, l) => s + earnedLineTotal(l.total, r), 0)
+        const _date = r.startDateTime ?? r.serviceDate
+        const month = workshopMonthKey(_date, tz)
+
+        if (!monthly[month])
+          monthly[month] = {
+            revenue: 0,
+            collected: 0,
+            count: 0,
+            partsCost: 0,
+            partsRevenue: 0,
+            laborRevenue: 0,
+          }
+        monthly[month].revenue += total
+        monthly[month].collected += paid
+        monthly[month].count += 1
+        monthly[month].partsCost += partsCost
+        monthly[month].partsRevenue += partsRevenue
+        monthly[month].laborRevenue += laborRevenue
+
+        totalRevenue += total
+        totalCollected += paid
+        totalCount += 1
+        totalPartsCost += partsCost
+        totalPartsRevenue += partsRevenue
+        totalLaborRevenue += laborRevenue
+
+        if (!byType[r.type]) byType[r.type] = { revenue: 0, count: 0 }
+        byType[r.type].revenue += total
+        byType[r.type].count += 1
+      }
+
+      return {
+        monthly: Object.entries(monthly).map(([month, data]) => ({
+          month,
+          ...data,
+          partsNetProfit: data.partsRevenue - data.partsCost,
+          netProfit: data.partsRevenue - data.partsCost + data.laborRevenue,
+        })),
+        byType: Object.entries(byType).map(([type, data]) => ({ type, ...data })),
+        summary: {
+          totalRevenue,
+          totalCollected,
+          outstanding: totalRevenue - totalCollected,
+          totalCount,
+          totalPartsCost,
+          totalPartsRevenue,
+          totalPartsNetProfit: totalPartsRevenue - totalPartsCost,
+          totalLaborRevenue,
+          netProfit: totalPartsRevenue - totalPartsCost + totalLaborRevenue,
+        },
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getServiceReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+        },
+        select: {
+          type: true,
+          status: true,
+          totalAmount: true,
+          cost: true,
+        },
+      })
+
+      const byStatus: Record<string, number> = {}
+      const byType: Record<string, number> = {}
+
+      for (const r of records) {
+        byStatus[r.status] = (byStatus[r.status] || 0) + 1
+        byType[r.type] = (byType[r.type] || 0) + 1
+      }
+
+      return {
+        totalServices: records.length,
+        byStatus: Object.entries(byStatus).map(([status, count]) => ({ status, count })),
+        byType: Object.entries(byType).map(([type, count]) => ({ type, count })),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getCustomerReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+
+      const customers = await db.customer.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          name: true,
+          company: true,
+          vehicles: {
+            select: {
+              serviceRecords: {
+                where: {
+                  startDateTime: { gte: start, lt: end },
+                  ...statusScope(params.completedOnly),
+                },
+                select: { totalAmount: true, cost: true },
+              },
+            },
+          },
+        },
+      })
+
+      const ranked = customers
+        .map((c) => {
+          let totalSpent = 0
+          let serviceCount = 0
+          for (const v of c.vehicles) {
+            for (const sr of v.serviceRecords) {
+              totalSpent += sr.totalAmount > 0 ? sr.totalAmount : sr.cost
+              serviceCount++
+            }
+          }
+          return { id: c.id, name: c.name, company: c.company, totalSpent, serviceCount }
+        })
+        .filter((c) => c.serviceCount > 0)
+        .sort((a, b) => b.totalSpent - a.totalSpent)
+
+      return {
+        totalCustomers: customers.length,
+        activeCustomers: ranked.length,
+        topCustomers: ranked.slice(0, 20),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getTechnicianReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+          OR: [{ technicianId: { not: null } }, { techName: { not: null } }],
+        },
+        select: {
+          techName: true,
+          technicianId: true,
+          technician: { select: { name: true } },
+          totalAmount: true,
+          cost: true,
+          laborItems: { select: { hours: true, pricingType: true } },
+        },
+      })
+
+      // Group by technicianId (canonical) with techName fallback for legacy records
+      const byTech: Record<
+        string,
+        { techName: string; jobCount: number; totalRevenue: number; totalLaborHours: number }
+      > = {}
+
+      for (const r of records) {
+        const key = r.technicianId || `name:${r.techName}`
+        const displayName = r.technician?.name || r.techName || 'Unassigned'
+        if (!byTech[key])
+          byTech[key] = { techName: displayName, jobCount: 0, totalRevenue: 0, totalLaborHours: 0 }
+        byTech[key].jobCount += 1
+        byTech[key].totalRevenue += r.totalAmount > 0 ? r.totalAmount : r.cost
+        byTech[key].totalLaborHours += r.laborItems.reduce((s, l) => s + laborHours(l), 0)
+      }
+
+      const technicians = Object.values(byTech)
+        .map((data) => ({
+          techName: data.techName,
+          jobCount: data.jobCount,
+          totalRevenue: data.totalRevenue,
+          avgRevenue: data.jobCount > 0 ? data.totalRevenue / data.jobCount : 0,
+          totalLaborHours: data.totalLaborHours,
+          avgHours: data.jobCount > 0 ? data.totalLaborHours / data.jobCount : 0,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue)
+
+      return {
+        technicians,
+        totalJobs: records.length,
+        totalRevenue: technicians.reduce((s, t) => s + t.totalRevenue, 0),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+/**
+ * Clocked against billed, per technician.
+ *
+ * Clocked minutes come from the time entries, clipped to the window so a
+ * night shift that crossed into it counts only the part inside. Billed
+ * hours are the labor lines on the jobs assigned to the technician that
+ * started in the window, the same figure the overview tab shows. The ratio
+ * is the efficiency a workshop actually manages by: hours it could invoice
+ * for every hour it paid.
+ */
+export async function getTechnicianTimeReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+      const now = new Date()
+
+      const [entries, records, technicians] = await Promise.all([
+        listOrgEntries({ organizationId, from: start, to: end }),
+        db.serviceRecord.findMany({
+          where: {
+            organizationId,
+            startDateTime: { gte: start, lt: end },
+            ...statusScope(params.completedOnly),
+            technicianId: { not: null },
+          },
+          select: {
+            technicianId: true,
+            laborItems: { select: { hours: true, pricingType: true } },
+          },
+        }),
+        db.technician.findMany({
+          where: { organizationId },
+          select: { id: true, name: true, color: true, user: { select: { name: true } } },
+        }),
+      ])
+
+      const byTech = new Map<
+        string,
+        { clockedMinutes: number; billedHours: number; jobs: Set<string> }
+      >()
+      const row = (id: string) => {
+        let r = byTech.get(id)
+        if (!r) {
+          r = { clockedMinutes: 0, billedHours: 0, jobs: new Set() }
+          byTech.set(id, r)
+        }
+        return r
+      }
+
+      for (const e of entries) {
+        const from = e.startedAt < start ? start : e.startedAt
+        const rawEnd = e.endedAt ?? now
+        const to = rawEnd > end ? end : rawEnd
+        const minutes = Math.max(0, Math.round((to.getTime() - from.getTime()) / 60_000))
+        if (minutes === 0) continue
+        const r = row(e.technicianId)
+        r.clockedMinutes += minutes
+        r.jobs.add(e.serviceRecord.id)
+      }
+      for (const rec of records) {
+        if (!rec.technicianId) continue
+        row(rec.technicianId).billedHours += rec.laborItems.reduce((s, l) => s + laborHours(l), 0)
+      }
+
+      const names = new Map(
+        technicians.map((t) => [t.id, { name: t.user?.name || t.name, color: t.color }])
+      )
+      const list = [...byTech.entries()]
+        .map(([technicianId, r]) => {
+          const clockedHours = r.clockedMinutes / 60
+          return {
+            technicianId,
+            techName: names.get(technicianId)?.name ?? 'Unknown',
+            color: names.get(technicianId)?.color ?? '#3b82f6',
+            clockedMinutes: r.clockedMinutes,
+            billedHours: r.billedHours,
+            efficiency: clockedHours > 0 ? (r.billedHours / clockedHours) * 100 : null,
+            jobsClocked: r.jobs.size,
+          }
+        })
+        .filter((t) => t.clockedMinutes > 0 || t.billedHours > 0)
+        .sort((a, b) => b.clockedMinutes - a.clockedMinutes)
+
+      const totalClockedMinutes = list.reduce((s, t) => s + t.clockedMinutes, 0)
+      const totalBilledHours = list.reduce((s, t) => s + t.billedHours, 0)
+      return {
+        technicians: list,
+        totalClockedMinutes,
+        totalBilledHours,
+        efficiency:
+          totalClockedMinutes > 0 ? (totalBilledHours / (totalClockedMinutes / 60)) * 100 : null,
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getPartsUsageReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+
+      const parts = await db.servicePart.findMany({
+        where: {
+          serviceRecord: {
+            organizationId,
+            startDateTime: { gte: start, lt: end },
+            ...statusScope(params.completedOnly),
+          },
+        },
+        select: {
+          name: true,
+          partNumber: true,
+          quantity: true,
+          total: true,
+          unitCost: true,
+          serviceRecord: {
+            select: { taxRate: true, taxInclusive: true, subtotal: true, discountAmount: true },
+          },
+        },
+      })
+
+      // Use net (pre-tax) line totals, less each line's share of the job's
+      // discount, so revenue/profit math is consistent across inclusive- and
+      // exclusive-tax records and agrees with the revenue report.
+      const partWithNet = parts.map((p) => ({
+        ...p,
+        netTotal: earnedLineTotal(p.total, p.serviceRecord),
+      }))
+
+      const byPart: Record<
+        string,
+        {
+          partNumber: string | null
+          usageCount: number
+          totalQuantity: number
+          totalRevenue: number
+          totalCost: number
+        }
+      > = {}
+
+      for (const p of partWithNet) {
+        const key = p.name.toLowerCase()
+        if (!byPart[key])
+          byPart[key] = {
+            partNumber: p.partNumber,
+            usageCount: 0,
+            totalQuantity: 0,
+            totalRevenue: 0,
+            totalCost: 0,
+          }
+        byPart[key].usageCount += 1
+        byPart[key].totalQuantity += p.quantity
+        byPart[key].totalRevenue += p.netTotal
+        byPart[key].totalCost += p.unitCost * p.quantity
+        if (p.partNumber && !byPart[key].partNumber) byPart[key].partNumber = p.partNumber
+      }
+
+      const partsByKey: Record<string, string> = {}
+      for (const p of parts) {
+        const key = p.name.toLowerCase()
+        if (!partsByKey[key]) partsByKey[key] = p.name
+      }
+
+      const result = Object.entries(byPart)
+        .map(([key, data]) => ({
+          name: partsByKey[key] || key,
+          partNumber: data.partNumber,
+          usageCount: data.usageCount,
+          totalQuantity: data.totalQuantity,
+          totalRevenue: data.totalRevenue,
+          totalCost: data.totalCost,
+          netProfit: data.totalRevenue - data.totalCost,
+        }))
+        .sort((a, b) => b.usageCount - a.usageCount)
+        .slice(0, 20)
+
+      const totalPartsRevenue = partWithNet.reduce((s, p) => s + p.netTotal, 0)
+      const totalPartsCost = parts.reduce((s, p) => s + p.unitCost * p.quantity, 0)
+
+      return {
+        parts: result,
+        totalPartsRevenue,
+        totalPartsCost,
+        totalPartsNetProfit: totalPartsRevenue - totalPartsCost,
+        totalPartsUsed: parts.reduce((s, p) => s + p.quantity, 0),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getJobAnalyticsReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { tz, start, end } = await reportWindow(organizationId, params)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+        },
+        select: {
+          type: true,
+          totalAmount: true,
+          cost: true,
+          serviceDate: true,
+          startDateTime: true,
+          laborItems: { select: { hours: true, pricingType: true } },
+        },
+      })
+
+      // Average job value
+      const totalValue = records.reduce(
+        (s, r) => s + (r.totalAmount > 0 ? r.totalAmount : r.cost),
+        0
+      )
+      const avgJobValue = records.length > 0 ? totalValue / records.length : 0
+
+      // By type with avg value and avg hours
+      const byType: Record<string, { count: number; totalValue: number; totalHours: number }> = {}
+      for (const r of records) {
+        if (!byType[r.type]) byType[r.type] = { count: 0, totalValue: 0, totalHours: 0 }
+        byType[r.type].count += 1
+        byType[r.type].totalValue += r.totalAmount > 0 ? r.totalAmount : r.cost
+        byType[r.type].totalHours += r.laborItems.reduce((s, l) => s + laborHours(l), 0)
+      }
+
+      const topServiceTypes = Object.entries(byType)
+        .map(([type, data]) => ({
+          type,
+          count: data.count,
+          avgValue: data.count > 0 ? data.totalValue / data.count : 0,
+          avgHours: data.count > 0 ? data.totalHours / data.count : 0,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+
+      // Day of week distribution
+      const dayNames = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ]
+      const dayCount = [0, 0, 0, 0, 0, 0, 0]
+      for (const r of records) {
+        dayCount[zonedParts(r.startDateTime ?? r.serviceDate, tz).weekday] += 1
+      }
+      const dayOfWeek = dayNames.map((day, i) => ({ day, count: dayCount[i] }))
+
+      // Monthly trend
+      const monthly: Record<string, { count: number; revenue: number }> = {}
+      for (const r of records) {
+        const _d = r.startDateTime ?? r.serviceDate
+        const month = workshopMonthKey(_d, tz)
+        if (!monthly[month]) monthly[month] = { count: 0, revenue: 0 }
+        monthly[month].count += 1
+        monthly[month].revenue += r.totalAmount > 0 ? r.totalAmount : r.cost
+      }
+      const monthlyTrend = Object.entries(monthly)
+        .map(([month, data]) => ({ month, ...data }))
+        .sort((a, b) => a.month.localeCompare(b.month))
+
+      return {
+        avgJobValue,
+        totalJobs: records.length,
+        topServiceTypes,
+        dayOfWeek,
+        monthlyTrend,
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getCustomerRetentionReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { start, end } = await reportWindow(organizationId, params)
+
+      const customers = await db.customer.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          name: true,
+          company: true,
+          vehicles: {
+            select: {
+              serviceRecords: {
+                where: {
+                  startDateTime: { gte: start, lt: end },
+                  ...statusScope(params.completedOnly),
+                },
+                select: { serviceDate: true, startDateTime: true, totalAmount: true, cost: true },
+                orderBy: [
+                  { startDateTime: { sort: 'asc', nulls: 'last' } },
+                  { serviceDate: 'asc' },
+                ],
+              },
+            },
+          },
+        },
+      })
+
+      let returningCustomers = 0
+      let newCustomers = 0
+      const allTimeBetween: number[] = []
+      const topReturning: {
+        id: string
+        name: string
+        company: string | null
+        visitCount: number
+        totalSpent: number
+        avgTimeBetweenVisits: number | null
+      }[] = []
+
+      for (const c of customers) {
+        const visits: { date: Date; amount: number }[] = []
+        for (const v of c.vehicles) {
+          for (const sr of v.serviceRecords) {
+            visits.push({
+              date: sr.startDateTime ?? sr.serviceDate,
+              amount: sr.totalAmount > 0 ? sr.totalAmount : sr.cost,
+            })
+          }
+        }
+
+        if (visits.length === 0) continue
+
+        visits.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+        if (visits.length > 1) {
+          returningCustomers += 1
+          const gaps: number[] = []
+          for (let i = 1; i < visits.length; i++) {
+            const diffDays =
+              (visits[i].date.getTime() - visits[i - 1].date.getTime()) / (1000 * 60 * 60 * 24)
+            gaps.push(diffDays)
+          }
+          const avgGap = gaps.reduce((s, g) => s + g, 0) / gaps.length
+          allTimeBetween.push(avgGap)
+
+          topReturning.push({
+            id: c.id,
+            name: c.name,
+            company: c.company,
+            visitCount: visits.length,
+            totalSpent: visits.reduce((s, v) => s + v.amount, 0),
+            avgTimeBetweenVisits: Math.round(avgGap),
+          })
+        } else {
+          newCustomers += 1
+        }
+      }
+
+      topReturning.sort((a, b) => b.visitCount - a.visitCount)
+
+      return {
+        returningCustomers,
+        newCustomers,
+        totalActive: returningCustomers + newCustomers,
+        avgTimeBetweenVisits:
+          allTimeBetween.length > 0
+            ? Math.round(allTimeBetween.reduce((s, v) => s + v, 0) / allTimeBetween.length)
+            : null,
+        topReturning: topReturning.slice(0, 20),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getInventoryReport() {
+  return withAuth(
+    async ({ organizationId }) => {
+      const parts = await db.inventoryPart.findMany({
+        where: { organizationId, isArchived: false },
+        select: {
+          id: true,
+          name: true,
+          partNumber: true,
+          quantity: true,
+          unit: true,
+          unitCost: true,
+          sellPrice: true,
+          minQuantity: true,
+        },
+        orderBy: { name: 'asc' },
+      })
+
+      let totalValue = 0
+      let totalSellValue = 0
+      let totalItems = 0
+      const lowStock: typeof parts = []
+
+      for (const p of parts) {
+        totalValue += (p.unitCost || 0) * p.quantity
+        totalSellValue += (p.sellPrice > 0 ? p.sellPrice : p.unitCost || 0) * p.quantity
+        totalItems += p.quantity
+        if (p.minQuantity && p.quantity <= p.minQuantity) {
+          lowStock.push(p)
+        }
+      }
+
+      return {
+        totalParts: parts.length,
+        totalItems,
+        totalValue,
+        totalSellValue,
+        lowStock,
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getPastDueInvoicesReport() {
+  return withAuth(
+    async ({ organizationId }) => {
+      const now = new Date()
+      const tz = await workshopTimeZone(organizationId)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          invoiceDueDate: { lt: now },
+          status: { not: 'cancelled' },
+        },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          invoiceDueDate: true,
+          totalAmount: true,
+          cost: true,
+          manuallyPaid: true,
+          payments: { select: { amount: true } },
+          customer: { select: { name: true, company: true } },
+          vehicle: {
+            select: {
+              year: true,
+              make: true,
+              model: true,
+              customer: { select: { name: true, company: true } },
+            },
+          },
+        },
+        orderBy: { invoiceDueDate: 'asc' },
+      })
+
+      const invoices: {
+        id: string
+        invoiceNumber: string | null
+        customerName: string
+        customerCompany: string | null
+        vehicleInfo: string
+        totalAmount: number
+        amountPaid: number
+        amountDue: number
+        dueDate: string
+        daysPastDue: number
+      }[] = []
+
+      let totalAmountDue = 0
+      let over30 = 0
+      let over60 = 0
+      let over90 = 0
+
+      for (const r of records) {
+        const total = r.totalAmount > 0 ? r.totalAmount : r.cost
+        const paid = r.manuallyPaid ? total : r.payments.reduce((s, p) => s + p.amount, 0)
+        const amountDue = total - paid
+
+        if (amountDue <= 0) continue
+
+        const dueDate = r.invoiceDueDate!
+        const daysPastDue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+
+        const vehicleParts = r.vehicle
+          ? [r.vehicle.year, r.vehicle.make, r.vehicle.model].filter(Boolean)
+          : []
+        const vehicleInfo = vehicleParts.length > 0 ? vehicleParts.join(' ') : 'N/A'
+        const invoiceCustomer = r.customer ?? r.vehicle?.customer
+
+        invoices.push({
+          id: r.id,
+          invoiceNumber: r.invoiceNumber,
+          customerName: invoiceCustomer?.name ?? 'Unknown',
+          customerCompany: invoiceCustomer?.company ?? null,
+          vehicleInfo,
+          totalAmount: total,
+          amountPaid: paid,
+          amountDue,
+          dueDate: zonedDayKey(dueDate, tz),
+          daysPastDue,
+        })
+
+        totalAmountDue += amountDue
+        if (daysPastDue > 30) over30++
+        if (daysPastDue > 60) over60++
+        if (daysPastDue > 90) over90++
+      }
+
+      return {
+        invoices,
+        summary: {
+          totalPastDue: invoices.length,
+          totalAmountDue,
+          totalInvoices: invoices.length,
+          over30,
+          over60,
+          over90,
+        },
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getVehicleReport(params: ReportRange & { vehicleId: string }) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { tz, start, end } = await reportWindow(organizationId, params)
+
+      const vehicle = await db.vehicle.findFirst({
+        where: { id: params.vehicleId, organizationId },
+        select: {
+          id: true,
+          year: true,
+          make: true,
+          model: true,
+          vin: true,
+          licensePlate: true,
+          mileage: true,
+          customer: { select: { name: true } },
+        },
+      })
+      if (!vehicle) throw new Error('Vehicle not found')
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          vehicleId: params.vehicleId,
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          serviceDate: true,
+          startDateTime: true,
+          totalAmount: true,
+          cost: true,
+          taxRate: true,
+          taxInclusive: true,
+          techName: true,
+          technician: { select: { name: true } },
+          partItems: {
+            select: {
+              name: true,
+              partNumber: true,
+              quantity: true,
+              unit: true,
+              unitCost: true,
+              total: true,
+            },
+          },
+          laborItems: { select: { hours: true, total: true, pricingType: true } },
+        },
+        orderBy: [{ startDateTime: { sort: 'desc', nulls: 'last' } }, { serviceDate: 'desc' }],
+      })
+
+      let totalCost = 0
+      let totalPartsUsed = 0
+      let totalLaborHours = 0
+      const typeCounts: Record<string, { count: number; totalCost: number }> = {}
+      const monthly: Record<
+        string,
+        { partsCost: number; laborCost: number; totalCost: number; count: number }
+      > = {}
+      const partUsage: Record<
+        string,
+        { partNumber: string | null; quantity: number; unit: string | null; totalCost: number }
+      > = {}
+      const partNames: Record<string, string> = {}
+
+      for (const r of records) {
+        const total = r.totalAmount > 0 ? r.totalAmount : r.cost
+        totalCost += total
+
+        const partsCost = r.partItems.reduce((s, p) => s + p.unitCost * p.quantity, 0)
+        // Labor "cost" here is what was charged to the customer for labor.
+        // Net (pre-tax) so monthly breakdowns are consistent across modes.
+        const laborCost = r.laborItems.reduce(
+          (s, l) => s + netLineTotal(l.total, r.taxRate, r.taxInclusive),
+          0
+        )
+        const laborHrs = r.laborItems.reduce((s, l) => s + laborHours(l), 0)
+        totalPartsUsed += r.partItems.reduce((s, p) => s + p.quantity, 0)
+        totalLaborHours += laborHrs
+
+        if (!typeCounts[r.type]) typeCounts[r.type] = { count: 0, totalCost: 0 }
+        typeCounts[r.type].count += 1
+        typeCounts[r.type].totalCost += total
+
+        const _d = r.startDateTime ?? r.serviceDate
+        const month = workshopMonthKey(_d, tz)
+        if (!monthly[month]) monthly[month] = { partsCost: 0, laborCost: 0, totalCost: 0, count: 0 }
+        monthly[month].partsCost += partsCost
+        monthly[month].laborCost += laborCost
+        monthly[month].totalCost += total
+        monthly[month].count += 1
+
+        for (const p of r.partItems) {
+          const key = p.name.toLowerCase()
+          if (!partUsage[key])
+            partUsage[key] = {
+              partNumber: p.partNumber,
+              quantity: 0,
+              unit: p.unit ?? null,
+              totalCost: 0,
+            }
+          partUsage[key].quantity += p.quantity
+          partUsage[key].totalCost += p.unitCost * p.quantity
+          if (p.partNumber && !partUsage[key].partNumber) partUsage[key].partNumber = p.partNumber
+          if (p.unit && !partUsage[key].unit) partUsage[key].unit = p.unit
+          if (!partNames[key]) partNames[key] = p.name
+        }
+      }
+
+      return {
+        vehicleInfo: {
+          id: vehicle.id,
+          year: vehicle.year,
+          make: vehicle.make,
+          model: vehicle.model,
+          vin: vehicle.vin,
+          licensePlate: vehicle.licensePlate,
+          mileage: vehicle.mileage,
+          customerName: vehicle.customer?.name ?? null,
+        },
+        summary: {
+          totalServices: records.length,
+          totalCost,
+          totalPartsUsed,
+          totalLaborHours,
+          repairCount: typeCounts['repair']?.count ?? 0,
+          maintenanceCount: typeCounts['maintenance']?.count ?? 0,
+          upgradeCount: typeCounts['upgrade']?.count ?? 0,
+          inspectionCount: typeCounts['inspection']?.count ?? 0,
+        },
+        monthlyCosts: Object.entries(monthly)
+          .map(([month, data]) => ({ month, ...data }))
+          .sort((a, b) => a.month.localeCompare(b.month)),
+        serviceTypeBreakdown: Object.entries(typeCounts)
+          .map(([type, data]) => ({ type, ...data }))
+          .sort((a, b) => b.count - a.count),
+        topParts: Object.entries(partUsage)
+          .map(([key, data]) => ({ name: partNames[key] || key, ...data }))
+          .sort((a, b) => b.quantity - a.quantity)
+          .slice(0, 20),
+        serviceHistory: records.map((r) => ({
+          id: r.id,
+          title: r.title,
+          type: r.type,
+          status: r.status,
+          date: zonedDayKey(r.startDateTime ?? r.serviceDate, tz),
+          totalAmount: r.totalAmount > 0 ? r.totalAmount : r.cost,
+          partsCount: r.partItems.reduce((s, p) => s + p.quantity, 0),
+          laborHours: r.laborItems.reduce((s, l) => s + laborHours(l), 0),
+          techName: r.technician?.name ?? r.techName ?? null,
+        })),
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}
+
+export async function getTaxReport(params: ReportRange) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const { tz, start, end } = await reportWindow(organizationId, params)
+
+      const records = await db.serviceRecord.findMany({
+        where: {
+          organizationId,
+          startDateTime: { gte: start, lt: end },
+          ...statusScope(params.completedOnly),
+        },
+        select: {
+          serviceDate: true,
+          startDateTime: true,
+          subtotal: true,
+          taxRate: true,
+          taxAmount: true,
+          taxInclusive: true,
+          taxComponents: true,
+          totalAmount: true,
+        },
+        orderBy: [{ startDateTime: { sort: 'asc', nulls: 'last' } }, { serviceDate: 'asc' }],
+      })
+
+      const monthly: Record<
+        string,
+        { taxCollected: number; invoiceCount: number; taxableAmount: number }
+      > = {}
+      const byRate = new TaxByRateTable()
+      let totalTaxCollected = 0
+      let totalTaxableAmount = 0
+      let totalInvoices = 0
+
+      for (const r of records) {
+        if (r.taxAmount <= 0) continue
+
+        const _dt = r.startDateTime ?? r.serviceDate
+        const month = workshopMonthKey(_dt, tz)
+
+        // The taxable base = total - tax. This is the net amount on which tax
+        // was calculated, and it works in BOTH inclusive and exclusive modes
+        // (and accounts for any discount applied).
+        const taxableBase = Math.max(0, r.totalAmount - r.taxAmount)
+
+        if (!monthly[month]) monthly[month] = { taxCollected: 0, invoiceCount: 0, taxableAmount: 0 }
+        monthly[month].taxCollected += r.taxAmount
+        monthly[month].invoiceCount += 1
+        monthly[month].taxableAmount += taxableBase
+
+        byRate.add(r)
+
+        totalTaxCollected += r.taxAmount
+        totalTaxableAmount += taxableBase
+        totalInvoices += 1
+      }
+
+      return {
+        monthly: Object.entries(monthly).map(([month, data]) => ({ month, ...data })),
+        byRate: byRate.list(),
+        summary: { totalTaxCollected, totalTaxableAmount, totalInvoices },
+      }
+    },
+    { requiredPermissions: [{ action: PermissionAction.READ, subject: PermissionSubject.REPORTS }] }
+  )
+}

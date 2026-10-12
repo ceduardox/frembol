@@ -1,0 +1,69 @@
+/**
+ * Every section and field the layout editor can list needs a name in every
+ * locale. A missing one used to take the editor down: next-intl raises on a key
+ * it cannot resolve, and the editor's fallback to the built-in English name
+ * never ran because it was written expecting the key back instead.
+ *
+ * `warranty` had been missing in all twelve locales for exactly that reason,
+ * unnoticed until someone opened the editor on a layout that had it.
+ */
+import { readdirSync, readFileSync } from 'node:fs'
+import { describe, it, expect } from 'vitest'
+import {
+  BUILTIN_SECTIONS,
+  BUILTIN_CUSTOMER_FIELDS,
+  BUILTIN_VEHICLE_FIELDS,
+  BUILTIN_SERVICE_FIELDS,
+  BUILTIN_HEADER_FIELDS,
+  BUILTIN_BANK_ACCOUNT_FIELDS,
+  BUILTIN_FOOTER_FIELDS,
+  BUILTIN_DOCUMENT_TITLE_FIELDS,
+  BUILTIN_JOB_DETAILS_FIELDS,
+  BUILTIN_SIGNATURE_FIELDS,
+  BUILTIN_DEFECTS_FIELDS,
+  BUILTIN_RESULTS_TABLE_FIELDS,
+  WORK_ORDER_SECTIONS,
+} from '@/features/settings/Schema/invoiceLayoutSchema'
+
+const LOCALES = readdirSync('messages')
+
+const FIELD_IDS = [
+  ...BUILTIN_CUSTOMER_FIELDS,
+  ...BUILTIN_VEHICLE_FIELDS,
+  ...BUILTIN_SERVICE_FIELDS,
+  ...BUILTIN_HEADER_FIELDS,
+  ...BUILTIN_BANK_ACCOUNT_FIELDS,
+  ...BUILTIN_FOOTER_FIELDS,
+  ...BUILTIN_DOCUMENT_TITLE_FIELDS,
+  ...BUILTIN_JOB_DETAILS_FIELDS,
+  ...BUILTIN_SIGNATURE_FIELDS,
+  // The inspection's two sections, which an invoice, a quote and a work
+  // order can print as well as the certificate.
+  ...BUILTIN_DEFECTS_FIELDS,
+  ...BUILTIN_RESULTS_TABLE_FIELDS,
+].map((f) => f.id)
+
+const SECTION_IDS = [...new Set([...BUILTIN_SECTIONS, ...WORK_ORDER_SECTIONS].map((s) => s.id))]
+
+function layoutEditorMessages(locale: string) {
+  const json = JSON.parse(readFileSync(`messages/${locale}/settings.json`, 'utf8'))
+  return json.layoutEditor ?? {}
+}
+
+describe('layout editor labels', () => {
+  it('has at least the twelve shipped locales to check', () => {
+    expect(LOCALES.length).toBeGreaterThanOrEqual(12)
+  })
+
+  it.each(LOCALES)('names every section in %s', (locale) => {
+    const named = Object.keys(layoutEditorMessages(locale).sections ?? {})
+    const missing = SECTION_IDS.filter((id) => !named.includes(id))
+    expect(missing).toEqual([])
+  })
+
+  it.each(LOCALES)('names every field in %s', (locale) => {
+    const named = Object.keys(layoutEditorMessages(locale).fields ?? {})
+    const missing = FIELD_IDS.filter((id) => !named.includes(id))
+    expect(missing).toEqual([])
+  })
+})

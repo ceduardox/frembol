@@ -1,0 +1,122 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { svgDownloadHeaders } from '@/lib/upload-url'
+import { db } from '@/lib/db'
+import { readFile, stat } from 'fs/promises'
+import path from 'path'
+import { uploadsRoot } from '@/lib/upload-root'
+
+const MIME_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  pdf: 'application/pdf',
+  csv: 'text/csv',
+  txt: 'text/plain',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+}
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ token: string; path: string[] }> }
+) {
+  const { token, path: segments } = await params
+
+  // Expected: [category, filename]
+  if (segments.length !== 2) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
+  }
+
+  const [category, filename] = segments
+
+  // Every folder a shared document's images and attachments can live in. A
+  // tire-hotel job's photos sat under its own folder, which this list did not
+  // know, so its share link showed every image but those.
+  const allowedCategories = [
+    'vehicles',
+    'inventory',
+    'services',
+    'logos',
+    'quotes',
+    'tire-hotel',
+    'inspections',
+    'documents',
+  ]
+  if (!allowedCategories.includes(category)) {
+    return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
+  }
+
+  // Prevent directory traversal
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return NextResponse.json({ error: 'Invalid filename' }, { status: 400 })
+  }
+
+  // Validate token and get org (check both invoice and quote tokens)
+  let orgId: string | undefined
+
+  const serviceRecord = await db.serviceRecord.findUnique({
+    where: { publicToken: token },
+    select: { organizationId: true },
+  })
+
+  if (serviceRecord?.organizationId) {
+    orgId = serviceRecord.organizationId
+  } else {
+    const quote = await db.quote.findFirst({
+      where: { publicToken: token },
+      select: { organizationId: true },
+    })
+    if (quote?.organizationId) {
+      orgId = quote.organizationId
+    } else {
+      const inspection = await db.inspection.findFirst({
+        where: { publicToken: token },
+        select: { organizationId: true },
+      })
+      if (inspection?.organizationId) {
+        orgId = inspection.organizationId
+      }
+    }
+  }
+
+  if (!orgId) {
+    const statusReport = await db.statusReport.findFirst({
+      where: { publicToken: token },
+      select: { organizationId: true },
+    })
+    if (statusReport?.organizationId) {
+      orgId = statusReport.organizationId
+    }
+  }
+
+  if (!orgId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  const filePath = path.join(uploadsRoot(), orgId, category, filename)
+
+  try {
+    await stat(filePath)
+  } catch {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  const buffer = await readFile(filePath)
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  if (ext === 'svg') {
+    return new NextResponse(buffer, {
+      headers: svgDownloadHeaders('public, max-age=31536000, immutable'),
+    })
+  }
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream'
+
+  return new NextResponse(buffer, {
+    headers: {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'X-Robots-Tag': 'noindex, nofollow',
+    },
+  })
+}

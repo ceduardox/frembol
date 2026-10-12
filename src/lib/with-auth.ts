@@ -1,0 +1,211 @@
+import { ZodError } from 'zod'
+import { headers } from 'next/headers'
+import { getCachedSession, getCachedMembership } from './cached-session'
+import { db } from './db'
+import type { PermissionInput } from './permissions'
+import { hasAllPermissions } from './permissions'
+import { logAudit } from '@/lib/audit'
+import type { AuditEvent } from '@/lib/audit'
+import type { FeatureGatedError } from '@/lib/features'
+import { publicErrorMessage } from '@/lib/public-error-message'
+import { runAsActor } from '@/lib/realtime/actor.server'
+import { SCOPED_SESSION_MESSAGE, sessionOrganizationScope } from './session-scope'
+
+/** What the plan refused, and the number it stopped at when there is one. */
+export type GatedFeature = { feature: string; limit?: number }
+
+export type ActionResult<T = unknown> = {
+  success: boolean
+  data?: T
+  error?: string
+  /** Set when the action was refused by the plan rather than by a failure. */
+  gated?: GatedFeature
+  /**
+   * Set when this person's role does not allow the action. `error` is an
+   * English sentence for the log; a screen that can say something more useful
+   * than "it failed" (who to ask, what to ask for) checks this instead.
+   */
+  forbidden?: boolean
+}
+
+export type AuthContext = {
+  userId: string
+  organizationId: string
+  role: string
+  isSuperAdmin: boolean
+  isAdmin: boolean
+}
+
+type AuditBuilder<T> = (args: { ctx: AuthContext; result: T }) => AuditEvent | null | undefined
+
+type WithAuthOptions<T = unknown> = {
+  requiredPermissions?: PermissionInput[]
+  /**
+   * The action changes the person's account rather than the workshop: their
+   * email, the account itself, a workshop of their own. Refused to a session
+   * a workshop minted without a password (lib/session-scope.ts), because that
+   * workshop can only vouch for the person inside itself.
+   */
+  accountLevel?: boolean
+  // Optional audit config. If provided, runs after successful action.
+  audit?: AuditEvent | AuditBuilder<T>
+}
+
+async function getRequestMeta() {
+  try {
+    const h = await headers()
+    const forwarded = h.get('x-forwarded-for')
+    const ip = forwarded?.split(',')[0]?.trim() || h.get('x-real-ip') || null
+    const userAgent = h.get('user-agent') || null
+    return { ip, userAgent }
+  } catch {
+    return { ip: null, userAgent: null }
+  }
+}
+
+export async function withAuth<T>(
+  action: (ctx: AuthContext) => Promise<T>,
+  options: WithAuthOptions<T> = {}
+): Promise<ActionResult<T>> {
+  try {
+    const session = await getCachedSession()
+
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // A session bound to one workshop acts as a member of it and nothing
+    // more: no account changes, and none of the account's platform rights.
+    const scope = sessionOrganizationScope(session)
+    if (scope && options.accountLevel) {
+      return { success: false, error: SCOPED_SESSION_MESSAGE, forbidden: true }
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { isSuperAdmin: true },
+    })
+
+    const isSuperAdmin = !scope && (user?.isSuperAdmin ?? false)
+
+    const membership = await getCachedMembership(session.user.id)
+
+    if (!membership?.organizationId) {
+      return { success: false, error: 'No organization found' }
+    }
+
+    const isOwnerOrAdmin = membership?.role === 'owner' || membership?.role === 'admin'
+    const roleIsAdmin = membership?.customRole?.isAdmin === true
+
+    const ctx: AuthContext = {
+      userId: session.user.id,
+      organizationId: membership.organizationId,
+      role: isSuperAdmin ? 'super_admin' : (membership?.role ?? 'member'),
+      isSuperAdmin,
+      isAdmin: isSuperAdmin || isOwnerOrAdmin || roleIsAdmin,
+    }
+
+    // Check permissions if required (super admins bypass all permission checks)
+    if (!isSuperAdmin && options.requiredPermissions && options.requiredPermissions.length > 0) {
+      // A member with no role has no permissions.
+      //
+      // This used to skip the check entirely, which made such an account
+      // unrestricted while the settings screen told admins the opposite:
+      // "No custom role means read-only access." Anyone added as a Member and
+      // never given a role therefore had full access to billing, settings and
+      // the team, and nothing on screen said so.
+      //
+      // Shipped without a backfill deliberately. Cloud production was checked
+      // first and had no roleless members outside owners and admins, so this
+      // locks nobody out there.
+      //
+      // Self-hosted installs were not checked, because their databases are
+      // theirs. On one that does hold a roleless member, that person loses
+      // access on upgrade and an owner or admin has to give them a role. That
+      // is the correct end state and the settings screen already describes it;
+      // it just arrives without warning. Worth a release note.
+      //
+      // Invitations still allow no role (see sendInvitation), so a member can
+      // be created this way again. Under this check they simply get nothing,
+      // which is what the UI has always claimed.
+      if (!isOwnerOrAdmin && !roleIsAdmin) {
+        const userPermissions = membership?.customRole?.permissions ?? []
+        if (!hasAllPermissions(userPermissions, options.requiredPermissions)) {
+          // Log failed permission attempt
+          const meta = await getRequestMeta()
+          logAudit(ctx, {
+            action: 'auth.permissionDenied',
+            message: `Permission denied: ${options.requiredPermissions.map((p) => `${p.action}:${p.subject}`).join(', ')}`,
+            metadata: { requiredPermissions: options.requiredPermissions },
+            ip: meta.ip,
+            userAgent: meta.userAgent,
+          }).catch(() => {
+            /* best-effort */
+          })
+          return { success: false, error: 'Insufficient permissions', forbidden: true }
+        }
+      }
+    }
+
+    // Run inside the actor, so every write underneath knows whose it was and
+    // the live update can say who changed the record (lib/realtime).
+    const data = await runAsActor(
+      {
+        userId: ctx.userId,
+        name: session.user.name || session.user.email || null,
+        source: 'web',
+      },
+      () => action(ctx)
+    )
+
+    // Post-success audit logging (fire-and-forget, logAudit handles its own errors)
+    if (options.audit) {
+      getRequestMeta()
+        .then((meta) => {
+          const event =
+            typeof options.audit === 'function'
+              ? (options.audit as AuditBuilder<T>)({ ctx, result: data })
+              : options.audit
+          if (event && event.action) {
+            logAudit(ctx, {
+              ...event,
+              ip: event.ip ?? meta.ip,
+              userAgent: event.userAgent ?? meta.userAgent,
+            })
+          }
+        })
+        .catch(() => {
+          /* best-effort */
+        })
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const messages = error.issues.map((e) => {
+        const field = e.path.join('.')
+        return field ? `${field}: ${e.message}` : e.message
+      })
+      const message = messages.join('. ')
+      console.error('[withAuth] Validation error:', message)
+      return { success: false, error: message }
+    }
+    // Matched by name rather than `instanceof`: tests replace '@/lib/features'
+    // with partial mocks, and a plan refusal must still come through as one.
+    if (error instanceof Error && error.name === 'FeatureGatedError') {
+      const gated = error as FeatureGatedError
+      // Not a failure: the plan said no. Hand the client what it needs to
+      // offer the upgrade instead of an error box.
+      return {
+        success: false,
+        error: error.message,
+        gated: { feature: gated.feature, limit: gated.limit },
+      }
+    }
+    // In full here, where only the server sees it. The page gets the action's
+    // own words, or a plain sentence when the error came from the database or
+    // the runtime: a raw query error once filled the vehicle list.
+    console.error('[withAuth] Error:', error)
+    return { success: false, error: publicErrorMessage(error) }
+  }
+}

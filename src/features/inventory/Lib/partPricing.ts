@@ -1,0 +1,231 @@
+import { roundMoney } from '@/lib/money'
+
+/**
+ * The single source of truth for every money figure derived from a stocked
+ * part: what the customer is charged, the markup that price implies, and the
+ * line total that follows from it.
+ *
+ * It exists because these rules were duplicated. The inventory picker had the
+ * full fallback chain; the inline name suggestion used `sellPrice` directly,
+ * so any part whose sell price was never filled in landed on the line at zero.
+ * The same cost-plus-markup formula was then written out by hand in four more
+ * places (barcode scan, the row reducer, apply-markup-to-all, and the part
+ * form), each free to drift from the others. Nothing here should be inlined at
+ * a call site again: a pricing rule that disagrees with itself bills the wrong
+ * amount silently, and no test at the call site catches it.
+ *
+ * Two different units are in play, and they are not interchangeable:
+ *  - `defaultMarkupPercent` is a percentage on a job or quote line. 50 means
+ *    cost + 50%.
+ *  - `markupMultiplier` multiplies cost in the inventory catalog form. 1.5
+ *    means the same thing as a 50 percent markup.
+ */
+
+export interface PricedPart {
+  unitCost: number
+  sellPrice: number
+}
+
+export interface PricingSettings {
+  /** Org default markup %, applied to cost when the setting below is on. */
+  defaultMarkupPercent?: number
+  /** When true, inventory parts are priced from cost + default markup. */
+  markupAppliesToInventory?: boolean
+}
+
+export interface ResolvedPrice {
+  unitPrice: number
+  /** Kept in step with unitPrice so the displayed margin matches reality. */
+  markupPercent: number
+}
+
+export { roundMoney }
+
+/**
+ * Read a value that may still be raw input from a number field.
+ *
+ * These fields store whatever the input produced, so a cleared box holds `""`
+ * rather than a number, despite what the row types claim.
+ */
+function parseNumber(value: unknown): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+/**
+ * Read a line quantity that may still be raw input.
+ *
+ * Every total is derived as quantity * unitPrice, so this follows that same
+ * rule and keeps the two in step: an unusable value reads as 0, and a
+ * deliberate 0 stays 0 instead of being rounded up to 1.
+ */
+export function parseQuantity(value: unknown): number {
+  return parseNumber(value)
+}
+
+/**
+ * Customer price for a part bought at `cost` and sold at `markupPercent` over
+ * it. A markup of 0 sells at cost; there is no hidden floor.
+ */
+export function priceFromCostAndMarkup(cost: unknown, markupPercent: unknown): number {
+  return roundMoney(parseNumber(cost) * (1 + parseNumber(markupPercent) / 100))
+}
+
+/**
+ * Catalog sell price for a part bought at `cost`, using the inventory form's
+ * multiplier rather than a percentage. A multiplier of 1.5 equals a 50 percent
+ * markup; see the note at the top of this file.
+ */
+export function priceFromCostAndMultiplier(cost: unknown, multiplier: unknown): number {
+  return roundMoney(parseNumber(cost) * parseNumber(multiplier))
+}
+
+/**
+ * The inverse of {@link priceFromCostAndMarkup}: what markup does this price
+ * imply over this cost?
+ *
+ * Held to one decimal, which is what the markup field accepts. With no cost
+ * recorded there is no meaningful percentage, so the price is treated as a
+ * free override at 0 rather than reported as an infinite margin.
+ */
+export function markupFromCostAndPrice(cost: unknown, price: unknown): number {
+  const parsedCost = parseNumber(cost)
+  if (parsedCost <= 0) return 0
+  return Math.round((parseNumber(price) / parsedCost - 1) * 1000) / 10
+}
+
+/**
+ * What a line is worth. Rounded to the cent for the same reason every other
+ * amount here is: this value is stored and then summed into a subtotal.
+ */
+export function lineTotal(quantity: unknown, unitPrice: unknown): number {
+  return roundMoney(parseQuantity(quantity) * parseNumber(unitPrice))
+}
+
+/**
+ * Turn the raw settings map into the pricing inputs the rest of this module
+ * takes. Settings are stored as strings, so a missing or unparseable value has
+ * to read as "no markup" rather than NaN.
+ */
+export function readPartsPricingSettings(
+  settings: Record<string, string | undefined>,
+  keys: { defaultMarkupPercent: string; markupAppliesToInventory: string }
+): Required<PricingSettings> {
+  return {
+    defaultMarkupPercent: parseNumber(settings[keys.defaultMarkupPercent]),
+    markupAppliesToInventory: settings[keys.markupAppliesToInventory] === 'true',
+  }
+}
+
+export function resolvePartPrice(
+  part: PricedPart,
+  { defaultMarkupPercent = 0, markupAppliesToInventory = false }: PricingSettings = {}
+): ResolvedPrice {
+  const cost = parseNumber(part.unitCost)
+  const sell = parseNumber(part.sellPrice)
+
+  // The workshop prices parts from cost plus a house markup.
+  if (markupAppliesToInventory && defaultMarkupPercent > 0) {
+    return {
+      unitPrice: priceFromCostAndMarkup(cost, defaultMarkupPercent),
+      markupPercent: defaultMarkupPercent,
+    }
+  }
+
+  // Otherwise the part's own sell price wins. Falling back to cost matters:
+  // a part with no sell price set would otherwise be billed at zero, which is
+  // worse than billing at cost and far easier to miss.
+  return { unitPrice: sell > 0 ? sell : cost, markupPercent: 0 }
+}
+
+/**
+ * The three linked money fields on a parts line, plus whether the price has
+ * been set by hand.
+ */
+export interface PricedRow {
+  unitCost: unknown
+  markupPercent: unknown
+  unitPrice: unknown
+  /** See {@link repricePartRow}. Absent means "still following the formula". */
+  priceOverridden?: boolean
+}
+
+export type PricedRowField = 'unitCost' | 'markupPercent' | 'unitPrice'
+
+export interface RepricedRow extends ResolvedPrice {
+  priceOverridden: boolean
+}
+
+/**
+ * Does this row's price disagree with what its cost and markup imply?
+ *
+ * Only for seeding {@link repricePartRow} when a row first arrives from the
+ * database, where it is evaluated once against settled values. It must never
+ * be re-evaluated while someone is typing: each keystroke moves the numbers,
+ * and the answer flips as soon as an intermediate value happens to line up.
+ */
+export function isPriceOverridden(row: {
+  unitCost: unknown
+  markupPercent: unknown
+  unitPrice: unknown
+}): boolean {
+  return roundMoney(row.unitPrice) !== priceFromCostAndMarkup(row.unitCost, row.markupPercent)
+}
+
+/**
+ * Reconciles the three linked fields on a parts line after one of them is
+ * edited, so the row stays consistent and the markup never lies about the
+ * real margin.
+ *
+ * Editing the price makes it an override: it is a decision, and a later edit
+ * to the cost restates the margin instead of overwriting what was typed.
+ * Editing the markup is the opposite instruction, price this from cost, so it
+ * hands pricing back to the formula and clears the override.
+ *
+ * Two things here exist because these fields update on every keystroke, and a
+ * value being typed is not a value someone meant:
+ *
+ *  - The override is remembered rather than inferred from the numbers. Typing
+ *    a cost of 1500 against a price of 1000 passes through 1, and at a cost of
+ *    1 that price is exactly what a markup of 99900% implies, so anything
+ *    reading the numbers alone concludes the price is derived and multiplies
+ *    it up to 1500000.
+ *  - A margin is only restated on `commit`, when the field is left. Derived
+ *    live, it reported 99900%, then 6566.7%, then 566.7% before settling, and
+ *    a wildly wrong margin on screen reads as broken even when the price
+ *    beside it is right.
+ *
+ * The price still tracks a cost as it is typed, because there it simply
+ * mirrors the digits going in and stays recognisable the whole way.
+ */
+export function repricePartRow(
+  row: PricedRow,
+  field: PricedRowField,
+  { commit = false }: { commit?: boolean } = {}
+): RepricedRow {
+  if (field === 'unitPrice') {
+    return {
+      unitPrice: roundMoney(row.unitPrice),
+      markupPercent: markupFromCostAndPrice(row.unitCost, row.unitPrice),
+      priceOverridden: true,
+    }
+  }
+
+  if (field === 'markupPercent' || !row.priceOverridden) {
+    return {
+      unitPrice: priceFromCostAndMarkup(row.unitCost, row.markupPercent),
+      markupPercent: parseNumber(row.markupPercent),
+      priceOverridden: false,
+    }
+  }
+
+  // Cost changed under a hand-set price: hold the price, and restate the
+  // margin only once the cost has stopped moving.
+  return {
+    unitPrice: roundMoney(row.unitPrice),
+    markupPercent: commit
+      ? markupFromCostAndPrice(row.unitCost, row.unitPrice)
+      : parseNumber(row.markupPercent),
+    priceOverridden: true,
+  }
+}

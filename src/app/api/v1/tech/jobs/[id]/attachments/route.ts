@@ -1,0 +1,201 @@
+import { mkdir, stat, writeFile } from 'node:fs/promises'
+import crypto from 'node:crypto'
+import path from 'node:path'
+import { after } from 'next/server'
+import { db } from '@/lib/db'
+import { getFeatures, type PlanFeatures } from '@/lib/features'
+import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { apiError, apiOk, withApiAuth } from '@/lib/with-api-auth'
+import { uploadsRoot } from '@/lib/upload-root'
+import { assertContentLength } from '@/lib/backup/zip-guard'
+import { queueVideoDownscale } from '@/lib/video-downscale'
+import { isDeclaredVideo, sniffDeclaredVideo, type VideoContainer } from '@/lib/video-sniff'
+
+/**
+ * Attaches a photo or video shot in the bay to a job.
+ *
+ * One request, not the web's two. The browser uploads a file, gets a URL back
+ * and then posts that URL as an attachment, which is fine on a desk and wrong
+ * on a phone: a technician on workshop wifi who loses signal between the two
+ * calls leaves a file on disk that no job points at, and has no way to know.
+ * Here the row and the bytes commit together or neither does.
+ */
+
+/**
+ * Deliberately narrower than the web's list. This endpoint exists for a camera,
+ * so it accepts what a camera produces. PDFs, spreadsheets and text files have
+ * no business arriving from a phone in a bay, and every format accepted is a
+ * parser somewhere that has to be right.
+ */
+const ALLOWED = new Map<string, string>([
+  ['image/jpeg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/heic', 'heic'],
+  ['video/mp4', 'mp4'],
+  ['video/quicktime', 'mov'],
+])
+
+/**
+ * Smaller than the web's 500MB. A phone on shop wifi uploading half a gigabyte
+ * is a request that will not finish, and a limit that cannot be met in the
+ * field is not a limit, it is a timeout with extra steps.
+ */
+const MAX_PHOTO_BYTES = 60 * 1024 * 1024
+
+/**
+ * More room for a video, because not every one comes from the app's own
+ * recorder. That one writes 1080p and stays well under the photo limit; a
+ * clip picked from the library was shot at whatever the phone was set to,
+ * and a short 4K take is already past it. Those are scaled down once saved.
+ */
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024
+
+// The multipart framing around the file adds a little to the body. The
+// margin keeps a file just under the cap from being refused for it.
+const MAX_BODY = MAX_VIDEO_BYTES + 1024 * 1024
+
+const CATEGORY_LIMIT: Record<string, keyof PlanFeatures | undefined> = {
+  image: 'maxImagesPerService',
+  diagnostic: 'maxDiagnosticsPerService',
+  document: 'maxDocumentsPerService',
+}
+
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  return withApiAuth(
+    request,
+    async (ctx) => {
+      const { id } = await params
+
+      const job = await db.serviceRecord.findFirst({
+        where: {
+          id,
+          organizationId: ctx.organizationId,
+          ...(ctx.isAdmin ? {} : { technicianId: { in: ctx.technicianIds } }),
+        },
+        select: { id: true },
+      })
+      if (!job) return apiError(404, 'not_found', 'That job is not on your list.')
+
+      // Refused from the header, before the body is buffered into memory.
+      try {
+        assertContentLength(request, MAX_BODY)
+      } catch {
+        return apiError(413, 'invalid_request', 'That file is too large. Keep it under 250 MB.')
+      }
+
+      const form = await request.formData()
+      const file = form.get('file')
+      if (!(file instanceof File)) {
+        return apiError(400, 'invalid_request', 'No file was attached.')
+      }
+
+      const ext = ALLOWED.get(file.type)
+      if (!ext) {
+        return apiError(400, 'invalid_request', 'That file type cannot be attached from the app.')
+      }
+      if (file.size === 0) {
+        return apiError(400, 'invalid_request', 'That file is empty.')
+      }
+      const maxBytes = isDeclaredVideo(file.type) ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES
+      if (file.size > maxBytes) {
+        return apiError(
+          400,
+          'invalid_request',
+          `That file is too large. Keep it under ${maxBytes / (1024 * 1024)} MB.`
+        )
+      }
+
+      const bytes = new Uint8Array(await file.arrayBuffer())
+
+      // The declared type is the client's word. A video is kept, served and
+      // played as one only when its bytes are the container it claims.
+      let container: VideoContainer | null = null
+      if (isDeclaredVideo(file.type)) {
+        container = sniffDeclaredVideo(file.type, bytes)
+        if (!container) {
+          return apiError(400, 'invalid_request', 'That file is not a video we can read.')
+        }
+      }
+
+      const category = container ? 'video' : 'image'
+      const description = (form.get('description') as string | null)?.slice(0, 500) || undefined
+
+      const limitKey = CATEGORY_LIMIT[category]
+      if (limitKey) {
+        const features = await getFeatures(ctx.organizationId)
+        const max = features[limitKey] as number
+        const used = await db.serviceAttachment.count({
+          where: { serviceRecordId: job.id, category },
+        })
+        if (used >= max) {
+          return apiError(
+            409,
+            'conflict',
+            `This job already has the maximum of ${max} ${category === 'video' ? 'videos' : 'photos'}.`
+          )
+        }
+      }
+
+      // The filename is generated, never taken from the client. A name that
+      // arrives over the wire is an attacker-controlled path, and the only
+      // safe thing to do with one is not use it.
+      const filename = `${crypto.randomUUID()}.${ext}`
+      const dir = path.join(uploadsRoot(), ctx.organizationId, 'services')
+      await mkdir(dir, { recursive: true })
+      const target = path.join(dir, filename)
+
+      await writeFile(target, bytes)
+      const written = await stat(target)
+
+      const attachment = await db.serviceAttachment.create({
+        data: {
+          // The original name is kept as a label only, and is never part of a
+          // path. Trimmed because a phone can produce a very long one.
+          fileName: (file.name || filename).slice(0, 200),
+          fileUrl: `/api/protected/files/${ctx.organizationId}/services/${filename}`,
+          fileType: file.type,
+          fileSize: written.size,
+          category,
+          description,
+          serviceRecordId: job.id,
+        },
+        select: {
+          id: true,
+          fileName: true,
+          fileUrl: true,
+          fileType: true,
+          fileSize: true,
+          category: true,
+          description: true,
+          createdAt: true,
+        },
+      })
+
+      // After the answer, not before it: the phone has its yes, and a video
+      // shot above 1080p is brought down to it without anyone waiting.
+      if (container) {
+        const videoContainer = container
+        after(() =>
+          queueVideoDownscale({
+            attachmentId: attachment.id,
+            organizationId: ctx.organizationId,
+            fileUrl: attachment.fileUrl,
+            container: videoContainer,
+          })
+        )
+      }
+
+      return apiOk({ attachment }, 201)
+    },
+    {
+      requireTechnician: true,
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.SERVICES },
+      ],
+      // Uploads are slower and heavier than reads, and a runaway retry loop
+      // here fills a disk rather than just burning CPU.
+      rateLimit: { limit: 30, windowMs: 60_000 },
+    }
+  )
+}

@@ -1,0 +1,487 @@
+import { resolveCurrencyCode } from '@/lib/currencies'
+import { parseTaxComponents } from '@/lib/tax-components'
+import { getServiceRecord } from '@/features/vehicles/Actions/serviceActions'
+import { getServiceVideoCall } from '@/features/integrations/Actions/integrationActions'
+import { getWorkBays } from '@/features/workboard/Actions/workBayActions'
+import { getDisplaySettings } from '@/features/settings/Actions/settingsActions'
+import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
+import {
+  readShopFee,
+  SHOP_FEE_SETTING_KEYS,
+  shopFeeLinesLast,
+} from '@/features/settings/Lib/shopFee'
+import {
+  readWarrantyDefaults,
+  WARRANTY_SETTING_KEYS,
+  warrantyTextsOf,
+} from '@/features/settings/Lib/warrantyDefaults'
+import { readPartsPricingSettings } from '@/features/inventory/Lib/partPricing'
+import { getInventoryPartsList } from '@/features/inventory/Actions/inventoryActions'
+import { getLaborPresetsList } from '@/features/labor-presets/Actions/laborPresetActions'
+
+import { getTechnicians, getOrgMembers } from '@/features/workboard/Actions/technicianActions'
+import { getJobClock } from '@/features/time-tracking/Actions/timeClockActions'
+import { getAuthContext } from '@/lib/get-auth-context'
+import { getInvoiceLockState } from '@/lib/document-lock.server'
+import {
+  designRuleSubjectOf,
+  findRuleDesign,
+} from '@/features/invoice-designer/Lib/designRules.server'
+import { getFeatures } from '@/lib/features'
+import { configuredAiProvider } from '@/features/integrations/Lib/ai'
+import { configuredDictation } from '@/features/integrations/Lib/speech'
+import { getTireHotelSettings } from '@/features/tire-hotel/Lib/tireHotelSettings'
+import { getStatusReportsForService } from '@/features/status-reports/Actions/getStatusReportsForService'
+import { getServiceFindings } from '@/features/vehicles/Actions/findingActions'
+import { db } from '@/lib/db'
+import {
+  loadVehicleConditionMarks,
+  markTypeCatalogue,
+} from '@/features/condition-map/Lib/loadMarks.server'
+import { invoiceDesignPrintsConditionMap } from '@/features/invoices/Lib/assembleInvoicePrint'
+import { getCachedSession, getCachedMembership } from '@/lib/cached-session'
+import { canEditSettings } from '@/lib/settings-access'
+import { ServicePageClient } from '@/features/vehicles/Components/service-page/ServicePageClient'
+import { listDesignOptions } from '@/features/invoice-designer/Actions/documentDesignActions'
+import { rendersFromIssue } from '@/features/invoices/Lib/issuedInvoice'
+import { offeredPaymentProviders } from '@/features/integrations/Lib/payments'
+import { listWorkOrderStatuses } from '@/features/work-order-statuses/Actions/workOrderStatusActions'
+import { PageHeader } from '@/components/page-header'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { workshopTimeZone } from '@/lib/workshop-timezone'
+import { addZonedDays, zonedDayKey } from '@/lib/timezone'
+import { resolveWorkOrderLayout } from '@/lib/work-order-layout.server'
+
+/**
+ * Shared server component behind both service-record routes:
+ * /vehicles/[id]/service/[serviceId] and /sales/[serviceId] (counter sales
+ * without a vehicle). The record itself decides which mode applies.
+ */
+export async function ServiceRecordPage({
+  serviceId,
+  initialTab,
+}: {
+  serviceId: string
+  initialTab?: string
+}) {
+  const [
+    result,
+    settingsResult,
+    inventoryResult,
+    techniciansResult,
+    presetsResult,
+    authContext,
+    session,
+    orgMembersResult,
+    statusReportsResult,
+    findingsResult,
+    workBaysResult,
+    videoCallResult,
+    designOptionsResult,
+    jobClockResult,
+    initialLayout,
+    workOrderStatusesResult,
+  ] = await Promise.all([
+    getServiceRecord(serviceId),
+    getDisplaySettings([
+      SETTING_KEYS.CURRENCY_CODE,
+      SETTING_KEYS.UNIT_SYSTEM,
+      SETTING_KEYS.DEFAULT_TAX_RATE,
+      SETTING_KEYS.TAX_ENABLED,
+      SETTING_KEYS.DEFAULT_LABOR_RATE,
+      SETTING_KEYS.INVOICE_DUE_DAYS,
+      SETTING_KEYS.PARTS_DEFAULT_MARKUP_PERCENT,
+      SETTING_KEYS.PARTS_MARKUP_APPLIES_TO_INVENTORY,
+      SETTING_KEYS.INVOICE_ACTIVE_DESIGN,
+      ...SHOP_FEE_SETTING_KEYS,
+      ...WARRANTY_SETTING_KEYS,
+    ]),
+    getInventoryPartsList(),
+    getTechnicians(),
+    getLaborPresetsList(),
+    getAuthContext(),
+    getCachedSession(),
+    getOrgMembers(),
+    getStatusReportsForService(serviceId),
+    getServiceFindings(serviceId),
+    getWorkBays(),
+    getServiceVideoCall(serviceId),
+    listDesignOptions('invoice'),
+    getJobClock(serviceId),
+    resolveWorkOrderLayout(),
+    listWorkOrderStatuses(),
+  ])
+
+  if (!result.success || !result.data) {
+    return (
+      <>
+        <PageHeader />
+        <div className="flex h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">
+            {result.error || (await getTranslations('service.page'))('notFound')}
+          </p>
+        </div>
+      </>
+    )
+  }
+
+  const record = result.data
+  const vehicleId = record.vehicleId
+  const settings = settingsResult.success && settingsResult.data ? settingsResult.data : {}
+  const currencyCode = resolveCurrencyCode(settings[SETTING_KEYS.CURRENCY_CODE])
+  const unitSystem = (settings[SETTING_KEYS.UNIT_SYSTEM] || 'imperial') as 'metric' | 'imperial'
+  const taxEnabled = settings[SETTING_KEYS.TAX_ENABLED] !== 'false'
+  const defaultTaxRate = taxEnabled ? Number(settings[SETTING_KEYS.DEFAULT_TAX_RATE]) || 0 : 0
+  const defaultLaborRate = Number(settings[SETTING_KEYS.DEFAULT_LABOR_RATE]) || 0
+  const shopFee = readShopFee(settings)
+  const defaultDueDays = Number(settings[SETTING_KEYS.INVOICE_DUE_DAYS]) || 0
+  const { defaultMarkupPercent, markupAppliesToInventory } = readPartsPricingSettings(settings, {
+    defaultMarkupPercent: SETTING_KEYS.PARTS_DEFAULT_MARKUP_PERCENT,
+    markupAppliesToInventory: SETTING_KEYS.PARTS_MARKUP_APPLIES_TO_INVENTORY,
+  })
+  const inventoryParts = inventoryResult.success && inventoryResult.data ? inventoryResult.data : []
+  const laborPresets = presetsResult.success && presetsResult.data ? presetsResult.data : []
+  const initialVehicle = record.vehicle
+    ? {
+        id: record.vehicle.id,
+        make: record.vehicle.make,
+        model: record.vehicle.model,
+        year: record.vehicle.year,
+        licensePlate: record.vehicle.licensePlate,
+      }
+    : null
+  const boardTechnicians = (
+    techniciansResult.success && techniciansResult.data ? techniciansResult.data : []
+  ).map((t) => ({
+    id: t.id,
+    name: t.name,
+    userId: t.userId,
+    color: t.color,
+    dailyCapacity: t.dailyCapacity,
+    skills: t.skills,
+  }))
+  const workBays = (workBaysResult.success && workBaysResult.data ? workBaysResult.data : []).map(
+    (b) => ({ id: b.id, name: b.name })
+  )
+  const organizationId = authContext?.organizationId || ''
+  // Whether a customer can pay the shared invoice online, which is what the
+  // pay code at the desk is for.
+  const onlinePayments = organizationId
+    ? (await offeredPaymentProviders(organizationId)).length > 0
+    : false
+  const lockState = organizationId
+    ? await getInvoiceLockState(serviceId, organizationId)
+    : { locked: false, reason: null, unlockedAt: null }
+
+  // Fetch team members and features
+  const membership = session?.user?.id ? await getCachedMembership(session.user.id) : null
+  const orgId = membership?.organizationId
+  // Whether the status menus offer the way to add a status. Somebody who
+  // cannot change settings is better off not seeing a link that turns them away.
+  const canAddStatus = await canEditSettings(session?.user?.id ?? '', membership?.role)
+
+  const [currentUser, features, aiProvider, dictation, tireHotel] = await Promise.all([
+    session?.user?.id
+      ? db.user.findUnique({
+          where: { id: session.user.id },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
+    orgId ? getFeatures(orgId) : Promise.resolve(null),
+    // An AI vendor connected in the catalog, or the settings a workshop saved
+    // before AI moved there. Nothing is adopted from a page render.
+    orgId ? configuredAiProvider(orgId).catch(() => null) : Promise.resolve(null),
+    // Whether dictation has a speech model to go to, and who picks the engine.
+    orgId
+      ? configuredDictation(orgId).catch(() => ({ available: false, mode: 'choice' as const }))
+      : Promise.resolve({ available: false, mode: 'choice' as const }),
+    // The whole config, not just the switch: checking a set in from here
+    // grades tread, and it has to grade against this workshop's own limits.
+    getTireHotelSettings(orgId ?? ''),
+  ])
+
+  const currentUserName = currentUser?.name || ''
+
+  // The picker on the invoice: the saved designs, what "default" means for
+  // this invoice (the customer's design, else the one in use), and whether
+  // the sheet is frozen at an issue.
+  const designOptions =
+    designOptionsResult.success && designOptionsResult.data ? designOptionsResult.data : []
+  const customerDesignId =
+    record.customer?.invoiceDesignId ?? record.vehicle?.customer?.invoiceDesignId ?? null
+  const activeDesign = settings[SETTING_KEYS.INVOICE_ACTIVE_DESIGN] || ''
+  const activeDesignId = activeDesign.startsWith('design:')
+    ? activeDesign.slice('design:'.length)
+    : null
+  // What "default" means for this invoice: the customer's design, else the
+  // design that volunteers for this kind of invoice, else the one in use.
+  const customerDesignName = designOptions.find((d) => d.id === customerDesignId)?.name ?? null
+  const ruleDesign =
+    !customerDesignName && organizationId
+      ? await findRuleDesign(organizationId, designRuleSubjectOf(record))
+      : null
+  const designFollowsName =
+    customerDesignName ??
+    ruleDesign?.name ??
+    designOptions.find((d) => d.id === activeDesignId)?.name ??
+    null
+  const designFollowsRule = ruleDesign?.autoRule ?? null
+  const designPinnedAt = rendersFromIssue(record) ? (record.issuedAt?.toISOString() ?? null) : null
+  const aiEnabled = features?.ai === true && aiProvider !== null
+  // Dictation is better through a speech model, when the workshop has one:
+  // its Speech to text connection, or a chat provider that can transcribe.
+  // The browser's own recognition otherwise.
+  const aiTranscription = features?.ai === true && dictation.available
+
+  // A timestamp outside JS date range (bad legacy data) must degrade to a
+  // fallback date, not crash the page on toISOString().
+  const isRenderable = (d: Date | null | undefined): d is Date =>
+    !!d && !isNaN(new Date(d).getTime())
+  const effectiveInvoiceDate =
+    [record.invoiceDate, record.startDateTime, record.serviceDate].find(isRenderable) ?? new Date()
+  // The date inputs show the workshop's calendar day, not the server's.
+  const timeZone = organizationId ? await workshopTimeZone(organizationId) : 'UTC'
+
+  const initialData = {
+    id: record.id,
+    title: record.title,
+    description: record.description || '',
+    type: record.type,
+    status: record.status,
+    mileage: record.mileage,
+    serviceDate: zonedDayKey(
+      isRenderable(record.serviceDate) ? new Date(record.serviceDate) : new Date(),
+      timeZone
+    ),
+    startDateTime: isRenderable(record.startDateTime) ? record.startDateTime.toISOString() : null,
+    endDateTime: isRenderable(record.endDateTime) ? record.endDateTime.toISOString() : null,
+    techName: record.techName || '',
+    diagnosticNotes: record.diagnosticNotes || '',
+    invoiceNotes: record.invoiceNotes || '',
+    invoiceNumber: record.invoiceNumber || '',
+    invoiceDate: zonedDayKey(effectiveInvoiceDate, timeZone),
+    invoiceDueDate: isRenderable(record.invoiceDueDate)
+      ? zonedDayKey(record.invoiceDueDate, timeZone)
+      : defaultDueDays > 0
+        ? zonedDayKey(addZonedDays(effectiveInvoiceDate, defaultDueDays, timeZone), timeZone)
+        : '',
+    concerns: record.concerns.map((c) => ({
+      id: c.id,
+      description: c.description,
+      sortOrder: c.sortOrder,
+      cause: c.cause,
+      correction: c.correction,
+      confirmation: c.confirmation,
+      confirmed: Boolean(c.confirmedAt),
+      confirmedAt: c.confirmedAt ? c.confirmedAt.toISOString() : null,
+      confirmedByName: c.confirmedBy?.name ?? null,
+    })),
+    partItems: record.partItems.map((p) => ({
+      partNumber: p.partNumber || '',
+      name: p.name,
+      quantity: p.quantity,
+      unit: p.unit ?? null,
+      category: p.category ?? null,
+      unitPrice: p.unitPrice,
+      total: p.total,
+      unitCost: p.unitCost ?? 0,
+      markupPercent: p.markupPercent ?? 0,
+      // Preserve the inventory link so editing/saving a work order keeps
+      // deducting the right stock. Without this, a saved edit sends unlinked
+      // parts and inventory reconciliation restocks the "removed" part.
+      inventoryPartId: p.inventoryPartId ?? undefined,
+    })),
+    laborItems: shopFeeLinesLast(record.laborItems).map((l) => ({
+      description: l.description,
+      hours: l.hours,
+      rate: l.rate,
+      total: l.total,
+      pricingType: (l.pricingType as 'hourly' | 'service' | 'shopFee') || 'hourly',
+    })),
+    attachments: [],
+    subtotal: record.subtotal,
+    taxRate: record.taxRate,
+    taxAmount: record.taxAmount,
+    taxInclusive: record.taxInclusive,
+    taxComponents: parseTaxComponents(record.taxComponents),
+    totalAmount: record.totalAmount,
+    discountType: record.discountType || undefined,
+    discountValue: record.discountValue,
+    discountAmount: record.discountAmount,
+    warrantyStatus: record.warrantyStatus ?? null,
+    warrantyMonths: record.warrantyMonths ?? null,
+    warrantyMileage: record.warrantyMileage ?? null,
+    warrantyNotes: record.warrantyNotes ?? null,
+  }
+
+  // Prepare media attachments for managers
+  // The Prisma query returns includeInInvoice on each attachment; cast to include it
+  const allAttachments =
+    (record.attachments as ((typeof record.attachments)[number] & {
+      includeInInvoice: boolean
+    })[]) || []
+  // Files copied over from a linked tire set (category tire_hotel) are shown
+  // in the same tabs by file type. They end up on the invoice like any other
+  // attachment, and an attachment that changes the invoice must never be
+  // invisible on the page.
+  const imageAttachmentsForManager = allAttachments
+    .filter(
+      (a) =>
+        a.category === 'image' || (a.category === 'tire_hotel' && a.fileType.startsWith('image/'))
+    )
+    .map((a) => ({ ...a, includeInInvoice: a.includeInInvoice ?? true }))
+  // The car as it arrived. Its own list: these are not the job's photos and
+  // do not go on the invoice unless somebody chooses to show one.
+  const dropoffAttachments = allAttachments
+    .filter((a) => a.category === 'dropoff')
+    .map((a) => ({ ...a, includeInInvoice: a.includeInInvoice ?? false }))
+  const videoAttachments = allAttachments
+    .filter((a) => a.category === 'video')
+    .map((a) => ({ ...a, includeInInvoice: a.includeInInvoice ?? true }))
+  const documentAttachments = allAttachments
+    .filter(
+      (a) =>
+        a.category === 'document' ||
+        a.category === 'diagnostic' ||
+        (a.category === 'tire_hotel' && !a.fileType.startsWith('image/'))
+    )
+    .map((a) => ({ ...a, includeInInvoice: a.includeInInvoice ?? true }))
+
+  // Fetch notification history for this service record
+  const notificationHistory = await db.smsMessage.findMany({
+    where: {
+      relatedEntityId: serviceId,
+      relatedEntityType: 'service-record',
+      direction: 'outbound',
+    },
+    select: { id: true, body: true, status: true, createdAt: true, toNumber: true },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  })
+
+  // Fetch open observations for this vehicle (not just this service).
+  // Counter sales have no vehicle, so there is nothing to look up.
+  // The condition map: every mark on the car, for the drop-off card and the
+  // printed work order. Nothing to load for a counter sale.
+  const conditionMap =
+    vehicleId && organizationId
+      ? {
+          vehicleId,
+          bodyType:
+            (
+              await db.vehicle.findFirst({
+                where: { id: vehicleId, organizationId },
+                select: { bodyType: true },
+              })
+            )?.bodyType ?? null,
+          marks: await loadVehicleConditionMarks(organizationId, vehicleId),
+          types: await markTypeCatalogue(organizationId, await getLocale()),
+          linkedInspectionId: record.inspection?.id ?? null,
+          openedAt: record.createdAt,
+          sentAt: designPinnedAt,
+          onInvoice: record.conditionMapOnInvoice,
+          byDesign: await invoiceDesignPrintsConditionMap(
+            organizationId,
+            { designId: record.designId ?? null, vehicleId },
+            customerDesignId
+          ),
+        }
+      : undefined
+  const openObservations = vehicleId
+    ? await db.vehicleFinding.findMany({
+        where: { vehicleId, status: { not: 'resolved' } },
+        select: { id: true, description: true, severity: true, notes: true, serviceRecordId: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    : []
+
+  return (
+    <div className="flex h-svh flex-col overflow-hidden">
+      <PageHeader />
+      <ServicePageClient
+        record={result.data}
+        videoCall={
+          videoCallResult.success && videoCallResult.data
+            ? videoCallResult.data
+            : { link: null, providers: [] }
+        }
+        vehicleId={vehicleId}
+        organizationId={organizationId}
+        lockState={lockState}
+        canUnlock={authContext?.isAdmin ?? false}
+        initialTab={initialTab}
+        currencyCode={currencyCode}
+        unitSystem={unitSystem}
+        warrantyTexts={warrantyTextsOf(readWarrantyDefaults(settings))}
+        defaultTaxRate={defaultTaxRate}
+        taxEnabled={taxEnabled}
+        defaultLaborRate={defaultLaborRate}
+        shopFee={shopFee}
+        initialData={initialData}
+        inventoryParts={inventoryParts}
+        laborPresets={laborPresets}
+        initialVehicle={initialVehicle}
+        boardTechnicians={boardTechnicians}
+        workBays={workBays}
+        orgMembers={orgMembersResult.success && orgMembersResult.data ? orgMembersResult.data : []}
+        currentUserName={currentUserName}
+        imageAttachmentsForManager={imageAttachmentsForManager}
+        dropoffAttachments={dropoffAttachments}
+        conditionMap={conditionMap}
+        videoAttachments={videoAttachments}
+        documentAttachments={documentAttachments}
+        maxImagesPerService={features?.maxImagesPerService ?? 999999}
+        maxDiagnosticsPerService={features?.maxDiagnosticsPerService ?? 999999}
+        maxDocumentsPerService={features?.maxDocumentsPerService ?? 999999}
+        smsEnabled={features?.sms ?? false}
+        emailEnabled={features?.smtp ?? false}
+        telegramEnabled={features?.telegram ?? false}
+        aiEnabled={aiEnabled}
+        aiTranscription={aiTranscription}
+        dictationMode={dictation.mode}
+        tireHotelEnabled={tireHotel.enabled}
+        onlinePayments={onlinePayments}
+        canAddStatus={canAddStatus}
+        workOrderStatuses={
+          workOrderStatusesResult.success && workOrderStatusesResult.data
+            ? workOrderStatusesResult.data
+            : []
+        }
+        tireThresholds={{
+          summerReplace: tireHotel.summerReplaceMm,
+          winterReplace: tireHotel.winterReplaceMm,
+          warnMargin: 1,
+        }}
+        defaultDueDays={defaultDueDays}
+        defaultMarkupPercent={defaultMarkupPercent}
+        markupAppliesToInventory={markupAppliesToInventory}
+        statusReports={(statusReportsResult.success && statusReportsResult.data
+          ? statusReportsResult.data
+          : []
+        ).map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+          expiresAt: r.expiresAt?.toISOString() || null,
+          feedbackAt: r.feedbackAt?.toISOString() || null,
+          sentAt: r.sentAt?.toISOString() || null,
+        }))}
+        findings={findingsResult.success && findingsResult.data ? findingsResult.data : []}
+        openObservations={openObservations}
+        notificationHistory={notificationHistory.map((n) => ({
+          ...n,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+        designOptions={designOptions}
+        designFollowsName={designFollowsName}
+        designFollowsRule={designFollowsRule}
+        jobClock={
+          jobClockResult.success && jobClockResult.data
+            ? jobClockResult.data
+            : { entries: [], viewerTechnicianIds: [], canEdit: false, timeZone: 'UTC' }
+        }
+        designPinnedAt={designPinnedAt}
+        initialLayout={initialLayout}
+      />
+    </div>
+  )
+}

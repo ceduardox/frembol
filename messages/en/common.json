@@ -1,0 +1,135 @@
+{
+  "brandName": "Frembol",
+  "buttons": {
+    "signIn": "Sign In",
+    "save": "Save",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "submit": "Submit",
+    "back": "Back",
+    "confirm": "Confirm",
+    "edit": "Edit",
+    "add": "Add",
+    "gotIt": "Got it"
+  },
+  "contextMenu": {
+    "hint": "Tip: right-click a row for actions",
+    "open": "Open",
+    "openVehicle": "Open vehicle",
+    "openCustomer": "Open customer",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "form": {
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "you@example.com",
+    "name": "Name",
+    "phone": "Phone",
+    "company": "Company",
+    "address": "Address",
+    "notes": "Notes"
+  },
+  "errors": {
+    "unexpected": "An unexpected error occurred. Please try again.",
+    "error": "Error"
+  },
+  "terms": {
+    "termsOfService": "Terms of Service"
+  },
+  "errorPage": {
+    "title": "Something Went Wrong",
+    "description": "The engine stalled unexpectedly. Our mechanics have been notified and are working on it.",
+    "tryAgain": "Try Again",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "notFoundPage": {
+    "title": "Page Not Found",
+    "description": "Looks like this part is still in the shop. The page you're looking for doesn't exist or has been moved.",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "updateBanner": {
+    "updated": "Frembol has been updated to {version}",
+    "whatsNew": "See what is new",
+    "dismiss": "Dismiss"
+  },
+  "pagination": {
+    "showing": "Showing {start}-{end} of {total}",
+    "perPage": "per page",
+    "pageOf": "Page {page} of {pages}",
+    "first": "First page",
+    "previous": "Previous page",
+    "next": "Next page",
+    "last": "Last page"
+  },
+  "shared": {
+    "close": "Close",
+    "viewPlans": "View Plans",
+    "manageLicense": "Manage License",
+    "installOwn": "Install your own",
+    "install": "Install",
+    "installApp": "Install App",
+    "installTorqvoice": "Install Frembol",
+    "dismiss": "Dismiss",
+    "useCamera": "Use camera",
+    "enterManually": "Enter manually",
+    "enterBarcode": "Enter barcode...",
+    "scanHint": "Point your camera at a barcode or enter it manually",
+    "iosInstallHint": "Tap Share > Add to Home Screen",
+    "installDescription": "Add to your home screen for quick access",
+    "enterFullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
+  },
+  "upgrade": {
+    "title": "Upgrade to keep going",
+    "maxCustomers": "Your plan includes up to {limit} customers, and you have reached that number. Upgrade to add as many as you need.",
+    "maxUsers": "Your plan includes {limit, plural, one {one team member} other {# team members}}. Upgrade to invite more people.",
+    "generic": "This feature is not included in your current plan.",
+    "featureNotIncluded": "{feature} is not included in your current plan.",
+    "notNow": "Not now"
+  },
+  "broadcast": {
+    "dismiss": "Dismiss",
+    "title": "Notice to everyone",
+    "description": "Shown at the top of every page, for everyone, signed in or not. Leave it empty for no notice.",
+    "message": "Message",
+    "level": "Severity",
+    "post": "Post notice",
+    "clear": "Clear notice",
+    "levelInfo": "Information",
+    "levelWarning": "Warning",
+    "levelCritical": "Critical",
+    "placeholder": "e.g. We are having trouble with our server infrastructure and are working on it.",
+    "posted": "Notice posted",
+    "cleared": "Notice cleared"
+  },
+  "pdfPreview": {
+    "title": "PDF preview",
+    "preview": "Preview",
+    "failed": "Could not generate the PDF preview."
+  },
+  "attachPdf": "Attach PDF",
+  "attachPdfHint": "Turn this off to send a link instead, so you can see when the customer opens it.",
+  "sentCopy": {
+    "note": "Sent {date}. Changes here go on the invoice when it is sent again.",
+    "confirmTitle": "This invoice has already been sent",
+    "confirmBody": "The customer's copy keeps what it was sent with. Your change is saved on the job and goes on the invoice when it is reopened and sent again.",
+    "confirm": "Save for the next send",
+    "cancel": "Cancel"
+  },
+  "videoRecorder": {
+    "title": "Record a video",
+    "starting": "Starting the camera...",
+    "denied": "The browser was not allowed to use the camera or microphone. Allow them for this site from the browser's address bar, then try again.",
+    "noCamera": "No camera was found on this computer.",
+    "unsupported": "This browser cannot record video. Upload a file instead.",
+    "camera": "Camera",
+    "start": "Start recording",
+    "stop": "Stop",
+    "recording": "Recording",
+    "retake": "Record again",
+    "use": "Use this video",
+    "limit": "Recording stops by itself after {minutes} minutes."
+  }
+}

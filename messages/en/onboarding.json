@@ -1,0 +1,94 @@
+{
+  "form": {
+    "title": "Set up your workshop",
+    "subtitle": "Enter your workshop name to get started",
+    "workshopName": "Workshop name",
+    "workshopNamePlaceholder": "My Auto Workshop",
+    "submit": "Get started",
+    "sampleDataLabel": "Load sample data",
+    "sampleDataDescription": "Adds a few sample customers, vehicles and jobs so you can look around. You can remove them again with one click.",
+    "setupFailed": "Setup failed",
+    "couldNotCreate": "Could not create workshop",
+    "unexpectedError": "An unexpected error occurred"
+  },
+  "sample": {
+    "prefix": "Sample:",
+    "oilService": "Oil and filter change",
+    "brakeJob": "Front brake pads replacement",
+    "annualService": "Annual service",
+    "quoteTitle": "Front suspension refresh",
+    "inspectionNote": "Front left tyre is close to the wear limit",
+    "parts": {
+      "oilFilter": "Oil filter",
+      "engineOil": "Engine oil 5W-30",
+      "brakePads": "Front brake pad set",
+      "shockAbsorber": "Shock absorber"
+    }
+  },
+  "presets": {
+    "oilChange": {
+      "name": "Oil change",
+      "description": "Engine oil and filter change"
+    },
+    "frontBrakePads": {
+      "name": "Front brake pads",
+      "description": "Replace front brake pads"
+    },
+    "tireSwap": {
+      "name": "Tire swap",
+      "description": "Seasonal wheel change with torque check"
+    },
+    "batteryReplacement": {
+      "name": "Battery replacement",
+      "description": "Replace and register the starter battery"
+    },
+    "diagnostics": {
+      "name": "Diagnostics",
+      "description": "Fault code readout and initial diagnosis"
+    },
+    "annualService": {
+      "name": "Annual service",
+      "description": "Full annual service according to schedule"
+    }
+  },
+  "checklist": {
+    "title": "Getting started",
+    "description": "Three steps to get {workshop} rolling",
+    "progress": "{done}/{total}",
+    "steps": {
+      "workOrder": {
+        "title": "Create your first work order",
+        "description": "Customer, vehicle and job in one dialog"
+      },
+      "company": {
+        "title": "Add your workshop details",
+        "description": "Address, phone and registration number for your invoices"
+      },
+      "invoice": {
+        "title": "Send or download your first invoice",
+        "description": "Share it with the customer or save it as a PDF"
+      }
+    },
+    "allDoneTitle": "You are all set",
+    "allDoneDescription": "All steps are done and your workshop is up and running.",
+    "dismiss": "Hide card",
+    "dismissAriaLabel": "Hide this checklist",
+    "importTitle": "Already have customers and vehicles somewhere?",
+    "importDescription": "Import them from a spreadsheet or your old system"
+  },
+  "sampleData": {
+    "title": "Sample data",
+    "description": "Your workshop still contains the sample customers, vehicles and jobs from setup. Removing them deletes exactly those records and nothing else.",
+    "footerNote": "Sample data is loaded",
+    "remove": "Remove sample data",
+    "removeConfirmTitle": "Remove sample data?",
+    "removeConfirmDescription": "This deletes the sample customers, vehicles, work orders, quote and inspection created during setup. Your own data is not affected.",
+    "removed": "Sample data removed",
+    "removeFailed": "Could not remove sample data"
+  },
+  "singleWorkshop": {
+    "title": "This installation already has its workshop",
+    "description": "Frembol here runs one workshop, and it has been set up. To work in it, ask its owner to invite {email} from Settings, then Team.",
+    "signOut": "Sign out"
+  }
+}

@@ -1,0 +1,7 @@
+# Shell scripts and Dockerfiles must keep LF endings, even on Windows.
+# CRLF here breaks `exec ./init-db.sh` inside the Linux container.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

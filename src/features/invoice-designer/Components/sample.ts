@@ -1,0 +1,742 @@
+import { toCustomFieldId } from '@/features/settings/Schema/invoiceLayoutSchema'
+import { calculateTotals } from '@/lib/tax'
+import { taxComponentLabel } from '@/lib/tax-components'
+import type { DocumentData, LineGroup, PaymentPair, TotalLine } from '../Spec/buildSpec'
+import { LABOR_GROUP, OTHER_PARTS_GROUP, partGroupKey } from '../Pdf/lineGroups'
+import type { DesignerWorkshop, DocumentType } from './types'
+import { conditionMapForPrint } from '@/features/condition-map/Lib/print'
+import type { ConditionMarkData } from '@/features/condition-map/Lib/marks'
+
+/**
+ * What the canvas prints for each field the layout can show.
+ *
+ * Keyed by field id, because that is what a layout stores. Every value here
+ * is deliberately made up: the designer is shown to every workshop, so it
+ * must never carry a real customer, vehicle or account from anyone's books.
+ * The workshop's own company details are the one exception, because the sheet
+ * being previewed is that workshop's own sheet.
+ *
+ * The prose is translated, because the preview is meant to look like the sheet
+ * the workshop will actually print, and that sheet is printed in the customer's
+ * language. Names, plates and account numbers stay as they are: they read the
+ * same everywhere, and translating them would only make them look real.
+ */
+
+/** A translator, narrowed to what this file asks of it. */
+export type SampleT = (key: string, values?: Record<string, string | number>) => string
+
+/**
+ * The document labels the print path resolves from `pdf.json`, so the preview
+ * names its columns and panels the way the printed sheet does.
+ */
+export type PrintLabels = Record<string, string>
+
+/** `{name}` style placeholders, the same substitution the print builders use. */
+export function fillTemplate(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce((str, [key, val]) => str.replace(`{${key}}`, val), template)
+}
+
+export interface SampleTables {
+  items: {
+    n: number
+    qty: string
+    unit: string
+    desc: string
+    sku?: string
+    /** A stocked part's category, for the grouped tables. */
+    category?: string
+    price: string
+    total: string
+  }[]
+  findings: { severity: string; color: string; description: string; notes: string }[]
+  subtotal: string
+  tax: string
+  total: string
+  number: string
+  date: string
+  due: string
+  customerNumber: string
+  notes: string
+  warranty: string
+  title: string
+}
+
+export function sampleTables(t: SampleT, labels: PrintLabels): SampleTables {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  return {
+    items: [
+      {
+        n: 1,
+        qty: '2.5',
+        unit: L('hrs', 'hrs'),
+        desc: t('sample.itemLabor'),
+        price: '€ 89.00',
+        total: '€ 222.50',
+      },
+      {
+        n: 2,
+        qty: '1',
+        unit: t('sample.unitPcs'),
+        desc: t('sample.itemDisc'),
+        sku: 'BD-1042',
+        category: t('sample.categoryBrakes'),
+        price: '€ 149.00',
+        total: '€ 149.00',
+      },
+      {
+        n: 3,
+        qty: '1',
+        unit: t('sample.unitSet'),
+        desc: t('sample.itemPads'),
+        sku: 'BP-2210',
+        category: t('sample.categoryBrakes'),
+        price: '€ 96.50',
+        total: '€ 96.50',
+      },
+      {
+        n: 4,
+        qty: '1',
+        unit: t('sample.unitEach'),
+        desc: t('sample.itemConsumables'),
+        // A stocked part in a category of its own, so a sheet grouped by
+        // category previews two groups rather than one.
+        sku: 'WS-0001',
+        category: t('sample.categoryConsumables'),
+        price: '€ 12.00',
+        total: '€ 12.00',
+      },
+    ],
+    findings: [
+      {
+        severity: L('findingSeverityNeedsWork', 'Medium'),
+        color: '#f59e0b',
+        description: t('sample.findingPads'),
+        notes: t('sample.findingPadsNote'),
+      },
+      {
+        severity: L('findingSeverityMonitor', 'Low'),
+        color: '#3b82f6',
+        description: t('sample.findingOilWeep'),
+        notes: '',
+      },
+    ],
+    subtotal: '€ 480.00',
+    tax: '€ 120.00',
+    total: '€ 600.00',
+    number: 'INV-2026-0042',
+    date: '14.08.2026',
+    due: '28.08.2026',
+    customerNumber: 'C-0117',
+    notes: t('sample.notes'),
+    warranty: t('sample.warranty'),
+    title: L('title', 'INVOICE'),
+  }
+}
+
+/**
+ * The value each field prints. The workshop's own details where it has them,
+ * so the sheet on screen is the workshop's sheet; everything about the sample
+ * job is invented.
+ */
+export function fieldValues(
+  workshop: DesignerWorkshop,
+  t: SampleT,
+  labels: PrintLabels
+): Record<string, string> {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  return {
+    // A made-up customer, the same for every workshop.
+    customer_name: 'Alex Carter',
+    customer_company: 'Carter Logistics Ltd',
+    // Two lines, because a customer address is written on two and the
+    // designer should show what that does to the block before it prints.
+    customer_address: '12 Harbour Road\nSpringfield',
+    customer_email: 'alex@example.com',
+    customer_phone: '+1 555 0134',
+    customer_tax_id: `${L('customerTaxId', 'Tax ID')}: 000 000 000`,
+    // A made-up vehicle.
+    vehicle_name: '2020 Volvo V60',
+    vin: fillTemplate(L('vin', 'VIN: {vin}'), { vin: 'YV1AA0000L0000000' }),
+    license_plate: fillTemplate(L('plate', 'Plate: {plate}'), { plate: 'AB 12345' }),
+    // 9101 is Volvo's real manufacturer key; the type half is made up. Only
+    // for a workshop that records the key, since nobody else's sheet prints it.
+    hsn_tsn: workshop.typeKeyEnabled
+      ? fillTemplate(L('typeKey', 'HSN/TSN: {typeKey}'), { typeKey: '9101 / ABC' })
+      : '',
+    mileage: fillTemplate(L('mileage', 'Mileage: {mileage}'), {
+      mileage: `84,120 ${L('km', 'km')}`,
+    }),
+    // A made-up job.
+    service_title: t('sample.serviceTitle'),
+    service_type: fillTemplate(L('type', 'Type: {type}'), { type: t('sample.serviceType') }),
+    tech_name: fillTemplate(L('tech', 'Tech: {tech}'), { tech: 'Jamie Lee' }),
+    // Company, on the letterhead and in the footer
+    company_name: workshop.name || t('sample.companyName'),
+    // A placeholder when the workshop has none, so the slogan section is
+    // something to see and drag rather than an invisible sliver.
+    company_slogan: workshop.slogan || t('sample.slogan'),
+    company_address: workshop.address || '',
+    company_phone: workshop.phone
+      ? fillTemplate(L('tel', 'Tel: {phone}'), { phone: workshop.phone })
+      : '',
+    company_email: workshop.email || '',
+    company_org_number: workshop.orgNumber
+      ? fillTemplate(L('org', 'Org: {org}'), { org: workshop.orgNumber })
+      : '',
+    footer_note: t('sample.footerNote'),
+    bank_account: 'XX00 1234 5678 9000 00',
+    org_number: workshop.orgNumber
+      ? fillTemplate(L('org', 'Org: {org}'), { org: workshop.orgNumber })
+      : '',
+  }
+}
+
+/** The sample's money, written the way its other figures are. */
+function sampleMoney(value: number): string {
+  return `€ ${value.toFixed(2)}`
+}
+
+/**
+ * The tax rows of the sample, and the registration numbers they bring: the
+ * workshop's own split when it has one, taxed on the sample's net subtotal
+ * so the lines add up on the canvas as they will on paper; otherwise the
+ * single 25% line every workshop has always seen here.
+ */
+function sampleTax(
+  workshop: DesignerWorkshop,
+  sample: SampleTables,
+  labels: PrintLabels
+): { lines: TotalLine[]; total: string; registrations: PaymentPair[] } {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  const components = workshop.taxComponents ?? null
+  if (!components || components.length === 0) {
+    return {
+      lines: [
+        {
+          // The tax label carries the rate, the way the printed sheet does.
+          label: fillTemplate(L('tax', 'Tax ({rate}%)'), { rate: '25' }),
+          value: sample.tax,
+          kind: 'line',
+        },
+      ],
+      total: sample.total,
+      registrations: [],
+    }
+  }
+  const subtotal = Number(sample.subtotal.replace(/[^\d.]/g, ''))
+  const totals = calculateTotals({
+    subtotal,
+    discountAmount: 0,
+    taxRate: 0,
+    taxInclusive: false,
+    components,
+  })
+  return {
+    lines: (totals.components ?? []).map((component) => ({
+      label: taxComponentLabel(component),
+      value: sampleMoney(component.amount),
+      kind: 'line' as const,
+    })),
+    total: sampleMoney(totals.totalAmount),
+    registrations: components
+      .filter((component) => component.registrationNumber)
+      .map((component) => ({
+        label: fillTemplate(L('taxRegistrationLabel', '{name} No.'), { name: component.name }),
+        value: component.registrationNumber as string,
+      })),
+  }
+}
+
+/**
+ * The whole sample document: what a workshop's own sheet says, with the
+ * sample standing in for a job. One builder, so the designer's canvas and the
+ * template cards in settings preview exactly the same paper.
+ */
+/** The sample's line groups, summed from its own rows. */
+function sampleLineGroups(sample: SampleTables, labels: PrintLabels): LineGroup[] {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  const amount = (total: string) => Number(total.replace(/[^\d.]/g, ''))
+  const sum = (rows: SampleTables['items']) =>
+    `€ ${rows.reduce((acc, row) => acc + amount(row.total), 0).toFixed(2)}`
+  const group = (key: string, title: string, rows: SampleTables['items']) => ({
+    key,
+    title,
+    subtotalLabel: fillTemplate(L('groupSubtotal', '{group} subtotal'), { group: title }),
+    subtotal: sum(rows),
+  })
+  const labor = sample.items.filter((item) => !item.sku)
+  const parts = sample.items.filter((item) => item.sku)
+  const categories = [...new Set(parts.map((item) => item.category).filter(Boolean))] as string[]
+  const other = parts.filter((item) => !item.category)
+  return [
+    group(LABOR_GROUP, L('labor', 'Labor'), labor),
+    ...categories.map((category) =>
+      group(
+        partGroupKey(category),
+        category,
+        parts.filter((item) => item.category === category)
+      )
+    ),
+    ...(other.length ? [group(OTHER_PARTS_GROUP, L('otherParts', 'Other parts'), other)] : []),
+  ]
+}
+
+export function buildSampleData(
+  workshop: DesignerWorkshop,
+  customFields: { id: string; label?: string | null; name: string; isActive: boolean }[],
+  t: SampleT,
+  labels: PrintLabels,
+  docType: DocumentType
+): DocumentData {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  const sample = sampleTables(t, labels)
+  const values = fieldValues(workshop, t, labels)
+  const tax = sampleTax(workshop, sample, labels)
+  return {
+    fields: {
+      ...values,
+      // A custom field prints whatever the job carries; here it shows its
+      // own name so the workshop can see where it will sit.
+      ...Object.fromEntries(
+        customFields
+          .filter((f) => f.isActive)
+          .map((f) => [toCustomFieldId(f.id), `${f.label || f.name}: ${t('sample.value')}`])
+      ),
+    },
+    logoUrl: workshop.logoUrl || undefined,
+    labels,
+    meta: {
+      title: sample.title,
+      number: sample.number,
+      customerNumber: sample.customerNumber,
+      date: sample.date,
+      due: sample.due,
+      plate: 'AB 12345',
+    },
+    items: sample.items.map((item) => ({
+      n: String(item.n),
+      qty: item.qty,
+      unit: item.unit,
+      desc: item.desc,
+      sub: item.sku,
+      price: item.price,
+      total: item.total,
+      group: item.sku ? partGroupKey(item.category) : LABOR_GROUP,
+    })),
+    parts: sample.items
+      .filter((item) => item.sku)
+      .map((item) => ({
+        ref: item.sku as string,
+        desc: item.desc,
+        qty: item.qty,
+        price: item.price,
+        total: item.total,
+        group: partGroupKey(item.category),
+      })),
+    // The groups a table divided by category shows: the brake parts added
+    // up on their own, the consumables after them, the labor first.
+    lineGroups: sampleLineGroups(sample, labels),
+    labor: sample.items
+      .filter((item) => !item.sku)
+      .map((item) => ({
+        desc: item.desc,
+        qty: `${item.qty} ${item.unit}`,
+        rate: item.price,
+        total: item.total,
+      })),
+    findings: sample.findings,
+    totals: [
+      { label: L('subtotal', 'Subtotal'), value: sample.subtotal, kind: 'line' as const },
+      ...tax.lines,
+      { label: L('total', 'Total'), value: tax.total, kind: 'total' as const },
+      // A settled invoice, so the payment line and the paid stamp can be
+      // seen and styled. Quotes never carry payments, so theirs ends at the
+      // total.
+      ...(docType === 'invoice'
+        ? [
+            {
+              label: `${sample.date} (Visa)`,
+              value: `-${tax.total}`,
+              kind: 'payment' as const,
+            },
+            { label: L('paidInFull', 'PAID IN FULL'), value: '', kind: 'paid' as const },
+          ]
+        : []),
+    ],
+    notes: { html: sample.notes },
+    // Stand-ins for files a job carries, so the block can be found, placed
+    // and styled. Filenames need no translating.
+    attachedDocuments: [
+      fillTemplate(L('seeAppendedPages', '{name} (see appended pages)'), {
+        name: 'inspection-report.pdf',
+      }),
+      'tire-photos.jpg',
+    ],
+    warranty: { duration: sample.warranty },
+    payment: [
+      { id: 'bank_account', label: L('bankAccount', 'Bank Account'), value: values.bank_account },
+      {
+        id: 'org_number',
+        label: L('orgNumberLabel', 'Org. Number'),
+        value: values.org_number || `${L('org', 'Org: {org}').replace('{org}', '123 456 789')}`,
+      },
+      {
+        // The workshop's own terms, or a stand-in when they have written none,
+        // so the row is something to see and switch rather than an absence.
+        // The stand-in prints as nothing, which is why the canvas marks it.
+        id: 'payment_terms',
+        label: L('paymentTermsLabel', 'Payment Terms'),
+        value: workshop.paymentTerms?.trim() || t('sample.paymentTerms'),
+      },
+      { id: 'due_date', label: L('dueDateLabel', 'Due Date'), value: sample.due },
+      // The workshop's registration for each of its taxes, where it has one;
+      // the printed sheet carries these the same way, after the rows above.
+      ...tax.registrations,
+    ],
+    // A stand-in link, so the canvas shows the portal line the printed sheet
+    // carries and the footer's switch for it has something to switch.
+    portalUrl: 'https://example.com/portal/a1b2c3',
+    sectionLabels: {
+      customer: L('billTo', 'Bill To'),
+      vehicle: L('vehicle', 'Vehicle'),
+      service: L('service', 'Service'),
+      bank_account: L('paymentInformation', 'Payment Information'),
+      general: L('customFieldsTitle', 'Additional Information'),
+      findings: L('findings', 'Observations'),
+      job_details: L('jobDetails', 'Job details'),
+      test_details: L('testDetails', 'Test details'),
+      defects: L('deficiencies', 'Deficiencies found'),
+      results_table: L('allResults', 'All results'),
+      inspection_photos: L('photos', 'Photos'),
+    },
+    signature:
+      docType === 'certificate'
+        ? {
+            heading: L('signature', 'Signature'),
+            name: 'Jamie Lee',
+            nameCaption: L('inspector', 'Inspector'),
+            date: sample.date,
+            dateCaption: L('testDate', 'Date of test'),
+            image: workshop.signatureUrl || SAMPLE_SIGNATURE,
+          }
+        : {
+            heading: L('signature', 'Signature'),
+            name: 'Jamie Lee',
+            nameCaption: L('signedBy', 'Signed by'),
+            date: sample.date,
+            dateCaption: L('signatureDate', 'Date'),
+            image: workshop.signatureUrl || SAMPLE_SIGNATURE,
+            // The customer's line has a customer on every document but the
+            // certificate, so the switch for it has something to show.
+            customerName: values.customer_name,
+            customerCaption: L('customerSignature', 'Customer signature'),
+          },
+    ...(docType === 'certificate' ? sampleCertificate(t, labels, values, sample) : {}),
+    ...(docType === 'work_order' ? sampleWorkOrder(t, labels, values, sample) : {}),
+    // An inspection with one minor defect and one check still to do, so the
+    // result sections have something to draw on every document: the
+    // certificate's own, and elsewhere a stand-in for the inspection linked
+    // to a job or the one a quote was raised from.
+    certificate: sampleInspectionResults(t, labels),
+    // A car with a dent, a scratch and one mark from an earlier visit, so the
+    // condition map section has something to draw on every document. An
+    // invoice or a quote prints this visit's marks only.
+    conditionMap:
+      sampleConditionMap(t, docType === 'certificate' || docType === 'work_order') ?? undefined,
+  }
+}
+
+/** Three marks on a sedan, one of them from last time. */
+function sampleConditionMap(t: SampleT, includePrevious: boolean) {
+  const at = (
+    id: string,
+    view: string,
+    panel: string,
+    x: number,
+    y: number,
+    kind: string,
+    severity: string,
+    note: string,
+    own: boolean
+  ): ConditionMarkData => ({
+    id,
+    vehicleId: 'sample',
+    inspectionId: own ? 'sample' : 'earlier',
+    inspectionItemId: own ? 'sample-item' : 'earlier-item',
+    serviceRecordId: null,
+    bodyType: 'sedan',
+    view,
+    panel,
+    x,
+    y,
+    kind,
+    severity,
+    note,
+    imageUrls: [],
+    recordedAt: own ? '2026-08-14T09:00:00Z' : '2026-02-02T09:00:00Z',
+    resolvedAt: null,
+  })
+  return conditionMapForPrint({
+    bodyType: 'sedan',
+    marks: [
+      at(
+        'm0',
+        'left',
+        'left_rear_door',
+        0.6,
+        0.55,
+        'scratch',
+        'minor',
+        t('sample.markScratch'),
+        false
+      ),
+      at('m1', 'left', 'left_front_door', 0.42, 0.58, 'dent', 'major', t('sample.markDent'), true),
+      at('m2', 'front', 'front_bumper', 0.35, 0.72, 'chip', 'minor', t('sample.markChip'), true),
+    ],
+    scope: { inspectionId: 'sample', inspectionItemId: 'sample-item' },
+    includePrevious,
+    labels: {
+      views: {
+        top: t('sample.viewTop'),
+        left: t('sample.viewLeft'),
+        right: t('sample.viewRight'),
+        front: t('sample.viewFront'),
+        rear: t('sample.viewRear'),
+      },
+      panels: {
+        left_rear_door: t('sample.panelLeftRearDoor'),
+        left_front_door: t('sample.panelLeftFrontDoor'),
+        front_bumper: t('sample.panelFrontBumper'),
+      },
+      kinds: {
+        scratch: t('sample.kindScratch'),
+        dent: t('sample.kindDent'),
+        chip: t('sample.kindChip'),
+      },
+      severities: { minor: t('sample.severityMinor'), major: t('sample.severityMajor') },
+      previous: t('sample.markPrevious'),
+    },
+    width: 515,
+  })
+}
+
+/**
+ * A code that goes nowhere, drawn as a pattern, so the designer can place
+ * and size the block that the printed sheet fills with a real one.
+ */
+const SAMPLE_QR = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#fff"/><path fill="#111" d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0zM2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM8 0h1v1H8zM10 0h2v1h-2zM8 2h2v1H8zM11 2h1v2h-1zM9 4h1v2H9zM11 5h2v1h-2zM0 8h1v1H0zM2 8h3v1H2zM6 8h2v1H6zM9 8h1v1H9zM12 8h2v1h-2zM15 8h1v1h-1zM18 8h3v1h-3zM1 10h2v1H1zM4 10h1v1H4zM7 10h3v1H7zM11 10h1v1h-1zM13 10h2v1h-2zM16 10h1v1h-1zM19 10h2v1h-2zM0 12h1v1H0zM3 12h2v1H3zM6 12h1v1H6zM8 12h3v1H8zM12 12h1v1h-1zM14 12h3v1h-3zM18 12h1v1h-1zM20 12h1v1h-1zM8 14h1v2H8zM10 14h2v1h-2zM13 14h1v1h-1zM15 14h1v1h-1zM17 14h2v1h-2zM20 14h1v1h-1zM9 16h2v1H9zM12 16h2v1h-2zM15 16h1v1h-1zM17 16h1v1h-1zM19 16h2v1h-2zM8 18h1v1H8zM10 18h1v1h-1zM12 18h1v1h-1zM14 18h3v1h-3zM18 18h1v1h-1zM20 18h1v1h-1zM9 20h3v1H9zM13 20h2v1h-2zM16 20h2v1h-2zM19 20h1v1h-1z"/></svg>'
+)}`
+
+/**
+ * The work order's own part of the sample: a job that is open, booked and
+ * with a technician, two things the customer came in with, the work as a
+ * checklist, and a code to scan.
+ */
+function sampleWorkOrder(
+  t: SampleT,
+  labels: PrintLabels,
+  values: Record<string, string>,
+  sample: SampleTables
+): Pick<DocumentData, 'fields' | 'meta' | 'workOrder' | 'payment' | 'portalUrl'> {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  return {
+    fields: {
+      ...values,
+      bank_account: '',
+      status: fillTemplate(L('status', 'Status: {status}'), {
+        status: L('statusInProgress', 'In progress'),
+      }),
+      technician: fillTemplate(L('technician', 'Technician: {tech}'), { tech: 'Jamie Lee' }),
+      scheduled: fillTemplate(L('scheduled', 'Scheduled: {date}'), {
+        date: `${sample.date} 08:30`,
+      }),
+      promised: fillTemplate(L('promised', 'Promised: {date}'), { date: `${sample.date} 16:00` }),
+      work_bay: fillTemplate(L('workBay', 'Bay: {bay}'), { bay: '2' }),
+      footer_note: `${t('sample.footerNote')} · ${fillTemplate(L('printedOn', 'Printed {date}'), {
+        date: sample.date,
+      })}`,
+    },
+    meta: {
+      title: L('title', 'WORK ORDER'),
+      number: '2026-0042',
+      customerNumber: sample.customerNumber,
+      date: sample.date,
+      plate: 'AB 12345',
+    },
+    // A job that is still open has no bank details and no portal link to
+    // print; its totals already end at the total, like a quote's.
+    payment: [],
+    portalUrl: undefined,
+    workOrder: {
+      concerns: [
+        { description: t('sample.concernNoise'), detail: t('sample.concernNoiseDetail') },
+        { description: t('sample.concernWarningLight') },
+      ],
+      description: { html: `<p>${t('sample.workRequested')}</p>` },
+      checklist: sample.items
+        .filter((item) => !item.sku)
+        .map((item) => ({ label: item.desc, detail: `${item.qty} ${item.unit}` }))
+        .concat([{ label: t('sample.checklistTestDrive'), detail: '' }]),
+      qr: { dataUri: SAMPLE_QR, label: L('scanToOpen', 'Scan to open this work order') },
+    },
+  }
+}
+
+/** A stroke of a pen, for a designer whose user has not saved a signature yet. */
+const SAMPLE_SIGNATURE = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="170" height="44" viewBox="0 0 170 44"><path d="M6 32c8-14 14-24 18-22s-6 22-2 24 10-18 16-18-2 16 4 16 8-12 14-12 0 10 6 10 10-14 16-14-4 12 2 12 12-8 20-10 20 2 34-2" fill="none" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)}`
+
+/** A small grey square, so the photo blocks have something to place. */
+const SAMPLE_PHOTO = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="158" height="119"><rect width="158" height="119" fill="#e5e7eb"/><path d="M40 84l28-32 22 26 14-16 24 22H40z" fill="#9ca3af"/><circle cx="112" cy="40" r="9" fill="#9ca3af"/></svg>'
+)}`
+
+/**
+ * The certificate's own part of the sample: a car that passed with one
+ * minor defect, so every block has something to draw, and the fields of the
+ * test details panel worded the way the print words them.
+ */
+function sampleCertificate(
+  t: SampleT,
+  labels: PrintLabels,
+  values: Record<string, string>,
+  sample: SampleTables
+): Pick<DocumentData, 'fields' | 'meta' | 'notes' | 'attachedDocuments'> {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  return {
+    fields: {
+      ...values,
+      // A certificate carries no bank details in its footer.
+      bank_account: '',
+      customer_tax_id: '',
+      test_date: `${L('testDate', 'Date of test')}: ${sample.date}`,
+      test_location: `${L('testLocation', 'Place of test')}: ${values.company_address || t('sample.testLocation')}`,
+      inspector: `${L('inspector', 'Inspector')}: Jamie Lee`,
+      certificate_number: `${L('certificateNumber', 'Certificate number')}: CERT-2026-0042`,
+      vehicle_category: `${L('vehicleCategory', 'Vehicle category')}: M1`,
+      odometer: values.mileage,
+      next_test_due: `${L('nextTestDue', 'Next test due')}: ${sample.due}`,
+    },
+    meta: {
+      title: L('title', 'VEHICLE INSPECTION'),
+      number: 'CERT-2026-0042',
+      date: sample.date,
+      due: sample.due,
+    },
+    notes: { html: `<p>${t('sample.certificateNotes')}</p>` },
+    attachedDocuments: [
+      fillTemplate(L('seeAppendedPages', '{name} (see appended pages)'), {
+        name: 'signed-inspection-form.pdf',
+      }),
+    ],
+  }
+}
+
+/**
+ * The inspection the sample stands on: a car that passed with one minor
+ * defect, so every result block has something to draw, and one check nobody
+ * has graded yet, so the switch for those has a row to show.
+ */
+function sampleInspectionResults(
+  t: SampleT,
+  labels: PrintLabels
+): NonNullable<DocumentData['certificate']> {
+  const L = (key: string, fallback: string) => labels[key] || fallback
+  const grade = (key: string, fallback: string) => L(key, fallback)
+  const sections: NonNullable<DocumentData['certificate']>['sections'] = [
+    {
+      code: '1',
+      name: t('sample.sectionBrakes'),
+      rows: [
+        {
+          code: '1.1.1',
+          name: t('sample.checkBrakePedal'),
+          grade: grade('euPass', 'No defect'),
+          notes: null,
+          kind: 'pass',
+        },
+        {
+          code: '1.1.13',
+          name: t('sample.checkBrakeHoses'),
+          grade: `1 — ${grade('euAttention', 'Minor defect')}`,
+          notes: t('sample.checkBrakeHosesNote'),
+          kind: 'defect',
+        },
+        {
+          code: '1.1.17',
+          name: t('sample.checkBrakeFluid'),
+          grade: grade('euPass', 'No defect'),
+          notes: null,
+          kind: 'pass',
+        },
+      ],
+    },
+    {
+      code: '4',
+      name: t('sample.sectionLighting'),
+      rows: [
+        {
+          code: '4.1.1',
+          name: t('sample.checkHeadlamps'),
+          grade: grade('euPass', 'No defect'),
+          notes: null,
+          kind: 'pass',
+        },
+        {
+          code: '4.5.1',
+          name: t('sample.checkFogLamp'),
+          grade: grade('euNotApplicable', 'Not applicable'),
+          notes: null,
+          kind: 'not_applicable',
+        },
+      ],
+    },
+  ]
+  return {
+    result: {
+      label: L('resultPassMinor', 'Pass with minor defects'),
+      detail: L(
+        'resultDetailPassMinor',
+        'The vehicle passes. Repair the minor deficiencies without undue delay.'
+      ),
+      color: { bg: '#fef9c3', text: '#713f12' },
+    },
+    summary: `11 × ${grade('euPass', 'No defect')} · 1 × ${grade('euAttention', 'Minor defect')} · 1 × ${grade('euNotApplicable', 'Not applicable')}`,
+    defects: [
+      {
+        code: '1.1.13',
+        name: t('sample.checkBrakeHoses'),
+        grade: `1 — ${grade('euAttention', 'Minor defect')}`,
+        color: { bg: '#fef9c3', text: '#713f12' },
+        notes: t('sample.checkBrakeHosesNote'),
+        photos: [SAMPLE_PHOTO],
+      },
+    ],
+    sections,
+    // The same checklist with the stop lamps still to do, in their place.
+    checklist: sections.map((section) =>
+      section.code === '4'
+        ? {
+            ...section,
+            rows: [
+              section.rows[0],
+              {
+                code: '4.3.1',
+                name: t('sample.checkStopLamps'),
+                grade: '',
+                notes: null,
+                kind: 'not_inspected' as const,
+              },
+              ...section.rows.slice(1),
+            ],
+          }
+        : section
+    ),
+    photos: [
+      { dataUri: SAMPLE_PHOTO, caption: t('sample.photoFront') },
+      { dataUri: SAMPLE_PHOTO, caption: t('sample.photoOdometer') },
+    ],
+  }
+}

@@ -1,0 +1,185 @@
+import type { TireSetBannerData } from '@/features/tire-hotel/Components/TireSetBanner'
+
+export const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+  'in-progress': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  // The status select has offered this since it was added; without an entry
+  // here the badge was the only one on the page with no colour at all.
+  'waiting-parts': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+}
+
+/**
+ * The translation key for a status. The stored values are hyphenated and the
+ * message keys are not, which is why the header badge was printing the raw
+ * value ("in-progress") beside a select that said "In Progress".
+ * Keys live under service.basicInfo.statusOptions.
+ */
+export const statusMessageKeys: Record<string, string> = {
+  pending: 'pending',
+  'in-progress': 'in_progress',
+  'waiting-parts': 'waiting_parts',
+  completed: 'completed',
+}
+
+export const paymentStatusColors: Record<string, string> = {
+  paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  partial: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  unpaid: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+}
+
+export const paymentStatusLabels: Record<string, string> = {
+  paid: 'Paid',
+  partial: 'Partial',
+  unpaid: 'Unpaid',
+}
+
+export interface ServiceDetail {
+  id: string
+  /** Set when the job came out of the tire hotel, so the job sheet can say
+   *  which tires and which shelf. */
+  tireSet?: TireSetBannerData | null
+  title: string
+  description: string | null
+  type: string
+  status: string
+  /** One of the workshop's own statuses, under the stage `status` names. */
+  customStatus?: { id: string; name: string; color: string; stage: string } | null
+  customStatusSince?: Date | string | null
+  cost: number
+  mileage: number | null
+  serviceDate: Date
+  startDateTime: Date | null
+  /** When the job was opened, and by whom when a person opened it. */
+  createdAt?: Date
+  createdBy?: { name: string | null } | null
+  /** The inspection the job was raised from, when it was. */
+  inspection?: { id: string; createdAt: Date | string; template: { name: string } } | null
+  /** The quotes that became the job: the one it was raised from and any added to it. */
+  quotes?: { id: string; quoteNumber: string | null; title: string }[]
+  /** When the customer was told the vehicle would be ready. */
+  promisedAt?: Date | null
+  shopName: string | null
+  techName: string | null
+  technicianId: string | null
+  workBayId: string | null
+  parts: string | null
+  laborHours: number | null
+  concerns: { id: string; description: string; sortOrder: number }[]
+  diagnosticNotes: string | null
+  invoiceNotes: string | null
+  subtotal: number
+  taxRate: number
+  taxAmount: number
+  totalAmount: number
+  invoiceNumber: string | null
+  discountType: string | null
+  discountValue: number
+  discountAmount: number
+  manuallyPaid: boolean
+  publicToken: string | null
+  sharedAt: Date | null
+  viewCount: number
+  lastViewedAt: Date | null
+  partItems: PartItem[]
+  laborItems: LaborItem[]
+  attachments: Attachment[]
+  payments: Payment[]
+  // Counter sales (parts-only) have no vehicle and link a customer directly.
+  vehicle: Vehicle | null
+  customer: Vehicle['customer']
+  /** The design this invoice chose; null follows the default. */
+  designId?: string | null
+  /** When the invoice was issued and its sheet frozen. */
+  issuedAt?: Date | null
+}
+
+export interface PartItem {
+  id: string
+  partNumber: string | null
+  name: string
+  quantity: number
+  unit: string | null
+  category?: string | null
+  unitPrice: number
+  total: number
+}
+
+export interface LaborItem {
+  id: string
+  description: string
+  hours: number
+  rate: number
+  total: number
+}
+
+export interface Attachment {
+  id: string
+  fileName: string
+  fileUrl: string
+  fileType: string
+  fileSize: number
+  category: string
+  description: string | null
+  createdAt: Date
+  /** The concern this file was filed under, if any. */
+  concernId?: string | null
+}
+
+export interface Payment {
+  id: string
+  amount: number
+  date: Date
+  method: string
+  note: string | null
+  createdAt: Date
+}
+
+export interface Vehicle {
+  id: string
+  make: string
+  model: string
+  year: number
+  vin: string | null
+  licensePlate: string | null
+  mileage: number
+  /** The rest of the vehicle, for the work order's "More info". Absent where a page does not load it. */
+  color?: string | null
+  fuelType?: string | null
+  transmission?: string | null
+  engineSize?: string | null
+  engineCode?: string | null
+  hsn?: string | null
+  tsn?: string | null
+  purchaseDate?: Date | string | null
+  purchasePrice?: number | null
+  inspectionStatus?: {
+    dueAt: Date | string | null
+    lastAt: Date | string | null
+    source: string
+    registered: boolean | null
+  } | null
+  customer: {
+    id: string
+    name: string
+    email: string | null
+    phone: string | null
+    address: string | null
+    company: string | null
+    telegramChatId: string | null
+    invoiceDesignId?: string | null
+    /** For the work order's "More info". Absent where a page does not load them. */
+    customerNumber?: string | null
+    taxId?: string | null
+    taxExempt?: boolean
+    reminderOptOut?: boolean
+    notes?: string | null
+    createdAt?: Date | string
+  } | null
+}
+
+export function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}

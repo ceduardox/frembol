@@ -1,0 +1,104 @@
+import { resolveCurrencyCode } from '@/lib/currencies'
+import { resolveListSort } from '@/lib/list-sort-preference.server'
+import { resolveListColumns } from '@/lib/list-columns.server'
+import { WORK_ORDER_COLUMNS } from '@/lib/list-columns'
+import { getTranslations } from 'next-intl/server'
+import { getWorkOrders } from '@/features/vehicles/Actions/serviceActions'
+import { getDisplaySettings } from '@/features/settings/Actions/settingsActions'
+import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
+import { getVehicles } from '@/features/vehicles/Actions/vehicleActions'
+import { getCustomersList } from '@/features/customers/Actions/customerActions'
+import { getAuthContext } from '@/lib/get-auth-context'
+import { getFeatures } from '@/lib/features'
+import { WorkOrdersClient } from './work-orders-client'
+import { PageHeader } from '@/components/page-header'
+import { ListPage } from '@/components/list-page'
+
+export default async function WorkOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string
+    pageSize?: string
+    search?: string
+    status?: string
+    sortBy?: string
+    sortOrder?: string
+    /** 'today': only what is promised to a customer by the end of today. */
+    due?: string
+  }>
+}) {
+  const params = await searchParams
+  const sort = await resolveListSort('workOrders', params, {
+    sortBy: 'serviceDate',
+    sortOrder: 'desc',
+  })
+  const columns = await resolveListColumns('workOrders', WORK_ORDER_COLUMNS)
+  const [result, settingsResult, vehiclesResult, customersResult, authCtx] = await Promise.all([
+    getWorkOrders({
+      page: params.page ? parseInt(params.page) : 1,
+      pageSize: params.pageSize ? parseInt(params.pageSize) : 20,
+      search: params.search,
+      status: params.status,
+      sortBy: sort.sortBy,
+      sortOrder: sort.sortOrder,
+      due: params.due,
+    }),
+    getDisplaySettings([SETTING_KEYS.CURRENCY_CODE]),
+    getVehicles(),
+    getCustomersList(),
+    getAuthContext(),
+  ])
+
+  const features = authCtx ? await getFeatures(authCtx.organizationId) : null
+
+  if (!result.success || !result.data) {
+    return (
+      <>
+        <PageHeader />
+        <div className="flex h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">
+            {result.error || (await getTranslations('workOrders.page'))('error')}
+          </p>
+        </div>
+      </>
+    )
+  }
+
+  const settings = settingsResult.success && settingsResult.data ? settingsResult.data : {}
+  const currencyCode = resolveCurrencyCode(settings[SETTING_KEYS.CURRENCY_CODE])
+  const vehicles =
+    vehiclesResult.success && vehiclesResult.data
+      ? vehiclesResult.data.map((v) => ({
+          id: v.id,
+          make: v.make,
+          model: v.model,
+          year: v.year,
+          licensePlate: v.licensePlate,
+          customer: v.customer,
+        }))
+      : []
+  const customers = customersResult.success && customersResult.data ? customersResult.data : []
+
+  return (
+    <>
+      <PageHeader />
+      <ListPage>
+        <WorkOrdersClient
+          data={result.data}
+          vehicles={vehicles}
+          customers={customers}
+          currencyCode={currencyCode}
+          search={params.search || ''}
+          statusFilter={params.status || 'all'}
+          dueFilter={params.due === 'today' ? 'today' : ''}
+          columns={columns}
+          sortBy={sort.sortBy || ''}
+          sortOrder={sort.sortOrder}
+          smsEnabled={features?.sms ?? false}
+          emailEnabled={features?.smtp ?? false}
+        />
+      </ListPage>
+    </>
+  )
+}

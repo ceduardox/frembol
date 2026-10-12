@@ -1,0 +1,448 @@
+import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
+import { DEFAULT_DATE_FORMAT, formatCurrency, formatDateForPdf } from '@/lib/format'
+import { documentLaborLines, isShopFeeLine } from '@/features/settings/Lib/shopFee'
+import { formatQuantity } from '@/lib/format-quantity'
+import { calculateTotals, netLineTotal, discountAmountFor } from '@/lib/tax'
+import { parseTaxComponents } from '@/lib/tax-components'
+import { taxLines } from './taxLines'
+import { LABOR_GROUP, lineGroupsFor, partGroupKey } from './lineGroups'
+import {
+  getDefaultInvoiceLayout,
+  isCustomFieldId,
+  isDesignerLayout,
+  mergeWithDefaults,
+  toCustomFieldId,
+  type InvoiceLayoutConfig,
+} from '@/features/settings/Schema/invoiceLayoutSchema'
+import { formatFieldValue } from '@/features/vehicles/Components/invoice-pdf/CustomFields'
+import { BASE_FONT_SIZE } from '@/features/vehicles/Components/invoice-pdf/styles'
+import type { TemplateConfig } from '@/features/vehicles/Components/invoice-pdf/types'
+import {
+  buildDocumentSpec,
+  frameShadowWidth,
+  mixColors,
+  type DocumentData,
+  type DocumentTheme,
+  type TotalLine,
+} from '../Spec/buildSpec'
+import type { DocumentSpec } from '../Spec/documentSpec'
+import { warrantyForPrint } from './warrantyPrint'
+import { typeKeyLine } from '@/features/vehicles/Lib/typeKey'
+import {
+  type VisitConditionMap,
+  visitConditionMapForPrint,
+} from '@/features/condition-map/Lib/print'
+import {
+  type InspectionResults,
+  inspectionResultsForPrint,
+} from '@/features/inspections/Lib/inspectionResults'
+
+/**
+ * A quote, expressed as the document the designer edits, the same way the
+ * invoice is. Quotes carry a validity date instead of a due date, lines the
+ * customer opted out of, and no payment records.
+ */
+
+export interface QuotePrintData {
+  quoteNumber: string | null
+  title: string
+  description: string | null
+  validUntil: Date | null
+  createdAt: Date
+  subtotal: number
+  taxRate: number
+  taxAmount: number
+  taxInclusive?: boolean
+  /** The stored split, when the quote has one; see src/lib/tax-components.ts. */
+  taxComponents?: unknown
+  discountType: string | null
+  discountValue: number
+  discountAmount: number
+  totalAmount: number
+  notes: string | null
+  /** The warranty the customer is offered; see src/lib/warranty.ts. */
+  warrantyStatus?: string | null
+  warrantyMonths?: number | null
+  warrantyMileage?: number | null
+  warrantyNotes?: string | null
+  partItems: {
+    partNumber: string | null
+    name: string
+    quantity: number
+    unit?: string | null
+    /** For a layout that groups the lines by category. */
+    category?: string | null
+    unitPrice: number
+    total: number
+    excluded?: boolean
+  }[]
+  laborItems: {
+    description: string
+    hours: number
+    rate: number
+    total: number
+    pricingType?: string
+    excluded?: boolean
+  }[]
+  customer: {
+    name: string
+    email: string | null
+    phone: string | null
+    address: string | null
+    company: string | null
+    taxId?: string | null
+  } | null
+  vehicle: {
+    make: string
+    model: string
+    year: number
+    vin: string | null
+    licensePlate: string | null
+    hsn?: string | null
+    tsn?: string | null
+  } | null
+}
+
+export interface QuotePrintInput {
+  data: QuotePrintData
+  workshop?: { name: string; address: string; phone: string; email: string; slogan?: string }
+  currencyCode?: string
+  currencyFormat?: 'symbol' | 'code'
+  logoDataUri?: string
+  /** Who signs the sheet, for a layout with the Signature section on. */
+  signer?: { name: string; dataUri?: string }
+  torqvoiceLogoDataUri?: string
+  dateFormat?: string
+  timezone?: string
+  /** The workshop's units, for the warranty's distance limit. */
+  unitSystem?: string
+  template?: TemplateConfig
+  portalUrl?: string
+  pdfAttachmentNames?: string[]
+  otherAttachmentNames?: string[]
+  customFields?: Array<{ fieldId: string; label: string; value: string; fieldType: string }>
+  labels?: Record<string, string>
+  layoutConfig?: InvoiceLayoutConfig
+  /** Print each line with tax included, and say how much of the subtotal is tax. */
+  lineItemsInclTax?: boolean
+  /** The car's condition as the inspection the quote came from found it. */
+  conditionMap?: VisitConditionMap
+  /**
+   * The inspection the quote was raised from, for a layout with Defects or
+   * All Results on. Read as it stands at every print, like the condition map.
+   */
+  inspectionResults?: InspectionResults | null
+}
+
+function fillTemplate(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce((str, [key, val]) => str.replace(`{${key}}`, val), template)
+}
+
+export function buildQuotePrintSpec(input: QuotePrintInput): DocumentSpec {
+  const { workshop, template } = input
+  // The fee under the work, and a fee of nothing left out.
+  const data = { ...input.data, laborItems: documentLaborLines(input.data.laborItems) }
+  const labels = input.labels ?? {}
+  const L = (key: string, fallback: string) => labels[key] || fallback
+
+  const saved = input.layoutConfig
+  let layout = saved ? mergeWithDefaults(saved) : getDefaultInvoiceLayout()
+
+  // Custom fields no section claims still print in the extras panel.
+  const assigned = new Set(
+    layout.sections.flatMap((s) =>
+      (s.fields ?? []).filter((f) => isCustomFieldId(f.id)).map((f) => f.id)
+    )
+  )
+  const unassigned = (input.customFields ?? [])
+    .map((cf) => toCustomFieldId(cf.fieldId))
+    .filter((id) => !assigned.has(id))
+  if (unassigned.length) {
+    layout = {
+      ...layout,
+      sections: layout.sections.map((section) =>
+        section.id === 'general'
+          ? {
+              ...section,
+              fields: [
+                ...(section.fields ?? []),
+                ...unassigned.map((id) => ({ id, visible: true })),
+              ],
+            }
+          : section
+      ),
+    }
+  }
+
+  const doc = layout.document ?? {}
+  const cc = resolveCurrencyCode(input.currencyCode)
+  const cf: 'symbol' | 'code' = resolveCurrencyFormat(input.currencyFormat)
+  const money = (value: number) => formatCurrency(value, cc, cf)
+  const taxRate = data.taxRate
+  const taxInclusive = data.taxInclusive ?? false
+  const net = (value: number) => netLineTotal(value, taxRate, taxInclusive)
+  // The same choice the invoice offers: lines with tax in them, the subtotal
+  // following, and the tax row saying how much of it is tax.
+  const linesInclTax = input.lineItemsInclTax === true && taxRate > 0
+  const gross = (value: number) => (taxInclusive ? value : value * (1 + taxRate / 100))
+  const shown = linesInclTax ? gross : net
+
+  const df = input.dateFormat || DEFAULT_DATE_FORMAT
+  const tz = input.timezone || undefined
+  const createdDate = formatDateForPdf(data.createdAt, df, tz)
+  const validDate = data.validUntil ? formatDateForPdf(data.validUntil, df, tz) : null
+  const quoteNum = data.quoteNumber || 'QUOTE'
+  const shopName = workshop?.name || 'Torqvoice'
+
+  const fields: Record<string, string> = {
+    customer_name: data.customer?.name || '',
+    customer_company: data.customer?.company || '',
+    customer_address: data.customer?.address || '',
+    customer_email: data.customer?.email || '',
+    customer_phone: data.customer?.phone || '',
+    customer_tax_id: data.customer?.taxId
+      ? `${L('customerTaxId', 'Tax ID')}: ${data.customer.taxId}`
+      : '',
+    vehicle_name: data.vehicle
+      ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`
+      : '',
+    vin: data.vehicle?.vin
+      ? labels.vin
+        ? fillTemplate(labels.vin, { vin: data.vehicle.vin })
+        : `VIN: ${data.vehicle.vin}`
+      : '',
+    hsn_tsn: typeKeyLine(data.vehicle, labels.typeKey),
+    license_plate: data.vehicle?.licensePlate
+      ? labels.plate
+        ? fillTemplate(labels.plate, { plate: data.vehicle.licensePlate })
+        : `Plate: ${data.vehicle.licensePlate}`
+      : '',
+    service_title: data.title || '',
+    company_name: shopName,
+    company_slogan: workshop?.slogan?.trim() || '',
+    company_address: workshop?.address || '',
+    company_phone: workshop?.phone
+      ? labels.tel
+        ? fillTemplate(labels.tel, { phone: workshop.phone })
+        : `Tel: ${workshop.phone}`
+      : '',
+    company_email: workshop?.email || '',
+    // The org number never printed on quote letterheads.
+    company_org_number: '',
+    bank_account: '',
+    footer_note: `${
+      validDate
+        ? labels.validityFooterUntil
+          ? fillTemplate(labels.validityFooterUntil, { date: validDate })
+          : `This quote is valid until ${validDate}`
+        : L('validityFooter30', 'This quote is valid for 30 days')
+    } · ${shopName}`,
+  }
+  for (const cfEntry of input.customFields ?? []) {
+    if (cfEntry.value === '' || cfEntry.value == null) continue
+    fields[toCustomFieldId(cfEntry.fieldId)] =
+      `${cfEntry.label}: ${formatFieldValue(cfEntry.value, cfEntry.fieldType)}`
+  }
+
+  const items: DocumentData['items'] = [
+    ...data.laborItems.map((l, i) => ({
+      n: String(i + 1),
+      qty: String(l.hours),
+      unit: l.pricingType === 'service' || isShopFeeLine(l) ? L('unit', 'unit') : L('hrs', 'hrs'),
+      desc: l.description,
+      price: money(shown(l.rate)),
+      total: money(shown(l.total)),
+      excluded: l.excluded,
+      group: LABOR_GROUP,
+    })),
+    ...data.partItems.map((p, i) => ({
+      n: String(data.laborItems.length + i + 1),
+      qty: formatQuantity(p.quantity, p.unit),
+      unit: p.unit || '',
+      desc: p.name,
+      sub: p.partNumber || undefined,
+      price: money(shown(p.unitPrice)),
+      total: money(shown(p.total)),
+      excluded: p.excluded,
+      group: partGroupKey(p.category),
+    })),
+  ]
+
+  const parts: DocumentData['parts'] = data.partItems.map((p) => ({
+    ref: p.partNumber || '-',
+    desc: p.name,
+    qty: formatQuantity(p.quantity, p.unit),
+    price: money(shown(p.unitPrice)),
+    total: money(shown(p.total)),
+    excluded: p.excluded,
+    group: partGroupKey(p.category),
+  }))
+
+  const lineGroups = lineGroupsFor({
+    parts: data.partItems,
+    labor: data.laborItems,
+    labels,
+    shown,
+    money,
+  })
+
+  const labor: DocumentData['labor'] = data.laborItems.map((l) => {
+    // A shop fee prints as one unit at its price, like a service line.
+    const isService = l.pricingType === 'service' || isShopFeeLine(l)
+    return {
+      desc: l.description,
+      qty: isService ? `${l.hours} ${L('unit', 'unit')}` : `${l.hours} ${L('hrs', 'hrs')}`,
+      rate: isService
+        ? money(shown(l.rate))
+        : labels.ratePerHour
+          ? fillTemplate(labels.ratePerHour, { rate: money(shown(l.rate)) })
+          : `${money(shown(l.rate))}/hr`,
+      total: money(shown(l.total)),
+      excluded: l.excluded,
+    }
+  })
+
+  // Totals from the lines the customer kept; excluded ones do not count.
+  const laborTotal = data.laborItems.reduce((sum, l) => (l.excluded ? sum : sum + l.total), 0)
+  const partsTotal = data.partItems.reduce((sum, p) => (p.excluded ? sum : sum + p.total), 0)
+  const subtotal = laborTotal + partsTotal
+  const discount = discountAmountFor(subtotal, data.discountType, data.discountValue)
+  const { taxAmount, totalAmount } = calculateTotals({
+    subtotal,
+    discountAmount: discount,
+    taxRate,
+    taxInclusive,
+  })
+
+  const itemsTableVisible = layout.sections.some((s) => s.id === 'items_table' && s.visible)
+  const totals: TotalLine[] = []
+  if (!itemsTableVisible && data.laborItems.length > 0) {
+    totals.push({ label: L('labor', 'Labor'), value: money(shown(laborTotal)), kind: 'line' })
+  }
+  if (!itemsTableVisible && data.partItems.length > 0) {
+    totals.push({ label: L('parts', 'Parts'), value: money(shown(partsTotal)), kind: 'line' })
+  }
+  if (shown(subtotal) > 0) {
+    totals.push({
+      label: linesInclTax
+        ? L('subtotalInclTax', 'Subtotal (incl. tax)')
+        : L('subtotal', 'Subtotal'),
+      value: money(shown(subtotal)),
+      kind: 'line',
+    })
+  }
+  if (shown(discount) > 0) {
+    totals.push({
+      label:
+        data.discountType === 'percentage'
+          ? labels.discountPercent
+            ? fillTemplate(labels.discountPercent, { percent: String(data.discountValue) })
+            : `Discount (${data.discountValue}%)`
+          : L('discount', 'Discount'),
+      value: money(-shown(discount)),
+      kind: 'discount',
+    })
+  }
+  totals.push(
+    ...taxLines({
+      taxRate,
+      taxAmount,
+      components: parseTaxComponents(data.taxComponents),
+      linesInclTax,
+      labels,
+      money,
+    })
+  )
+  totals.push({ label: L('total', 'Total'), value: money(totalAmount), kind: 'total' })
+
+  const attachedDocuments = [
+    ...(input.otherAttachmentNames ?? []),
+    ...(input.pdfAttachmentNames ?? []).map((name) =>
+      labels.attached ? fillTemplate(labels.attached, { name }) : `${name} (attached)`
+    ),
+  ]
+
+  const documentData: DocumentData = {
+    fields,
+    logoUrl: input.logoDataUri,
+    labels: {
+      ...labels,
+      // The title block prints the quote's own words for its cells.
+      invoiceNumberLabel: labels.quoteNumberLabel || labels.invoiceNumberLabel || 'Quote No.',
+      dueDateLabel: labels.validUntilLabel || labels.dueDateLabel || 'Valid Until',
+    },
+    meta: {
+      title: L('title', 'QUOTE'),
+      number: quoteNum,
+      date: createdDate,
+      due: validDate ?? undefined,
+    },
+    items,
+    parts,
+    labor,
+    lineGroups,
+    findings: [],
+    totals,
+    notes: { html: data.description ?? undefined },
+    attachedDocuments: attachedDocuments.length ? attachedDocuments : undefined,
+    warranty: warrantyForPrint(data, { labels, unitSystem: input.unitSystem }),
+    payment: [],
+    conditionMap: visitConditionMapForPrint(input.conditionMap, doc.margin) ?? undefined,
+    // What the inspection found, through the certificate's own blocks.
+    certificate: inspectionResultsForPrint(layout, input.inspectionResults, labels),
+    branding: input.torqvoiceLogoDataUri ? { logoDataUri: input.torqvoiceLogoDataUri } : undefined,
+    portalUrl: input.portalUrl,
+    signature: {
+      heading: L('signature', 'Signature'),
+      name: input.signer?.name ?? '',
+      nameCaption: L('signedBy', 'Signed by'),
+      date: createdDate,
+      dateCaption: L('signatureDate', 'Date'),
+      image: input.signer?.dataUri,
+    },
+    sectionLabels: {
+      customer: L('to', 'To'),
+      vehicle: L('vehicle', 'Vehicle'),
+      service: L('quoteDetails', 'Quote Details'),
+      bank_account: L('paymentInformation', 'Payment Information'),
+      general: L('customFieldsTitle', 'Additional Information'),
+      findings: L('findings', 'Findings'),
+      condition_map: L('conditionMapTitle', 'Vehicle condition'),
+      defects: L('deficiencies', 'Deficiencies found'),
+      results_table: L('allResults', 'All results'),
+    },
+  }
+
+  const primary = template?.primaryColor || '#d97706'
+  const headerStyle = template?.headerStyle || 'standard'
+  const banded = headerStyle === 'framed' || headerStyle === 'modern'
+  const text = template?.textColor || '#111827'
+  const background = template?.backgroundColor || '#ffffff'
+
+  const theme: DocumentTheme = {
+    primary,
+    background,
+    text,
+    muted: template?.textColor ? mixColors(text, background, 0.42) : '#6b7280',
+    accent: doc.accentColor || primary,
+    companyText: template?.companyTextColor || (banded ? '#ffffff' : primary),
+    fontFamily: doc.fontFamily || template?.fontFamily || 'Helvetica',
+    fontSize: doc.fontSize ?? BASE_FONT_SIZE,
+    margin: doc.margin ?? 40,
+    rowPadding: doc.rowPadding ?? 5,
+    stripes: doc.stripes !== false,
+    stripeColor: doc.stripeColor || mixColors(background, text, 0.045),
+    headerStyle,
+    frameSide: template?.frameSide === 'right' ? 'right' : 'left',
+    frameBorderColor: template?.frameBorderColor || undefined,
+    frameShadow: frameShadowWidth(template?.frameShadow),
+    frameRadius: template?.frameRadius ?? 0,
+    logoSize: template?.logoSize ?? 100,
+    // Until this organization saves a layout in the designer, the sheet keeps
+    // the classic look the retired renderer printed. Framed never existed
+    // before the designer, so choosing it opts into the new rendering.
+    classic: !isDesignerLayout(input.layoutConfig) && headerStyle !== 'framed',
+  }
+
+  return buildDocumentSpec(layout, theme, documentData)
+}

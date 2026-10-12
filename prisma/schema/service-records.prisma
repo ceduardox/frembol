@@ -1,0 +1,420 @@
+model ServiceRecord {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  type            String    @default("maintenance")
+  status          String    @default("completed")
+  cost            Float     @default(0)
+  mileage         Int?
+  serviceDate     DateTime  @default(now())
+  startDateTime   DateTime?
+  endDateTime     DateTime?
+  /// When the customer was told the vehicle would be ready. Not the booking:
+  /// `endDateTime` is when the work is planned to finish, this is the promise.
+  promisedAt      DateTime?
+  shopName        String?
+  techName        String?
+  parts           String?
+  laborHours      Float?
+  diagnosticNotes String?
+  invoiceNotes    String?
+  subtotal        Float     @default(0)
+  taxRate         Float     @default(0)
+  taxAmount       Float     @default(0)
+  taxInclusive    Boolean   @default(false)
+  /// The taxes this document was totalled with, when the workshop splits
+  /// its tax into more than one (Québec GST and QST, Indian CGST and SGST).
+  /// Null on single-rate documents. taxRate stays the combined rate and
+  /// taxAmount the combined amount, so anything that does not itemise needs
+  /// no change. Shape in src/lib/tax-components.ts; read leniently so an old
+  /// row renders on new code.
+  taxComponents   Json?
+  totalAmount     Float     @default(0)
+  invoiceNumber   String?
+  invoiceDate     DateTime?
+  invoiceDueDate  DateTime?
+  discountType    String?
+  discountValue   Float     @default(0)
+  discountAmount  Float     @default(0)
+  manuallyPaid    Boolean   @default(false)
+
+  // Warranty tracking
+  /// What the workshop tells the customer about its own warranty on this job:
+  /// "included", "not_included", or null when it says nothing. Only an included
+  /// warranty carries months, mileage and an expiry; the terms are printed for
+  /// either statement. See src/lib/warranty.ts.
+  warrantyStatus    String?
+  warrantyMonths    Int?
+  warrantyMileage   Int?
+  warrantyExpiresAt DateTime?
+  warrantyNotes     String?
+
+  /// Print the car's condition map on this job's invoice: the job's own
+  /// answer from the drop-off tab, on or off, or null to follow the invoice
+  /// design, which answers for every invoice.
+  conditionMapOnInvoice Boolean?
+
+  publicToken  String?   @unique
+  sharedAt     DateTime?
+  viewCount    Int       @default(0)
+  lastViewedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  /// Who opened the job, when a person did. Null for work the system made
+  /// (a customer's online booking, a recurring invoice, an import) and for
+  /// everything older than this column.
+  createdById String?
+  createdBy   User?   @relation("ServiceRecordCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  /// First time this invoice reached the customer, by email or share link.
+  /// Distinct from sharedAt, which tracks only the link and is cleared when
+  /// the link is revoked; sending is not undone by withdrawing the link.
+  sentAt DateTime?
+
+  /// The design this invoice prints with while it is still being written.
+  /// Null follows the customer's design, then the workshop's default. SetNull:
+  /// a deleted design sends its drafts back to the default rather than
+  /// taking them with it.
+  designId String?
+  design   DocumentDesign? @relation(fields: [designId], references: [id], onDelete: SetNull)
+
+  /// When the invoice became the customer's document: first send, share or
+  /// payment. From then on the sheet prints from the three snapshots below,
+  /// never from live settings, so a changed address, logo, payment terms or
+  /// title cannot rewrite paper already issued, and a preview and a re-send
+  /// always show the same sheet. Only an owner's unlock followed by a send
+  /// captures a fresh copy: the corrected one.
+  issuedAt                  DateTime?
+  /// The look at issue. Restrict: a snapshot referenced by an invoice is a
+  /// record and cannot be removed.
+  issuedDesignSnapshotId    String?
+  issuedDesignSnapshot      DocumentDesignSnapshot? @relation(fields: [issuedDesignSnapshotId], references: [id], onDelete: Restrict)
+  issuedLogoSnapshotId      String?
+  issuedLogoSnapshot        DocumentAssetSnapshot?  @relation("IssuedLogoSnapshot", fields: [issuedLogoSnapshotId], references: [id], onDelete: Restrict)
+  /// The signature of whoever opened the job, as it was at issue. Null when
+  /// they had none, or the invoice was issued before signatures existed.
+  issuedSignatureSnapshotId String?
+  issuedSignatureSnapshot   DocumentAssetSnapshot?  @relation("IssuedSignatureSnapshot", fields: [issuedSignatureSnapshotId], references: [id], onDelete: Restrict)
+  /// Everything else the sheet printed that the record does not own: the
+  /// workshop's details and payment settings, the customer, the vehicle, the
+  /// technician's name, the findings and the custom fields. Shape in
+  /// issuedInvoice.ts; read leniently so old snapshots render on new code.
+  issuedData                Json?
+
+  /// Set when an owner or admin deliberately reopens a locked document.
+  /// Nullable rather than a boolean so the audit trail can show when, and the
+  /// screen can say the document was reopened rather than never locked.
+  /// "online" when the customer booked it from a link, so the office can tell.
+  bookingSource String?
+
+  editUnlockedAt   DateTime?
+  editUnlockedById String?
+
+  /// The stored set this job is about, when it came out of the tire hotel.
+  /// Without it a tire-change work order says nothing about which tires, and
+  /// the technician has to go and ask.
+  tireSetId String?
+  tireSet   TireSet? @relation(fields: [tireSetId], references: [id], onDelete: SetNull)
+
+  /// One of the workshop's own statuses, under the stage `status` names
+  /// ("Ready for pickup" under completed). A label with a colour and a
+  /// follow-up, never something the system decides by: whether a job is open,
+  /// shows in the portal or stops a clock is read from `status` alone. Cleared
+  /// whenever `status` moves, since it belongs to the stage it was chosen under.
+  customStatusId    String?
+  customStatus      WorkOrderStatus? @relation(fields: [customStatusId], references: [id], onDelete: SetNull)
+  /// When that status was chosen, for "Ready for pickup since 14:02".
+  customStatusSince DateTime?
+
+  /// Null for parts-only / counter sales; such records use customerId
+  /// (or neither, for anonymous walk-in sales)
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  /// Direct customer for records without a vehicle. Vehicle-linked records
+  /// leave this null and resolve the customer through the vehicle, so
+  /// reassigning a vehicle keeps invoices following the vehicle's customer.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  /// Set when the job came straight from an inspection, so the inspection can
+  /// show what was raised from it. SetNull: deleting the inspection must not
+  /// take the job — and its invoice — with it.
+  inspectionId String?
+  inspection   Inspection? @relation(fields: [inspectionId], references: [id], onDelete: SetNull)
+
+  /// Denormalized from the vehicle historically; now the canonical scope so
+  /// records exist without a vehicle. Nullable to mirror Vehicle.organizationId.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  technicianId String?
+  technician   Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+
+  /// Where in the shop the job is booked in: a lift, a ramp, an alignment
+  /// stand. Independent of the technician, because a shop plans its bays and
+  /// its people separately and the work board can lane by either.
+  workBayId String?
+  workBay   WorkBay? @relation(fields: [workBayId], references: [id], onDelete: SetNull)
+  sortOrder Int      @default(0)
+
+  partItems      ServicePart[]
+  laborItems     ServiceLabor[]
+  attachments    ServiceAttachment[]
+  payments       Payment[]
+  statusReports  StatusReport[]
+  stockMovements StockMovement[]
+  timeEntries    TimeEntry[]
+
+  concerns           ServiceConcern[]
+  conditionMarks     ConditionMark[]
+  discoveredFindings VehicleFinding[] @relation("FindingDiscoveredIn")
+  resolvedFindings   VehicleFinding[] @relation("FindingResolvedIn")
+
+  importBatchId String?
+  importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+  @@index([technicianId])
+  @@index([workBayId])
+  @@index([designId])
+  @@index([issuedDesignSnapshotId])
+  @@index([issuedLogoSnapshotId])
+  @@index([issuedSignatureSnapshotId])
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([inspectionId])
+  @@index([importBatchId])
+  @@index([customStatusId])
+  @@map("service_records")
+}
+
+/// One thing the customer asked about, in their words.
+///
+/// A job is a list of these rather than a single note, because that is how the
+/// work actually divides: "it pulls right when braking" and "the aircon smells"
+/// are two conversations, two diagnoses and two lines on the bill. Storing them
+/// as one blob means the shop can answer one and quietly drop the other, which
+/// is the single most common reason a car comes back.
+///
+/// This is the first of the trade's three Cs. The cause is a VehicleFinding
+/// pointing back here, carrying its own notes and photographs; the correction
+/// is the labour and parts on the job. Together they let the invoice explain
+/// itself: you said this, we found that, we did this about it.
+model ServiceConcern {
+  id          String   @id @default(cuid())
+  /// The customer's own words, kept as they said them.
+  description String
+  /// The order the customer raised them in, which is the order they care about.
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// The rest of the story this concern starts: condition, cause, correction,
+  /// confirmation. `description` is the condition. The cause is the sentence
+  /// the customer is told; the structured findings hang off `findings` below.
+  cause         String?
+  /// What was done about it.
+  correction    String?
+  /// How the fix was checked: the test drive, the re-scan, the symptom gone.
+  confirmation  String?
+  /// Set when somebody ticks the concern as confirmed, cleared when unticked.
+  /// Stamped by the server from the session, never taken from the client.
+  confirmedAt   DateTime?
+  confirmedById String?
+  confirmedBy   User?     @relation("ConcernConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  /// What the shop found when it went looking. Empty means nobody has answered
+  /// this one yet, which is worth being able to ask about before closing a job.
+  findings    VehicleFinding[]
+  /// Photos and video filed under this concern.
+  attachments ServiceAttachment[]
+
+  @@index([serviceRecordId])
+  @@map("service_concerns")
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  amount     Float
+  date       DateTime @default(now())
+  method     String   @default("other")
+  note       String?
+  provider   String?
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  /// A payment a vendor or a ledger reported is booked once per invoice. The
+  /// browser coming back and the vendor's notification report the same payment
+  /// in the same second, and looking before writing let both write. Rows with
+  /// no provider or no external id, which is every payment typed in by hand,
+  /// are not held to it: Postgres counts nulls as distinct.
+  @@unique([serviceRecordId, provider, externalId])
+  @@index([serviceRecordId])
+  @@map("payments")
+}
+
+model ServiceAttachment {
+  id               String   @id @default(cuid())
+  fileName         String
+  fileUrl          String
+  fileType         String
+  fileSize         Int
+  category         String   @default("diagnostic")
+  description      String?
+  includeInInvoice Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  /// The concern this photo or video is evidence for, when it was added from
+  /// that concern's row. It is still one of the job's files, listed with the
+  /// rest. SetNull, because a picture of the car outlives the sentence it
+  /// was filed under.
+  concernId String?
+  concern   ServiceConcern? @relation(fields: [concernId], references: [id], onDelete: SetNull)
+
+  @@index([serviceRecordId])
+  @@index([concernId])
+  @@map("service_attachments")
+}
+
+model ServicePart {
+  id              String  @id @default(cuid())
+  partNumber      String?
+  name            String
+  quantity        Float   @default(1)
+  /// Unit of measure snapshotted from InventoryPart at pick time; null for
+  /// free-text lines and legacy rows.
+  unit            String?
+  /// Category snapshotted from InventoryPart at pick time, or typed on a
+  /// free-text line, so an invoice designed to group its parts by category
+  /// keeps printing the same groups after the stock item is renamed or gone.
+  category        String?
+  unitPrice       Float   @default(0)
+  total           Float   @default(0)
+  unitCost        Float   @default(0)
+  markupPercent   Float   @default(0)
+  inventoryPartId String?
+
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  @@index([serviceRecordId])
+  @@map("service_parts")
+}
+
+model ServiceLabor {
+  id          String @id @default(cuid())
+  description String
+  hours       Float  @default(0)
+  rate        Float  @default(0)
+  total       Float  @default(0)
+  pricingType String @default("hourly")
+
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  @@index([serviceRecordId])
+  @@map("service_labor")
+}
+
+model RecurringInvoice {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  frequency   String // "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly"
+  nextRunDate DateTime
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  lastRunAt   DateTime?
+  runCount    Int       @default(0)
+
+  // Template fields (copied to ServiceRecord on generation)
+  type          String  @default("maintenance")
+  cost          Float   @default(0)
+  taxRate       Float   @default(0)
+  taxInclusive  Boolean @default(false)
+  /// Copied onto each generated invoice, like taxRate. See ServiceRecord.
+  taxComponents Json?
+  invoiceNotes  String?
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  templateParts RecurringPart[]
+  templateLabor RecurringLabor[]
+
+  @@index([vehicleId])
+  @@index([nextRunDate, isActive])
+  @@map("recurring_invoices")
+}
+
+model RecurringPart {
+  id         String  @id @default(cuid())
+  name       String
+  partNumber String?
+  quantity   Float   @default(1)
+  unitPrice  Float   @default(0)
+
+  recurringInvoiceId String
+  recurringInvoice   RecurringInvoice @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_parts")
+}
+
+model RecurringLabor {
+  id          String @id @default(cuid())
+  description String
+  hours       Float  @default(0)
+  rate        Float  @default(0)
+  pricingType String @default("hourly")
+
+  recurringInvoiceId String
+  recurringInvoice   RecurringInvoice @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+
+  @@map("recurring_labor")
+}
+
+/// A status the workshop defined for its work orders, filed under one of the
+/// three fixed stages. The stages are what the app reads; these are what the
+/// workshop calls the steps in between, with what should happen when a job
+/// reaches one.
+model WorkOrderStatus {
+  id              String    @id @default(cuid())
+  name            String
+  /// 'pending' | 'in-progress' | 'completed': the stage it sits under.
+  stage           String
+  /// A colour name from the app's palette, not a hex value, so it follows the theme.
+  color           String    @default("slate")
+  sortOrder       Int       @default(0)
+  /// Offer to tell the customer when a job reaches this status. Asked, never
+  /// sent on its own.
+  notifyCustomer  Boolean   @default(false)
+  /// The message that offer starts from, with {tokens}. Null uses the app's own.
+  messageTemplate String?
+  /// Removed from the menus but kept, so jobs that carry it still say what it was.
+  archivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  serviceRecords ServiceRecord[]
+
+  @@index([organizationId, stage, sortOrder])
+  @@map("work_order_statuses")
+}

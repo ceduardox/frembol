@@ -1,0 +1,106 @@
+{
+  "page": {
+    "error": "Nepavyko įkelti darbo užsakymų"
+  },
+  "list": {
+    "searchPlaceholder": "Ieškoti darbo užsakymų...",
+    "newWorkOrder": "Naujas darbo užsakymas",
+    "selectVehicle": "Pasirinkite transporto priemonę",
+    "empty": "Darbo užsakymų nerasta.",
+    "statusUpdated": "Būsena atnaujinta",
+    "statusTabs": {
+      "all": "Visi",
+      "active": "Aktyvūs",
+      "pending": "Laukiantys",
+      "inProgress": "Vykdomi",
+      "waitingParts": "Laukia dalių",
+      "completed": "Užbaigti"
+    },
+    "statusActions": {
+      "startWork": "Pradėti darbą",
+      "waitingParts": "Laukia dalių",
+      "complete": "Užbaigti",
+      "resumeWork": "Tęsti darbą",
+      "reopen": "Atidaryti iš naujo"
+    },
+    "table": {
+      "invoice": "Sąskaita Nr.",
+      "vehicle": "Transporto priemonė",
+      "customer": "Klientas",
+      "title": "Pavadinimas",
+      "status": "Būsena",
+      "tech": "Technikas",
+      "date": "Data",
+      "total": "Suma",
+      "promised": "Pažadėta",
+      "promisedOverdue": "Pažadėta {date}, vėluoja"
+    },
+    "emailSubject": "Transporto priemonės būsenos atnaujinimas: {status}",
+    "changeStatus": "Keisti būseną",
+    "contextMenu": {
+      "open": "Atidaryti darbo užsakymą",
+      "openVehicle": "Atidaryti transporto priemonę",
+      "openCustomer": "Atidaryti klientą"
+    },
+    "dueToday": "Šiandienai",
+    "columns": {
+      "label": "Stulpeliai"
+    }
+  },
+  "vehiclePicker": {
+    "title": "Pasirinkite transporto priemonę darbo užsakymui",
+    "titleMarine": "Pasirinkite laivą darbo užsakymui",
+    "searchPlaceholder": "Ieškoti transporto priemonių...",
+    "searchPlaceholderMarine": "Ieškoti laivų...",
+    "empty": "Transporto priemonių nerasta.",
+    "emptyMarine": "Laivų nerasta.",
+    "emptySearch": "Nėra transporto priemonių, atitinkančių paiešką.",
+    "emptySearchMarine": "Nėra laivų, atitinkančių paiešką.",
+    "addNewVehicle": "Pridėti naują transporto priemonę",
+    "addNewVehicleMarine": "Pridėti naują laivą",
+    "noPlate": "Be numerio",
+    "noPlateMarine": "Be registracijos numerio",
+    "make": "Markė *",
+    "makeMarine": "Gamintojas *",
+    "model": "Modelis *",
+    "year": "Metai *",
+    "licensePlate": "Valstybinis numeris",
+    "licensePlateMarine": "Registracijos numeris",
+    "customer": "Klientas",
+    "selectCustomer": "Pasirinkite klientą (neprivaloma)",
+    "createNewCustomer": "Sukurti naują klientą",
+    "newCustomer": "Naujas klientas",
+    "customerName": "Vardas *",
+    "customerNamePlaceholder": "Kliento vardas",
+    "phone": "Telefonas",
+    "phonePlaceholder": "Telefono numeris",
+    "creating": "Kuriama...",
+    "createAndContinue": "Sukurti ir tęsti",
+    "invalidYear": "Įveskite teisingus metus",
+    "customerNameRequired": "Kliento vardas yra privalomas",
+    "failedCreateCustomer": "Nepavyko sukurti kliento",
+    "failedCreateVehicle": "Nepavyko sukurti transporto priemonės",
+    "failedCreateVehicleMarine": "Nepavyko sukurti laivo",
+    "somethingWentWrong": "Kažkas nutiko",
+    "partsSale": "Tik dalių pardavimas",
+    "partsSaleDescription": "Sukurkite sąskaitą be transporto priemonės, dalių pardavimui prie prekystalio.",
+    "partsSaleDescriptionMarine": "Sukurkite sąskaitą be laivo, dalių pardavimui prie prekystalio.",
+    "createSale": "Sukurti pardavimą",
+    "none": "Nėra"
+  },
+  "notify": {
+    "title": "Pranešti {name}",
+    "description": "Siųsti pranešimą klientui apie šį atnaujinimą.",
+    "sms": "SMS",
+    "email": "El. paštas",
+    "noPhone": "(nėra telefono)",
+    "noEmail": "(nėra el. pašto)",
+    "notAvailable": "(nepasiekiama)",
+    "skip": "Praleisti",
+    "send": "Siųsti",
+    "smsSent": "SMS išsiųsta",
+    "emailSent": "Laiškas išsiųstas",
+    "failedSms": "Nepavyko išsiųsti SMS",
+    "failedEmail": "Nepavyko išsiųsti laiško"
+  }
+}

@@ -1,0 +1,740 @@
+'use client'
+
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useGlassModal } from '@/components/glass-modal'
+import { useConfirm } from '@/components/confirm-dialog'
+import { useDateSettings } from '@/components/date-settings-context'
+import {
+  updateQuote,
+  updateQuoteStatus,
+  deleteQuote,
+  convertQuoteToServiceRecord,
+  addQuoteToServiceRecord,
+  getQuoteConversionConflicts,
+  getWorkOrdersForQuoteConversion,
+} from '@/features/quotes/Actions/quoteActions'
+import type {
+  ConversionConflict,
+  ConversionResolutions,
+} from '@/features/quotes/Lib/conversionConflicts'
+import { acknowledgeQuoteResponse } from '@/features/quotes/Actions/quoteResponseActions'
+import { calculateTotals, discountAmountFor } from '@/lib/tax'
+import { zonedDateInput } from '@/lib/timezone'
+import { parseTaxComponents } from '@/lib/tax-components'
+import { normalizeWarranty, WARRANTY_NONE, type WarrantyFields } from '@/lib/warranty'
+import { useDeferredCommit } from '@/hooks/use-deferred-commit'
+import {
+  recalculateShopFeeLines,
+  shopFeeLinesLast,
+  type ShopFeeConfig,
+} from '@/features/settings/Lib/shopFee'
+import { isPriceOverridden, lineTotal, repricePartRow } from '@/features/inventory/Lib/partPricing'
+import type { QuoteRecord, QuotePartInput, QuoteLaborInput } from './quote-page-types'
+import { emptyPart, makeEmptyLabor, makeEmptyService } from './quote-page-types'
+
+interface SelectedVehicle {
+  id: string
+  make: string
+  model: string
+  year: number
+  licensePlate: string | null
+  customerId: string | null
+  customer: { id: string; name: string } | null
+}
+
+/** An open work order the quote could be added to. */
+export interface ConvertTarget {
+  id: string
+  title: string
+  invoiceNumber: string | null
+}
+
+interface SelectedCustomer {
+  id: string
+  name: string
+  company: string | null
+}
+
+export function useQuoteFormState({
+  quote,
+  currencyCode,
+  defaultTaxRate,
+  taxEnabled,
+  defaultLaborRate,
+  locked = false,
+  shopFee = null,
+  t,
+}: {
+  quote: QuoteRecord
+  currencyCode: string
+  defaultTaxRate: number
+  taxEnabled: boolean
+  defaultLaborRate: number
+  /** A locked quote refuses saves, so it must not queue one. */
+  locked?: boolean
+  /** The workshop's shop fee; a percentage one is re-priced as lines change. */
+  shopFee?: ShopFeeConfig | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: (key: string, values?: any) => string
+}) {
+  const router = useRouter()
+  const modal = useGlassModal()
+  const confirm = useConfirm()
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'details' | 'images' | 'documents'>('details')
+
+  // Form state
+  const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [status, setStatus] = useState(quote.status)
+  // The customer can answer while the quote is open. A refresh brings the new
+  // status in as a prop, and the page has to show it rather than the status it
+  // was opened with; a status chosen here and not yet saved is left alone.
+  useEffect(() => {
+    setStatus(quote.status)
+  }, [quote.status])
+  const [customerId, setCustomerId] = useState(quote.customer?.id || '')
+  const [vehicleId, setVehicleId] = useState(quote.vehicle?.id || '')
+  const [partItems, setPartItems] = useState<QuotePartInput[]>(
+    quote.partItems.map((p) => ({
+      partNumber: p.partNumber || '',
+      name: p.name,
+      quantity: p.quantity,
+      unit: p.unit ?? null,
+      category: p.category ?? null,
+      unitCost: p.unitCost ?? 0,
+      markupPercent: p.markupPercent ?? 0,
+      unitPrice: p.unitPrice,
+      total: p.total,
+      excluded: p.excluded ?? false,
+      inventoryPartId: p.inventoryPartId ?? null,
+      // Evaluated once, on settled values from the database; see
+      // isPriceOverridden for why it must not be recomputed while typing.
+      priceOverridden: isPriceOverridden({
+        unitCost: p.unitCost ?? 0,
+        markupPercent: p.markupPercent ?? 0,
+        unitPrice: p.unitPrice,
+      }),
+    }))
+  )
+  const { schedule: scheduleCommit, cancel: cancelCommit } = useDeferredCommit()
+  const [laborItems, setLaborItems] = useState<QuoteLaborInput[]>(
+    shopFeeLinesLast(quote.laborItems).map((l) => ({
+      description: l.description,
+      hours: l.hours,
+      rate: l.rate,
+      total: l.total,
+      pricingType: (l.pricingType as 'hourly' | 'service' | 'shopFee') || 'hourly',
+      excluded: l.excluded ?? false,
+    }))
+  )
+  const [taxRate, setTaxRate] = useState(quote.taxRate ?? defaultTaxRate)
+  const [taxInclusive] = useState<boolean>(quote.taxInclusive ?? false)
+  // The split the quote was created with; the server re-derives the
+  // amounts from it on every save.
+  const [taxComponentDefinitions] = useState(() => parseTaxComponents(quote.taxComponents))
+  const [discountType, setDiscountType] = useState<string>(quote.discountType || 'none')
+  const [discountValue, setDiscountValue] = useState(quote.discountValue ?? 0)
+  const [noteType, setNoteType] = useState<'public' | 'internal'>('public')
+  const [description, setDescription] = useState(quote.description || '')
+  const [notes, setNotes] = useState(quote.notes || '')
+  // One value, because the four move together; see the work order's editor.
+  const [warranty, setWarrantyState] = useState<WarrantyFields>(() => normalizeWarranty(quote))
+
+  // Dialog state
+  const [showEmailDialog, setShowEmailDialog] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [showConvertDialog, setShowConvertDialog] = useState(false)
+  const [convertVehicleId, setConvertVehicleId] = useState(quote.vehicle?.id || '')
+  const [converting, setConverting] = useState(false)
+  // A new job is the default; adding to one the vehicle already has open is
+  // the second choice, offered only when there is such a job.
+  const [convertMode, setConvertMode] = useState<'new' | 'existing'>('new')
+  const [convertTargets, setConvertTargets] = useState<ConvertTarget[]>([])
+  const [convertTargetId, setConvertTargetId] = useState('')
+  const [loadingConvertTargets, setLoadingConvertTargets] = useState(false)
+  // Where the quote and the chosen job disagree, and what the user said the
+  // job keeps. Adding waits until every conflict has an answer.
+  const [convertConflicts, setConvertConflicts] = useState<ConversionConflict[]>([])
+  const [convertResolutions, setConvertResolutions] = useState<ConversionResolutions>({})
+  const [loadingConvertConflicts, setLoadingConvertConflicts] = useState(false)
+  const [resolving, setResolving] = useState(false)
+
+  // The day the quote is valid until, as the workshop's calendar has it. The
+  // server reads the saved field in the workshop's zone, so the field has to
+  // be filled in that zone too. Filled from the UTC date instead, every save
+  // east of UTC moved the date a day earlier: a quote valid until the 19th
+  // was sent out valid until the 17th after two saves.
+  const { timezone } = useDateSettings()
+  const [defaultValidDate] = useState(() =>
+    quote.validUntil ? zonedDateInput(new Date(quote.validUntil), timezone) : ''
+  )
+
+  // Track selected vehicle/customer for display (initial from quote data)
+  const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(
+    quote.vehicle
+      ? {
+          id: quote.vehicle.id,
+          make: quote.vehicle.make,
+          model: quote.vehicle.model,
+          year: quote.vehicle.year,
+          licensePlate: quote.vehicle.licensePlate,
+          customerId: quote.customer?.id || null,
+          customer: quote.customer ? { id: quote.customer.id, name: quote.customer.name } : null,
+        }
+      : null
+  )
+  const [selectedCustomer, setSelectedCustomer] = useState<SelectedCustomer | null>(
+    quote.customer
+      ? { id: quote.customer.id, name: quote.customer.name, company: quote.customer.company }
+      : null
+  )
+
+  // Unsaved changes tracking & autosave
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSavingRef = useRef(false)
+
+  // Custom fields save callback ref
+  const customFieldsSaveRef = useRef<(() => Promise<{ valid: boolean }>) | null>(null)
+
+  const onCustomFieldsReady = useCallback((save: () => Promise<{ valid: boolean }>) => {
+    customFieldsSaveRef.current = save
+  }, [])
+
+  const markDirty = useCallback(() => {
+    // A locked quote cannot be saved, so nothing may queue an autosave that
+    // the server will only refuse five seconds later.
+    if (locked) return
+    setHasUnsavedChanges(true)
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(() => {
+      if (!isSavingRef.current && formRef.current) {
+        formRef.current.requestSubmit()
+      }
+    }, 5000)
+  }, [locked])
+
+  const setWarranty = useCallback(
+    (next: WarrantyFields) => {
+      setWarrantyState(next)
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  // A locked quote refuses a save, so its status is written on its own the
+  // moment it is chosen. The server still refuses a status that would release
+  // the lock, which is the owner-or-admin unlock by another route.
+  const [changingStatus, setChangingStatus] = useState(false)
+  const changeStatus = async (next: string) => {
+    // The select also reports a value when the status changes under it, as
+    // an empty string when no option matches; neither is somebody choosing.
+    if (!next || next === status) return
+    if (!locked) {
+      setStatus(next)
+      markDirty()
+      return
+    }
+    const previous = status
+    setStatus(next)
+    setChangingStatus(true)
+    const result = await updateQuoteStatus(quote.id, next)
+    setChangingStatus(false)
+    if (result.success) {
+      router.refresh()
+    } else {
+      setStatus(previous)
+      toast.error(result.error || t('page.failedSave'))
+    }
+  }
+
+  // When the lock engages mid-session, a save already queued can only be
+  // refused, and "Unsaved changes" would offer one that can never complete.
+  useEffect(() => {
+    if (!locked) return
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = null
+    }
+    setHasUnsavedChanges(false)
+  }, [locked])
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [hasUnsavedChanges])
+
+  // Calculations
+  const partsSubtotal = useMemo(
+    () => partItems.reduce((sum, p) => (p.excluded ? sum : sum + p.total), 0),
+    [partItems]
+  )
+  const laborSubtotal = useMemo(
+    () => laborItems.reduce((sum, l) => (l.excluded ? sum : sum + l.total), 0),
+    [laborItems]
+  )
+  // A percentage shop fee follows the lines the customer is being quoted for.
+  // A fee that moved is a change to save, or the PDF would print the old one.
+  useEffect(() => {
+    if (locked) return
+    const next = recalculateShopFeeLines(laborItems, partsSubtotal, shopFee)
+    if (next === laborItems) return
+    setLaborItems(next)
+    markDirty()
+  }, [laborItems, partsSubtotal, shopFee, locked, markDirty])
+
+  const subtotal = partsSubtotal + laborSubtotal
+  const discountAmount = discountAmountFor(subtotal, discountType, discountValue)
+  const {
+    taxAmount,
+    totalAmount,
+    components: taxComponents,
+  } = calculateTotals({
+    subtotal,
+    discountAmount,
+    taxRate,
+    taxInclusive,
+    components: taxComponentDefinitions,
+  })
+
+  // Cost, markup and price stay consistent with each other; repricePartRow
+  // owns which of them moves, and work order parts use the same rules.
+  const updatePart = useCallback(
+    (
+      index: number,
+      field: keyof QuotePartInput,
+      value: string | number | boolean | null,
+      options: { commit?: boolean } = {}
+    ) => {
+      // Any edit ends the wait on the previous one.
+      cancelCommit()
+      setPartItems((prev) => {
+        const updated = [...prev]
+        const part = { ...updated[index], [field]: value }
+        if (field === 'unitCost' || field === 'markupPercent' || field === 'unitPrice') {
+          const priced = repricePartRow(part, field, options)
+          part.unitPrice = priced.unitPrice
+          part.markupPercent = priced.markupPercent
+          part.priceOverridden = priced.priceOverridden
+        }
+        if (
+          field === 'quantity' ||
+          field === 'unitPrice' ||
+          field === 'unitCost' ||
+          field === 'markupPercent'
+        ) {
+          part.total = lineTotal(part.quantity, part.unitPrice)
+        }
+        updated[index] = part
+        return updated
+      })
+
+      // A cost typed under a hand-set price restates the margin once typing
+      // stops, so it lands on its own without needing the field to be left.
+      if (field === 'unitCost' && !options.commit) {
+        scheduleCommit(() =>
+          setPartItems((prev) => {
+            const row = prev[index]
+            if (!row?.priceOverridden) return prev
+            const updated = [...prev]
+            updated[index] = { ...row, ...repricePartRow(row, 'unitCost', { commit: true }) }
+            return updated
+          })
+        )
+      }
+
+      markDirty()
+    },
+    [markDirty, cancelCommit, scheduleCommit]
+  )
+
+  const updateLabor = useCallback(
+    (index: number, field: keyof QuoteLaborInput, value: string | number | boolean) => {
+      setLaborItems((prev) => {
+        const updated = [...prev]
+        const labor = { ...updated[index], [field]: value }
+        if (field === 'hours' || field === 'rate')
+          labor.total = Number(labor.hours) * Number(labor.rate)
+        updated[index] = labor
+        return updated
+      })
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  const addPart = useCallback(() => {
+    setPartItems((prev) => [...prev, emptyPart()])
+    markDirty()
+  }, [markDirty])
+
+  const addLabor = useCallback(() => {
+    setLaborItems((prev) => [...prev, makeEmptyLabor(defaultLaborRate)])
+    markDirty()
+  }, [defaultLaborRate, markDirty])
+
+  const addService = useCallback(() => {
+    setLaborItems((prev) => [...prev, makeEmptyService()])
+    markDirty()
+  }, [markDirty])
+
+  const addLaborBulk = useCallback(
+    (items: QuoteLaborInput[]) => {
+      setLaborItems((prev) => [...prev, ...items])
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  const addPartBulk = useCallback(
+    (items: QuotePartInput[]) => {
+      setPartItems((prev) => [...prev, ...items])
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  const deletePart = useCallback(
+    (index: number) => {
+      setPartItems((prev) => prev.filter((_, j) => j !== index))
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  const deleteLabor = useCallback(
+    (index: number) => {
+      setLaborItems((prev) => prev.filter((_, j) => j !== index))
+      markDirty()
+    },
+    [markDirty]
+  )
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    // currentTarget is nulled once the event has finished dispatching, which
+    // happens during the custom-fields await below. Read the form now.
+    const form = e.currentTarget
+    if (isSavingRef.current) return
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+
+    // Validate and save custom fields before saving; a locked quote saves nothing.
+    if (!locked && customFieldsSaveRef.current) {
+      try {
+        const { valid } = await customFieldsSaveRef.current()
+        if (!valid) {
+          toast.error(t('page.customFieldsInvalid'))
+          return
+        }
+      } catch (err) {
+        console.error('Custom fields save error:', err)
+        toast.error(t('page.customFieldsSaveFailed'))
+        return
+      }
+    }
+
+    isSavingRef.current = true
+    setSaving(true)
+    try {
+      const formData = new FormData(form)
+      const result = await updateQuote({
+        id: quote.id,
+        title: formData.get('title') as string,
+        // Emptied fields go as '' (and a removed discount as 'none') so the
+        // update action clears them; undefined would leave the old value.
+        description,
+        status,
+        validUntil: (formData.get('validUntil') as string | null) ?? '',
+        customerId,
+        vehicleId,
+        notes,
+        partItems: partItems.filter((p) => p.name),
+        laborItems: shopFeeLinesLast(laborItems.filter((l) => l.description)),
+        subtotal,
+        taxRate,
+        taxInclusive,
+        taxAmount,
+        discountType,
+        discountValue,
+        discountAmount,
+        totalAmount,
+        // Cleared fields go as 'none', 0 and '' for the same reason as above.
+        warrantyStatus: warranty.warrantyStatus ?? WARRANTY_NONE,
+        warrantyMonths: warranty.warrantyMonths ?? 0,
+        warrantyMileage: warranty.warrantyMileage ?? 0,
+        warrantyNotes: warranty.warrantyNotes ?? '',
+      })
+      if (result.success) {
+        setHasUnsavedChanges(false)
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+        setShowSaved(true)
+        savedTimerRef.current = setTimeout(() => setShowSaved(false), 2000)
+        router.refresh()
+      } else {
+        modal.open('error', 'Error', result.error || t('page.failedSave'))
+      }
+    } catch (err) {
+      console.error('Quote save error:', err)
+      modal.open('error', 'Error', t('page.failedSave'))
+    } finally {
+      // Whatever happened, the save button must stop spinning.
+      isSavingRef.current = false
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: t('page.deleteTitle'),
+      description: t('page.deleteDescription'),
+      confirmLabel: t('page.delete'),
+      destructive: true,
+    })
+    if (!ok) return
+    const result = await deleteQuote(quote.id)
+    if (result.success) {
+      router.push('/quotes')
+      router.refresh()
+    } else {
+      modal.open('error', 'Error', result.error || t('page.failedDelete'))
+    }
+  }
+
+  const saveNow = async () => {
+    if (!formRef.current || isSavingRef.current) return
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    formRef.current.requestSubmit()
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (!isSavingRef.current) return resolve()
+        setTimeout(check, 50)
+      }
+      setTimeout(check, 50)
+    })
+  }
+
+  const handleDownloadPDF = async () => {
+    if (hasUnsavedChanges) await saveNow()
+    setDownloading(true)
+    try {
+      const res = await fetch(`/api/protected/quotes/${quote.id}/pdf`)
+      if (!res.ok) throw new Error(t('page.failedPdf'))
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `quote-${quote.quoteNumber || quote.id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      modal.open('error', 'Error', t('page.failedPdf'))
+    }
+    setDownloading(false)
+  }
+
+  // The open jobs follow the vehicle picked in the dialog, read each time it
+  // opens so a job finished in the meantime is not offered.
+  useEffect(() => {
+    if (!showConvertDialog || !convertVehicleId) {
+      setConvertTargets([])
+      setConvertTargetId('')
+      setConvertMode('new')
+      return
+    }
+    let cancelled = false
+    setLoadingConvertTargets(true)
+    getWorkOrdersForQuoteConversion(convertVehicleId).then((result) => {
+      if (cancelled) return
+      const targets = result.success && result.data ? result.data : []
+      setConvertTargets(targets)
+      setConvertTargetId(targets[0]?.id ?? '')
+      if (targets.length === 0) setConvertMode('new')
+      setLoadingConvertTargets(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showConvertDialog, convertVehicleId])
+
+  // The conflicts follow the job picked, read afresh each time so a job
+  // edited in the meantime is asked about as it now stands. Earlier answers
+  // are dropped with them: they were about another job.
+  useEffect(() => {
+    setConvertConflicts([])
+    setConvertResolutions({})
+    if (!showConvertDialog || convertMode !== 'existing' || !convertTargetId) return
+    let cancelled = false
+    setLoadingConvertConflicts(true)
+    getQuoteConversionConflicts(quote.id, convertTargetId).then((result) => {
+      if (cancelled) return
+      setConvertConflicts(result.success && result.data ? result.data : [])
+      setLoadingConvertConflicts(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showConvertDialog, convertMode, convertTargetId, quote.id])
+
+  const setConvertResolution = <K extends keyof ConversionResolutions>(
+    kind: K,
+    choice: NonNullable<ConversionResolutions[K]>
+  ) => setConvertResolutions((prev) => ({ ...prev, [kind]: choice }))
+
+  const convertConflictsUnresolved = convertConflicts.some((c) => !convertResolutions[c.kind])
+
+  const handleConvert = async () => {
+    if (hasUnsavedChanges) await saveNow()
+    if (!convertVehicleId) {
+      modal.open('error', 'Error', t('page.selectVehicle'))
+      return
+    }
+    const addToExisting = convertMode === 'existing'
+    if (addToExisting && !convertTargetId) {
+      modal.open('error', 'Error', t('page.convertSelectWorkOrder'))
+      return
+    }
+    if (addToExisting && (loadingConvertConflicts || convertConflictsUnresolved)) {
+      modal.open('error', 'Error', t('page.convertConflicts.unanswered'))
+      return
+    }
+    setConverting(true)
+    const result = addToExisting
+      ? await addQuoteToServiceRecord(
+          quote.id,
+          convertVehicleId,
+          convertTargetId,
+          convertResolutions
+        )
+      : await convertQuoteToServiceRecord(quote.id, convertVehicleId)
+    if (result.success && result.data) {
+      router.push(`/vehicles/${convertVehicleId}/service/${result.data.id}`)
+      router.refresh()
+    } else {
+      modal.open('error', 'Error', result.error || t('page.failedConvert'))
+    }
+    setConverting(false)
+  }
+
+  const handleResolveResponse = async () => {
+    setResolving(true)
+    const result = await acknowledgeQuoteResponse(quote.id)
+    if (result.success) {
+      // A change request goes back to draft; an acceptance keeps its status.
+      if (result.data) setStatus(result.data.status)
+      toast.success(t('page.responseResolved'))
+      router.refresh()
+    }
+    setResolving(false)
+  }
+
+  return {
+    // Tab
+    activeTab,
+    setActiveTab,
+    // Form state
+    saving,
+    downloading,
+    status,
+    setStatus,
+    customerId,
+    setCustomerId,
+    vehicleId,
+    setVehicleId,
+    partItems,
+    laborItems,
+    taxRate,
+    setTaxRate,
+    taxEnabled,
+    taxInclusive,
+    taxComponents,
+    discountType,
+    setDiscountType,
+    discountValue,
+    setDiscountValue,
+    noteType,
+    setNoteType,
+    description,
+    setDescription,
+    notes,
+    setNotes,
+    warranty,
+    setWarranty,
+    // Dialogs
+    showEmailDialog,
+    setShowEmailDialog,
+    showShareDialog,
+    setShowShareDialog,
+    showConvertDialog,
+    setShowConvertDialog,
+    convertVehicleId,
+    setConvertVehicleId,
+    converting,
+    convertMode,
+    setConvertMode,
+    convertTargets,
+    convertTargetId,
+    setConvertTargetId,
+    loadingConvertTargets,
+    convertConflicts,
+    convertResolutions,
+    setConvertResolution,
+    convertConflictsUnresolved,
+    loadingConvertConflicts,
+    resolving,
+    changeStatus,
+    changingStatus,
+    defaultValidDate,
+    // Unsaved
+    hasUnsavedChanges,
+    showSaved,
+    formRef,
+    // Computed
+    partsSubtotal,
+    laborSubtotal,
+    subtotal,
+    discountAmount,
+    taxAmount,
+    totalAmount,
+    selectedVehicle,
+    setSelectedVehicle,
+    selectedCustomer,
+    setSelectedCustomer,
+    // Callbacks
+    markDirty,
+    onCustomFieldsReady,
+    updatePart,
+    updateLabor,
+    addPart,
+    addPartBulk,
+    addLabor,
+    addService,
+    addLaborBulk,
+    deletePart,
+    deleteLabor,
+    handleSubmit,
+    handleDelete,
+    handleDownloadPDF,
+    handleConvert,
+    handleResolveResponse,
+    saveNow,
+  }
+}
+
+export type QuoteFormState = ReturnType<typeof useQuoteFormState>

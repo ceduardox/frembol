@@ -1,0 +1,106 @@
+{
+  "page": {
+    "error": "Failed to load work orders"
+  },
+  "list": {
+    "searchPlaceholder": "Search work orders...",
+    "newWorkOrder": "New Work Order",
+    "selectVehicle": "Select Vehicle",
+    "empty": "No work orders found.",
+    "statusUpdated": "Status updated",
+    "statusTabs": {
+      "all": "All",
+      "active": "Active",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "waitingParts": "Waiting Parts",
+      "completed": "Completed"
+    },
+    "statusActions": {
+      "startWork": "Start Work",
+      "waitingParts": "Waiting Parts",
+      "complete": "Complete",
+      "resumeWork": "Resume Work",
+      "reopen": "Reopen"
+    },
+    "table": {
+      "invoice": "Invoice#",
+      "vehicle": "Vehicle",
+      "customer": "Customer",
+      "title": "Title",
+      "status": "Status",
+      "tech": "Tech",
+      "date": "Date",
+      "total": "Total",
+      "promised": "Promised",
+      "promisedOverdue": "Promised {date}, overdue"
+    },
+    "emailSubject": "Vehicle Status Update: {status}",
+    "changeStatus": "Change status",
+    "contextMenu": {
+      "open": "Open work order",
+      "openVehicle": "Open vehicle",
+      "openCustomer": "Open customer"
+    },
+    "dueToday": "Due today",
+    "columns": {
+      "label": "Columns"
+    }
+  },
+  "vehiclePicker": {
+    "title": "Select Vehicle for Work Order",
+    "titleMarine": "Select Vessel for Work Order",
+    "searchPlaceholder": "Search vehicles...",
+    "searchPlaceholderMarine": "Search vessels...",
+    "empty": "No vehicles found.",
+    "emptyMarine": "No vessels found.",
+    "emptySearch": "No vehicles match your search.",
+    "emptySearchMarine": "No vessels match your search.",
+    "addNewVehicle": "Add New Vehicle",
+    "addNewVehicleMarine": "Add New Vessel",
+    "noPlate": "No plate",
+    "noPlateMarine": "No registration",
+    "make": "Make *",
+    "makeMarine": "Manufacturer *",
+    "model": "Model *",
+    "year": "Year *",
+    "licensePlate": "License Plate",
+    "licensePlateMarine": "Registration Number",
+    "customer": "Customer",
+    "selectCustomer": "Select a customer (optional)",
+    "createNewCustomer": "Create new customer",
+    "newCustomer": "New Customer",
+    "customerName": "Name *",
+    "customerNamePlaceholder": "Customer name",
+    "phone": "Phone",
+    "phonePlaceholder": "Phone number",
+    "creating": "Creating...",
+    "createAndContinue": "Create & Continue",
+    "invalidYear": "Please enter a valid year",
+    "customerNameRequired": "Customer name is required",
+    "failedCreateCustomer": "Failed to create customer",
+    "failedCreateVehicle": "Failed to create vehicle",
+    "failedCreateVehicleMarine": "Failed to create vessel",
+    "somethingWentWrong": "Something went wrong",
+    "partsSale": "Parts-Only Sale",
+    "partsSaleDescription": "Create an invoice without a vehicle, for over-the-counter parts sales.",
+    "partsSaleDescriptionMarine": "Create an invoice without a vessel, for over-the-counter parts sales.",
+    "createSale": "Create Sale",
+    "none": "None"
+  },
+  "notify": {
+    "title": "Notify {name}",
+    "description": "Send a notification to the customer about this update.",
+    "sms": "SMS",
+    "email": "Email",
+    "noPhone": "(no phone on file)",
+    "noEmail": "(no email on file)",
+    "notAvailable": "(not available)",
+    "skip": "Skip",
+    "send": "Send",
+    "smsSent": "SMS sent",
+    "emailSent": "Email sent",
+    "failedSms": "Failed to send SMS",
+    "failedEmail": "Failed to send email"
+  }
+}

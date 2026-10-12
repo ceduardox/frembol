@@ -1,0 +1,1088 @@
+'use client'
+
+import { interactiveRow } from '@/lib/interactive-row'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { DocsLink } from '@/components/docs-link'
+import { toast } from 'sonner'
+import { useGlassModal } from '@/components/glass-modal'
+import { useDateSettings } from '@/components/date-settings-context'
+import { inspectionDueInput } from '../Lib/inspectionDueInput'
+import { createVehicle, updateVehicle } from '../Actions/vehicleActions'
+import type { VehicleDocumentScan } from '../Actions/aiAnalyzeVehicleDocument'
+import { ScanDocumentButton } from './ScanDocumentButton'
+import { VehicleLookupButton } from './VehicleLookupButton'
+import { CatalogCombobox } from './CatalogCombobox'
+import type { VehicleLookup } from '@/features/integrations/Actions/vehicleLookupActions'
+import { nameSimilarity } from '@/lib/name-similarity'
+import { Camera, Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react'
+import { compressImage } from '@/lib/compress-image'
+import { CustomerForm } from '@/features/customers/Components/CustomerForm'
+import { createCustomer } from '@/features/customers/Actions/customerActions'
+import { useFormatter, useTranslations } from 'next-intl'
+import { useServiceType } from '@/components/service-type-context'
+import type { CreateVehicleInput } from '../Schema/vehicleSchema'
+import { clearableInput } from '@/lib/clearable'
+import { useTypeKeyEnabled } from '@/components/type-key-context'
+import { HSN_PATTERN, normalizeHsn, normalizeTsn, TSN_PATTERN } from '../Lib/typeKey'
+import { handleGated } from '@/components/upgrade-gate'
+
+/**
+ * How alike two names must read before the scanned keeper is offered as an
+ * existing customer rather than a new one.
+ */
+const OWNER_MATCH_THRESHOLD = 0.9
+
+/**
+ * Suggested engine sizes. The public vehicle data does not carry a displacement
+ * per make and model, so these common ones are offered as a searchable list;
+ * anything else can still be typed, and a VIN lookup fills the real value.
+ */
+const ENGINE_SIZES = [
+  '0.8L', '1.0L', '1.1L', '1.2L', '1.3L', '1.4L', '1.5L', '1.6L', '1.7L', '1.8L',
+  '1.9L', '2.0L', '2.1L', '2.2L', '2.3L', '2.4L', '2.5L', '2.6L', '2.7L', '2.8L',
+  '2.9L', '3.0L', '3.2L', '3.3L', '3.5L', '3.6L', '3.7L', '3.8L', '4.0L', '4.2L',
+  '4.3L', '4.6L', '4.7L', '5.0L', '5.3L', '5.7L', '6.0L', '6.2L', '6.7L', '7.0L',
+  '7.3L', '8.0L',
+]
+
+/** Common displacements in cc, the unit workshops here read by. */
+const ENGINE_CC = [
+  '800 cc', '1000 cc', '1200 cc', '1300 cc', '1400 cc', '1500 cc', '1600 cc',
+  '1800 cc', '2000 cc', '2200 cc', '2400 cc', '2500 cc', '2700 cc', '3000 cc',
+  '3200 cc', '3500 cc', '4000 cc', '4200 cc', '4600 cc', '5000 cc', '6000 cc',
+  '6600 cc',
+]
+
+interface OwnerMatch {
+  customer: { id: string; name: string; company: string | null }
+  score: number
+}
+
+interface VehicleFormProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  vehicle?: {
+    id: string
+    make: string
+    model: string
+    year: number
+    vin?: string | null
+    licensePlate?: string | null
+    color?: string | null
+    mileage: number
+    fuelType?: string | null
+    transmission?: string | null
+    engineSize?: string | null
+    displacementCc?: string | null
+    engineCode?: string | null
+    hsn?: string | null
+    tsn?: string | null
+    imageUrl?: string | null
+    customerId?: string | null
+    inspectionStatus?: { dueAt: Date | string | null; source?: string } | null
+  }
+  customers?: { id: string; name: string; company: string | null }[]
+  /** Preselects the customer when creating a new vehicle (ignored when editing) */
+  defaultCustomerId?: string
+  /**
+   * What a registry already said about the plate, for a form opened from the
+   * plate lookup: filled in as if the search button had been pressed.
+   */
+  initialLookup?: VehicleLookup | null
+}
+
+export function VehicleForm({
+  open,
+  onOpenChange,
+  vehicle,
+  customers,
+  defaultCustomerId,
+  initialLookup,
+}: VehicleFormProps) {
+  const serviceType = useServiceType()
+  const isMarine = serviceType === 'marine'
+  // Only a workshop that switched the type key on sees the two boxes; a hidden
+  // pair is left out of the save, so what a vehicle already has is kept.
+  const showTypeKey = useTypeKeyEnabled() && !isMarine
+  const router = useRouter()
+  const modal = useGlassModal()
+  const t = useTranslations('vehicles.form')
+  const { timezone } = useDateSettings()
+  const tc = useTranslations('common.buttons')
+  const format = useFormatter()
+  const [loading, setLoading] = useState(false)
+  const [preview, setPreview] = useState<string | null>(vehicle?.imageUrl ?? null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
+    vehicle?.customerId || defaultCustomerId || 'none'
+  )
+  const [customerOpen, setCustomerOpen] = useState(false)
+  const [showCustomerForm, setShowCustomerForm] = useState(false)
+  const [localCustomers, setLocalCustomers] = useState(customers || [])
+  const [fuelType, setFuelType] = useState(vehicle?.fuelType ?? 'gasoline')
+  const defaultTransmission = vehicle?.transmission ?? (isMarine ? 'outboard' : 'automatic')
+  const [transmission, setTransmission] = useState(defaultTransmission)
+  /** What the registry said about the plate, kept under the field until the dialog closes. */
+  const [lookupNote, setLookupNote] = useState<VehicleLookup | null>(null)
+  /** Keeper read off a scanned document, until it is tied to a customer. */
+  const [scannedOwner, setScannedOwner] = useState<{ name?: string; address?: string } | null>(null)
+  const [ownerMatches, setOwnerMatches] = useState<OwnerMatch[]>([])
+  /** Whether saving should also create the keeper as a customer. */
+  const [addOwner, setAddOwner] = useState(true)
+  const [showOwnerMatch, setShowOwnerMatch] = useState(false)
+  // Make/model/year: a catalogue generated from the public NHTSA vPIC data and
+  // served as a static file, picked through a themed combobox (Popover +
+  // Command) rather than a native datalist, whose list cannot be styled.
+  const [catalog, setCatalog] = useState<{ name: string; models: string[] }[]>([])
+  const [make, setMake] = useState(vehicle?.make ?? '')
+  const [model, setModel] = useState(vehicle?.model ?? '')
+  const [year, setYear] = useState(vehicle?.year ? String(vehicle.year) : '')
+  const [engineSize, setEngineSize] = useState(vehicle?.engineSize ?? '')
+  const [displacementCc, setDisplacementCc] = useState(vehicle?.displacementCc ?? '')
+  useEffect(() => {
+    if (!open || catalog.length > 0) return
+    let cancelled = false
+    fetch('/vehicle-catalog.json')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.makes) setCatalog(data.makes)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [open, catalog.length])
+
+  const makeOptions = useMemo(() => catalog.map((m) => m.name), [catalog])
+
+  const modelOptions = useMemo(() => {
+    const key = make.trim().toLowerCase()
+    if (!key) return [] as string[]
+    return catalog.find((m) => m.name.toLowerCase() === key)?.models ?? []
+  }, [catalog, make])
+
+  const yearOptions = useMemo(() => {
+    const current = new Date().getFullYear()
+    const years: string[] = []
+    for (let y = current + 1; y >= 1980; y--) years.push(String(y))
+    return years
+  }, [])
+
+  const handleMakeChange = (next: string) => {
+    setMake(next)
+    // A model belongs to one make: changing the make drops a model that is not
+    // in the new make's list, so the two fields cannot disagree.
+    const key = next.trim().toLowerCase()
+    const list = catalog.find((m) => m.name.toLowerCase() === key)?.models ?? []
+    if (model && !list.some((mo) => mo.toLowerCase() === model.toLowerCase())) {
+      setModel('')
+    }
+  }
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Sync state when vehicle prop changes (e.g. opening edit for a different vehicle)
+  useEffect(() => {
+    setSelectedCustomerId(vehicle?.customerId || defaultCustomerId || 'none')
+    setPreview(vehicle?.imageUrl ?? null)
+    setImageFile(null)
+    setFuelType(vehicle?.fuelType ?? 'gasoline')
+    setTransmission(vehicle?.transmission ?? (isMarine ? 'outboard' : 'automatic'))
+    setLookupNote(null)
+    setScannedOwner(null)
+    setOwnerMatches([])
+    setAddOwner(true)
+    setMake(vehicle?.make ?? '')
+    setModel(vehicle?.model ?? '')
+    setYear(vehicle?.year ? String(vehicle.year) : '')
+    setEngineSize(vehicle?.engineSize ?? '')
+    setDisplacementCc(vehicle?.displacementCc ?? '')
+  }, [
+    vehicle?.id,
+    vehicle?.customerId,
+    vehicle?.imageUrl,
+    vehicle?.fuelType,
+    vehicle?.transmission,
+    isMarine,
+    defaultCustomerId,
+  ])
+
+  const selectedCustomerLabel = useMemo(() => {
+    if (!selectedCustomerId || selectedCustomerId === 'none') return t('noCustomer')
+    const c = localCustomers.find((c) => c.id === selectedCustomerId)
+    if (!c) return t('noCustomer')
+    return c.name + (c.company ? ` (${c.company})` : '')
+  }, [selectedCustomerId, localCustomers, t])
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      modal.open('error', t('imageTooLarge'), t('maxFileSize'))
+      return
+    }
+
+    setImageFile(file)
+    setPreview(URL.createObjectURL(file))
+  }
+
+  const clearImage = () => {
+    setImageFile(null)
+    setPreview(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  const uploadImage = async (): Promise<string | undefined> => {
+    if (!imageFile) return preview ?? undefined
+
+    const toastId = toast.loading(t('uploadingImage'))
+    const compressed = await compressImage(imageFile)
+    const formData = new FormData()
+    formData.append('file', compressed)
+
+    const res = await fetch('/api/protected/upload', { method: 'POST', body: formData })
+    if (!res.ok) {
+      const err = await res.json()
+      toast.error(err.error || t('uploadFailed'), { id: toastId })
+      throw new Error(err.error || t('uploadFailed'))
+    }
+
+    const { url } = await res.json()
+    toast.success(t('imageUploaded'), { id: toastId })
+    return url
+  }
+
+  const applyScan = (data: VehicleDocumentScan) => {
+    const form = formRef.current
+    if (!form) return
+
+    const setIfEmpty = (name: string, value: string | undefined) => {
+      if (!value) return
+      const input = form.elements.namedItem(name) as HTMLInputElement | null
+      if (input && !input.value) input.value = value
+    }
+
+    // The comboboxes are controlled, so a scan fills them through state and
+    // only while they are still empty: it never overwrites a chosen make.
+    if (data.make) setMake((m) => m || data.make!)
+    if (data.model) setModel((mo) => mo || data.model!)
+    if (data.year) setYear((y) => y || String(data.year))
+    setIfEmpty('vin', data.vin)
+    setIfEmpty('licensePlate', data.licensePlate)
+    setIfEmpty('color', data.color)
+    if (data.engineSize) setEngineSize((v) => v || data.engineSize!)
+    setIfEmpty('hsn', data.hsn)
+    setIfEmpty('tsn', data.tsn)
+
+    // A select has no empty state, so only fill it while it still holds the
+    // value the form opened with.
+    if (data.fuelType && fuelType === (vehicle?.fuelType ?? 'gasoline')) {
+      setFuelType(data.fuelType)
+    }
+
+    if (!data.owner?.name || selectedCustomerId !== 'none') return
+    setScannedOwner(data.owner)
+    setAddOwner(true)
+
+    // Near-identical names are still a judgement call: two brothers at one
+    // address differ by a first name. Offer the close ones and let the user say.
+    const ownerName = data.owner.name
+    const candidates = localCustomers
+      .map((c) => ({
+        customer: c,
+        // Papers naming a business may match the company field rather than the
+        // contact saved as the customer's name.
+        score: Math.max(
+          nameSimilarity(ownerName, c.name),
+          c.company ? nameSimilarity(ownerName, c.company) : 0
+        ),
+      }))
+      .filter((m) => m.score >= OWNER_MATCH_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+
+    setOwnerMatches(candidates)
+    if (candidates.length > 0) setShowOwnerMatch(true)
+  }
+
+  /**
+   * A registry answer fills the same fields as a scanned document, plus the
+   * gearbox and engine code, which papers rarely state. The select only moves while it still
+   * holds the value the form opened with.
+   */
+  const applyLookup = (data: VehicleLookup) => {
+    applyScan(data)
+    const engineCode = formRef.current?.elements.namedItem('engineCode') as HTMLInputElement | null
+    if (data.engineCode && engineCode && !engineCode.value) engineCode.value = data.engineCode
+    if (data.inspectionDue) {
+      const input = formRef.current?.elements.namedItem(
+        'inspectionDueAt'
+      ) as HTMLInputElement | null
+      if (input && !input.value) input.value = data.inspectionDue.slice(0, 10)
+    }
+    if (data.transmission && transmission === defaultTransmission) {
+      setTransmission(data.transmission)
+    }
+    setLookupNote(data)
+  }
+
+  // The fields are uncontrolled, so the registry's answer is written once the
+  // form has rendered, the same way the lookup button writes it.
+  const appliedLookupRef = useRef<VehicleLookup | null>(null)
+  useEffect(() => {
+    if (!open || vehicle || !initialLookup) return
+    if (appliedLookupRef.current === initialLookup) return
+    appliedLookupRef.current = initialLookup
+    const frame = requestAnimationFrame(() => applyLookup(initialLookup))
+    return () => cancelAnimationFrame(frame)
+    // applyLookup reads the current form and selects; running it again on
+    // their change would overwrite what the user has since typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, vehicle, initialLookup])
+  useEffect(() => {
+    if (!open) appliedLookupRef.current = null
+  }, [open])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+
+    // The make, model and year pickers are controlled, so their hidden inputs
+    // carry no native `required`; the check lives here.
+    if (!isMarine && (!make.trim() || !model.trim() || !year.trim())) {
+      toast.error(t('catalogRequired'))
+      return
+    }
+
+    // Caught here rather than by the server, which could only answer in English.
+    if (showTypeKey) {
+      const hsn = normalizeHsn(String(formData.get('hsn') ?? ''))
+      const tsn = normalizeTsn(String(formData.get('tsn') ?? ''))
+      if (hsn && !HSN_PATTERN.test(hsn)) {
+        toast.error(t('hsnInvalid'))
+        return
+      }
+      if (tsn && !TSN_PATTERN.test(tsn)) {
+        toast.error(t('tsnInvalid'))
+        return
+      }
+    }
+
+    setLoading(true)
+
+    try {
+      let imageUrl: string | undefined
+      try {
+        imageUrl = await uploadImage()
+      } catch (err) {
+        modal.open(
+          'error',
+          'Upload Failed',
+          err instanceof Error ? err.message : 'Could not upload image'
+        )
+        setLoading(false)
+        return
+      }
+
+      // The keeper read off the papers is nobody until a customer row exists,
+      // and losing them to an unnoticed checkbox is worse than an extra record.
+      // '' when editing tells the update action to drop the owner.
+      let customerId = clearableInput(
+        selectedCustomerId === 'none' ? '' : selectedCustomerId,
+        Boolean(vehicle)
+      )
+      if (!customerId && addOwner && scannedOwner?.name) {
+        const created = await createCustomer({
+          name: scannedOwner.name,
+          address: scannedOwner.address,
+        })
+        if (created.success && created.data) {
+          customerId = (created.data as { id: string }).id
+        } else if (!handleGated(created)) {
+          toast.error(created.error || t('ownerSaveFailed'))
+        }
+      }
+
+      // An emptied field has to reach the server as '' when editing, which
+      // the update action turns into null; undefined there means "not
+      // touched" and would bring the old value back. On create, leaving an
+      // empty field out is the same thing as clearing it.
+      const optional = (name: string) => clearableInput(formData.get(name), Boolean(vehicle))
+      const data: CreateVehicleInput & { imageUrl?: string } = {
+        make: formData.get('make') as string,
+        model: formData.get('model') as string,
+        year: Number(formData.get('year')),
+        vin: optional('vin'),
+        licensePlate: optional('licensePlate'),
+        color: optional('color'),
+        mileage: Number(formData.get('mileage')) || 0,
+        fuelType: fuelType || undefined,
+        transmission: transmission || undefined,
+        engineSize: optional('engineSize'),
+        displacementCc: optional('displacementCc'),
+        engineCode: optional('engineCode'),
+        hsn: showTypeKey ? optional('hsn') : undefined,
+        tsn: showTypeKey ? optional('tsn') : undefined,
+        // Sent as-is: an empty string clears a hand-typed date, undefined leaves it alone.
+        inspectionDueAt: isMarine ? undefined : ((formData.get('inspectionDueAt') as string) ?? ''),
+        customerId,
+      }
+
+      const payload = imageUrl ? { ...data, imageUrl } : data
+
+      const result = vehicle
+        ? await updateVehicle({ ...payload, id: vehicle.id })
+        : await createVehicle(payload)
+
+      if (result.success) {
+        toast.success(vehicle ? t('vehicleUpdated') : t('vehicleAdded'))
+        onOpenChange(false)
+        setImageFile(null)
+        router.refresh()
+      } else {
+        modal.open('error', 'Error', result.error || t('saveError'))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{vehicle ? t('editTitle') : t('addTitle')}</DialogTitle>
+            <DocsLink href="/docs/features/vehicles" variant="hint" className="self-start" />
+            <DialogDescription className="sr-only">
+              {vehicle ? t('editTitle') : t('addTitle')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            ref={formRef}
+            onSubmit={handleSubmit}
+            className="grid gap-x-6 gap-y-4 md:grid-cols-2"
+          >
+            {/* Scan the registration document and fill the form from it */}
+            <div className="md:col-span-2">
+              <ScanDocumentButton onScanned={applyScan} />
+            </div>
+
+            {/* Left: what the vehicle belongs to and where its data comes from */}
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t('sectionAssignment')}
+              </p>
+
+              {/* Image upload */}
+              <div className="space-y-2">
+                <Label>{t('photo')}</Label>
+                <div
+                  {...interactiveRow(() => fileRef.current?.click())}
+                  className="group relative flex h-44 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/30 transition-colors hover:border-primary/50 hover:bg-muted/50"
+                >
+                  {preview ? (
+                    <>
+                      <Image
+                        src={preview}
+                        alt="Vehicle preview"
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          clearImage()
+                        }}
+                        className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Camera className="h-8 w-8" />
+                      <span className="text-sm">{t('clickToUpload')}</span>
+                      <span className="text-xs">{t('imageFormats')}</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Customer selector */}
+              <div className="space-y-2">
+                <Label>{t('customer')}</Label>
+                <Popover open={customerOpen} onOpenChange={setCustomerOpen} modal={true}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={customerOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="truncate">{selectedCustomerLabel}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-(--radix-popover-trigger-width) min-w-64 p-0"
+                    align="start"
+                  >
+                    <Command>
+                      <CommandInput placeholder={t('searchCustomers')} />
+                      <CommandList className="max-h-60 overflow-y-auto">
+                        <CommandEmpty>{t('noCustomerFound')}</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="no-customer"
+                            onSelect={() => {
+                              setSelectedCustomerId('none')
+                              setCustomerOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${selectedCustomerId === 'none' ? 'opacity-100' : 'opacity-0'}`}
+                            />
+                            {t('noCustomer')}
+                          </CommandItem>
+                          {localCustomers.map((c) => {
+                            const label = c.name + (c.company ? ` (${c.company})` : '')
+                            return (
+                              <CommandItem
+                                key={c.id}
+                                value={label}
+                                onSelect={() => {
+                                  setSelectedCustomerId(c.id)
+                                  setCustomerOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${selectedCustomerId === c.id ? 'opacity-100' : 'opacity-0'}`}
+                                />
+                                {label}
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                      <div className="border-t p-1">
+                        <button
+                          type="button"
+                          className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                          onClick={() => {
+                            setCustomerOpen(false)
+                            setShowCustomerForm(true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                          {t('addCustomer')}
+                        </button>
+                      </div>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Keeper read off the papers who matches no customer yet */}
+                {scannedOwner?.name && selectedCustomerId === 'none' && (
+                  <div className="space-y-2 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox
+                        className="mt-0.5"
+                        checked={addOwner}
+                        onCheckedChange={(next) => setAddOwner(next === true)}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm">
+                          {t('addScannedOwner', { name: scannedOwner.name })}
+                        </span>
+                        {scannedOwner.address && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {scannedOwner.address}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+
+                    {ownerMatches.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setShowOwnerMatch(true)}
+                      >
+                        {t('ownerMatchChoose')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: the vehicle's own details */}
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t('sectionDetails')}
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="make">{isMarine ? t('makeMarine') : t('make')}</Label>
+                  {isMarine ? (
+                    <Input
+                      id="make"
+                      name="make"
+                      placeholder="Boston Whaler"
+                      defaultValue={vehicle?.make}
+                      required
+                    />
+                  ) : (
+                    <>
+                      <input type="hidden" name="make" value={make} />
+                      <CatalogCombobox
+                        id="make"
+                        value={make}
+                        onChange={handleMakeChange}
+                        options={makeOptions}
+                        placeholder="Toyota"
+                        icon="make"
+                        emptyLabel={t('catalogEmpty')}
+                        useLabel={(v) => t('catalogUse', { value: v })}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="model">{t('model')}</Label>
+                  {isMarine ? (
+                    <Input
+                      id="model"
+                      name="model"
+                      placeholder="Montauk 170"
+                      defaultValue={vehicle?.model}
+                      required
+                    />
+                  ) : (
+                    <>
+                      <input type="hidden" name="model" value={model} />
+                      <CatalogCombobox
+                        id="model"
+                        value={model}
+                        onChange={setModel}
+                        options={modelOptions}
+                        placeholder="Camry"
+                        icon="model"
+                        emptyLabel={t('catalogEmpty')}
+                        useLabel={(v) => t('catalogUse', { value: v })}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="year">{t('year')}</Label>
+                  {isMarine ? (
+                    <Input
+                      id="year"
+                      name="year"
+                      type="number"
+                      placeholder="2024"
+                      defaultValue={vehicle?.year}
+                      required
+                    />
+                  ) : (
+                    <>
+                      <input type="hidden" name="year" value={year} />
+                      <CatalogCombobox
+                        id="year"
+                        value={year}
+                        onChange={setYear}
+                        options={yearOptions}
+                        placeholder="2024"
+                        icon="year"
+                        emptyLabel={t('catalogEmpty')}
+                        useLabel={(v) => t('catalogUse', { value: v })}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mileage">{isMarine ? t('mileageMarine') : t('mileage')}</Label>
+                  <Input
+                    id="mileage"
+                    name="mileage"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    defaultValue={vehicle?.mileage}
+                  />
+                </div>
+              </div>
+
+              {/* Plate and VIN a row each: side by side, with a lookup button in each,
+                  the VIN was too narrow to show all 17 characters. */}
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="licensePlate">
+                    {isMarine ? t('licensePlateMarine') : t('licensePlate')}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="licensePlate"
+                      name="licensePlate"
+                      placeholder="ABC-1234"
+                      defaultValue={vehicle?.licensePlate ?? ''}
+                      className="flex-1"
+                    />
+                    {!isMarine && (
+                      <VehicleLookupButton
+                        by="plate"
+                        getValue={() =>
+                          (
+                            formRef.current?.elements.namedItem(
+                              'licensePlate'
+                            ) as HTMLInputElement | null
+                          )?.value ?? ''
+                        }
+                        onFound={applyLookup}
+                        vehicleId={vehicle?.id}
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vin">{isMarine ? t('vinMarine') : t('vin')}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="vin"
+                      name="vin"
+                      placeholder="1HGCM82633A004352"
+                      defaultValue={vehicle?.vin ?? ''}
+                      className="flex-1"
+                    />
+                    {!isMarine && (
+                      <VehicleLookupButton
+                        by="vin"
+                        getValue={() =>
+                          (formRef.current?.elements.namedItem('vin') as HTMLInputElement | null)
+                            ?.value ?? ''
+                        }
+                        onFound={applyLookup}
+                        vehicleId={vehicle?.id}
+                      />
+                    )}
+                  </div>
+                </div>
+                {/* Under both fields, since either button may have answered */}
+                {lookupNote && (
+                  <p className="-mt-2 text-xs text-muted-foreground">
+                    {lookupNote.inspectionDue
+                      ? t('lookupInspectionDue', {
+                          source: lookupNote.source,
+                          date: format.dateTime(new Date(lookupNote.inspectionDue), {
+                            dateStyle: 'medium',
+                          }),
+                        })
+                      : t('lookupSource', { source: lookupNote.source })}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="color">{t('color')}</Label>
+                  <Input
+                    id="color"
+                    name="color"
+                    placeholder="Silver"
+                    defaultValue={vehicle?.color ?? ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fuelType">{t('fuelType')}</Label>
+                  <Select name="fuelType" value={fuelType} onValueChange={setFuelType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gasoline">{t('gasoline')}</SelectItem>
+                      <SelectItem value="diesel">{t('diesel')}</SelectItem>
+                      {!isMarine && (
+                        <>
+                          <SelectItem value="electric">{t('electric')}</SelectItem>
+                          <SelectItem value="hybrid">{t('hybrid')}</SelectItem>
+                        </>
+                      )}
+                      {isMarine && <SelectItem value="two-stroke">{t('twoStroke')}</SelectItem>}
+                      <SelectItem value="other">{t('other')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="transmission">
+                  {isMarine ? t('transmissionMarine') : t('transmission')}
+                </Label>
+                <Select name="transmission" value={transmission} onValueChange={setTransmission}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isMarine ? (
+                      <>
+                        <SelectItem value="outboard">{t('outboard')}</SelectItem>
+                        <SelectItem value="inboard">{t('inboard')}</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="automatic">{t('automatic')}</SelectItem>
+                        <SelectItem value="manual">{t('manual')}</SelectItem>
+                        <SelectItem value="cvt">{t('cvt')}</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="engineSize">
+                    {isMarine ? t('engineSizeMarine') : t('engineSize')}
+                  </Label>
+                  {isMarine ? (
+                    <Input
+                      id="engineSize"
+                      name="engineSize"
+                      placeholder="Mercury F 350 XXL Verado V-10 (350 hp)"
+                      defaultValue={vehicle?.engineSize ?? ''}
+                    />
+                  ) : (
+                    <>
+                      <input type="hidden" name="engineSize" value={engineSize} />
+                      <CatalogCombobox
+                        id="engineSize"
+                        value={engineSize}
+                        onChange={setEngineSize}
+                        options={ENGINE_SIZES}
+                        placeholder="2.5L"
+                        icon="engine"
+                        emptyLabel={t('catalogEmpty')}
+                        useLabel={(v) => t('catalogUse', { value: v })}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="engineCode">{t('engineCode')}</Label>
+                  <Input
+                    id="engineCode"
+                    name="engineCode"
+                    placeholder="2AR-FE"
+                    defaultValue={vehicle?.engineCode ?? ''}
+                  />
+                </div>
+              </div>
+
+              {!isMarine && (
+                <div className="space-y-2">
+                  <Label htmlFor="displacementCc">{t('displacementCc')}</Label>
+                  <input type="hidden" name="displacementCc" value={displacementCc} />
+                  <CatalogCombobox
+                    id="displacementCc"
+                    value={displacementCc}
+                    onChange={setDisplacementCc}
+                    options={ENGINE_CC}
+                    placeholder="1600 cc"
+                    icon="engine"
+                    emptyLabel={t('catalogEmpty')}
+                    useLabel={(v) => t('catalogUse', { value: v })}
+                  />
+                </div>
+              )}
+
+              {showTypeKey && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hsn">{t('hsn')}</Label>
+                      <Input
+                        id="hsn"
+                        name="hsn"
+                        placeholder="0603"
+                        inputMode="numeric"
+                        maxLength={6}
+                        autoComplete="off"
+                        className="font-mono"
+                        defaultValue={vehicle?.hsn ?? ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tsn">{t('tsn')}</Label>
+                      <Input
+                        id="tsn"
+                        name="tsn"
+                        placeholder="BFQ"
+                        maxLength={12}
+                        autoComplete="off"
+                        className="font-mono uppercase"
+                        defaultValue={vehicle?.tsn ?? ''}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('typeKeyHint')}</p>
+                </div>
+              )}
+
+              {!isMarine && (
+                <div className="space-y-2">
+                  <Label htmlFor="inspectionDueAt">{t('inspectionDue')}</Label>
+                  <Input
+                    id="inspectionDueAt"
+                    name="inspectionDueAt"
+                    type="date"
+                    defaultValue={
+                      vehicle?.inspectionStatus?.dueAt
+                        ? inspectionDueInput(
+                            vehicle.inspectionStatus.dueAt,
+                            vehicle.inspectionStatus.source,
+                            timezone
+                          )
+                        : ''
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {vehicle?.inspectionStatus?.source &&
+                    vehicle.inspectionStatus.source !== 'manual'
+                      ? t('inspectionDueFromRegistry')
+                      : t('inspectionDueHint')}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t pt-4 md:col-span-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {tc('cancel')}
+              </Button>
+              <Button data-save-shortcut type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {vehicle ? tc('saveChanges') : t('addTitle')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close matches for the keeper on the papers */}
+      <Dialog open={showOwnerMatch} onOpenChange={setShowOwnerMatch}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('ownerMatchTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('ownerMatchDescription', { name: scannedOwner?.name ?? '' })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {ownerMatches.map(({ customer, score }) => (
+              <button
+                key={customer.id}
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-accent"
+                onClick={() => {
+                  setSelectedCustomerId(customer.id)
+                  setScannedOwner(null)
+                  setShowOwnerMatch(false)
+                }}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{customer.name}</span>
+                  {customer.company && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {customer.company}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {t('ownerMatchScore', { percent: Math.round(score * 100) })}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setShowOwnerMatch(false)}>
+              {tc('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowOwnerMatch(false)
+                setShowCustomerForm(true)
+              }}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              {t('ownerMatchCreateNew')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <CustomerForm
+        open={showCustomerForm}
+        onOpenChange={setShowCustomerForm}
+        defaults={scannedOwner ?? undefined}
+        onCreated={(created) => {
+          setLocalCustomers((prev) => [...prev, created])
+          setSelectedCustomerId(created.id)
+          setScannedOwner(null)
+        }}
+      />
+    </>
+  )
+}
