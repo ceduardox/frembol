@@ -96,7 +96,7 @@ export function LicenseSettings({
           !licenseValid && !demoMode ? (
             <Button asChild variant="default" size="sm" className="shrink-0">
               <a
-                href={`${process.env.NEXT_PUBLIC_TORQVOICE_COM_URL || 'https://torqvoice.com'}/subscriptions/white-label`}
+                href="https://wa.me/971521038925"
                 target="_blank"
                 rel="noopener noreferrer"
               >
