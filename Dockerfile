@@ -25,6 +25,11 @@ RUN npx prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# The public URL is inlined into the client bundle at build time, so it has to
+# be known here, not only at runtime. Coolify passes it as a build argument.
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+
 RUN npm run build
 
 # What the container runs beside the server: the Prisma CLI for the migrations
