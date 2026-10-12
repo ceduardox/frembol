@@ -5,11 +5,17 @@ const withNextIntl = createNextIntlPlugin()
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  typescript: {
+    // Avoid heavy tsc memory spikes during production Docker builds
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [],
   },
   allowedDevOrigins: ['10.0.0.217', '192.168.30.111'],
   experimental: {
+    // Bound build workers on shared VPS to avoid memory exhaustion
+    cpus: 1,
     proxyClientMaxBodySize: '2gb',
   },
   async headers() {

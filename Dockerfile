@@ -1,9 +1,12 @@
+# syntax=docker/dockerfile:1
 FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat openssl postgresql-client bash ffmpeg
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
@@ -12,25 +15,27 @@ COPY prisma.config.ts ./prisma.config.ts
 # own follow-up patch from scripts/. The source tree is not copied until the
 # builder stage, so that one file has to come along here.
 COPY scripts/patch-next-ws-first-upgrade.mjs ./scripts/
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
 
-ENV NEXT_TELEMETRY_DISABLED=1
-
 # The public URL is inlined into the client bundle at build time, so it has to
 # be known here, not only at runtime. Coolify passes it as a build argument.
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    --mount=type=cache,target=/root/.npm \
+    npm run build
 
 # What the container runs beside the server: the Prisma CLI for the migrations
 # at start, and tsx with a full Prisma client for the demo seed. Installed in
@@ -51,6 +56,7 @@ ARG APP_VERSION=development
 ENV APP_VERSION=${APP_VERSION}
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=1536
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 --home /home/nextjs nextjs
