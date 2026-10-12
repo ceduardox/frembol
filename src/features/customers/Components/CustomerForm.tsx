@@ -254,7 +254,7 @@ export function CustomerForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="email">{tc('form.email')}</Label>
                 <Input
@@ -367,7 +367,7 @@ export function CustomerForm({
             />
           </div>
 
-          <div className="flex justify-end gap-3 border-t pt-4 md:col-span-2">
+            <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex justify-end gap-3 rounded-b-xl border-t bg-background px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4 md:col-span-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {tc('buttons.cancel')}
             </Button>

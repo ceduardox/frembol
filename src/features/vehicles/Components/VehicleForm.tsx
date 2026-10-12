@@ -667,7 +667,7 @@ export function VehicleForm({
                 {t('sectionDetails')}
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="make">{isMarine ? t('makeMarine') : t('make')}</Label>
                   {isMarine ? (
@@ -722,7 +722,7 @@ export function VehicleForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="year">{t('year')}</Label>
                   {isMarine ? (
@@ -832,7 +832,7 @@ export function VehicleForm({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="color">{t('color')}</Label>
                   <Input
@@ -889,7 +889,7 @@ export function VehicleForm({
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="engineSize">
                     {isMarine ? t('engineSizeMarine') : t('engineSize')}
@@ -947,7 +947,7 @@ export function VehicleForm({
 
               {showTypeKey && (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="hsn">{t('hsn')}</Label>
                       <Input
@@ -1005,7 +1005,7 @@ export function VehicleForm({
               )}
             </div>
 
-            <div className="flex justify-end gap-3 border-t pt-4 md:col-span-2">
+            <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex justify-end gap-3 rounded-b-xl border-t bg-background px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4 md:col-span-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {tc('cancel')}
               </Button>
