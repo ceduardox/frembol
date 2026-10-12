@@ -360,7 +360,7 @@ export function AdminSettings({
                 <Label htmlFor="smtp-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="smtp-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={smtpFromName}
                   onChange={(e) => setSmtpFromName(e.target.value)}
                 />
@@ -437,7 +437,7 @@ export function AdminSettings({
                 <Label htmlFor="resend-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="resend-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={resendFromName}
                   onChange={(e) => setResendFromName(e.target.value)}
                 />
@@ -476,7 +476,7 @@ export function AdminSettings({
                 <Label htmlFor="postmark-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="postmark-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={postmarkFromName}
                   onChange={(e) => setPostmarkFromName(e.target.value)}
                 />
@@ -550,7 +550,7 @@ export function AdminSettings({
                 <Label htmlFor="mailgun-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="mailgun-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={mailgunFromName}
                   onChange={(e) => setMailgunFromName(e.target.value)}
                 />
@@ -589,7 +589,7 @@ export function AdminSettings({
                 <Label htmlFor="sendgrid-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="sendgrid-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={sendgridFromName}
                   onChange={(e) => setSendgridFromName(e.target.value)}
                 />
@@ -648,7 +648,7 @@ export function AdminSettings({
                 <Label htmlFor="ses-from-name">{t('adminSettings.fromName')}</Label>
                 <Input
                   id="ses-from-name"
-                  placeholder="Torqvoice"
+                  placeholder="Frembol"
                   value={sesFromName}
                   onChange={(e) => setSesFromName(e.target.value)}
                 />

@@ -586,7 +586,7 @@ function classicLetterhead(
               {
                 node: {
                   kind: 'text',
-                  text: 'Torqvoice',
+                  text: 'Frembol',
                   style: { color: soft ?? look.muted, fontSize, bold: true },
                 },
               },
@@ -835,7 +835,7 @@ function letterhead(section: InvoiceSection, theme: DocumentTheme, data: Documen
         {
           node: {
             kind: 'text',
-            text: 'Torqvoice',
+            text: 'Ryztor LLC',
             style: { color: mutedOnBand, fontSize: scale(size, MARK.word), bold: true },
           },
         },
@@ -1425,7 +1425,7 @@ function totals(section: InvoiceSection, theme: DocumentTheme, data: DocumentDat
         {
           node: {
             kind: 'text',
-            text: 'Torqvoice',
+            text: 'Ryztor LLC',
             style: { color: theme.primary, fontSize: scale(size, MARK.word), bold: true },
           },
         },
@@ -2082,7 +2082,7 @@ function footer(section: InvoiceSection, theme: DocumentTheme, data: DocumentDat
         {
           node: {
             kind: 'text',
-            text: 'Torqvoice',
+            text: 'Ryztor LLC',
             style: { color: theme.primary, fontSize: scale(size, 1.35), bold: true },
           },
         },

@@ -192,7 +192,7 @@ export function buildQuotePrintSpec(input: QuotePrintInput): DocumentSpec {
   const createdDate = formatDateForPdf(data.createdAt, df, tz)
   const validDate = data.validUntil ? formatDateForPdf(data.validUntil, df, tz) : null
   const quoteNum = data.quoteNumber || 'QUOTE'
-  const shopName = workshop?.name || 'Torqvoice'
+  const shopName = workshop?.name || 'Frembol'
 
   const fields: Record<string, string> = {
     customer_name: data.customer?.name || '',

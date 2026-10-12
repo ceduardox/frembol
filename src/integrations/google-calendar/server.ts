@@ -87,7 +87,7 @@ async function pushService(
     description: draft.description,
     start: { dateTime: draft.start.toISOString(), timeZone: ctx.timezone },
     end: { dateTime: draft.end.toISOString(), timeZone: ctx.timezone },
-    source: { title: 'Torqvoice', url: draft.url },
+        source: { title: 'Frembol', url: draft.url },
     extendedProperties: { private: { torqvoiceServiceId: serviceRecordId } },
   }
   if (wantMeeting && !link?.metadata?.meetingUrl) {

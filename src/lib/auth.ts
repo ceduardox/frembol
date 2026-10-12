@@ -351,10 +351,10 @@ export const auth = betterAuth({
     // Better Auth rather than being reimplemented against the session table,
     // so signing out on the web really does kill the phone's session too.
     bearer(),
-    twoFactor({ issuer: 'Torqvoice' }),
+    twoFactor({ issuer: 'Frembol' }),
     passkey({
       rpID: baseURL ? new URL(baseURL).hostname : 'localhost',
-      rpName: 'Torqvoice',
+      rpName: 'Frembol',
       origin: baseURL || 'http://localhost:3000',
     }),
     nextCookies(), // Must be last plugin

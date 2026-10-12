@@ -34,12 +34,12 @@ export function AppSetupLanding() {
         <div className="flex items-center gap-3 border-b pb-4">
           <Image
             src="/torqvoice_app_logo.png"
-            alt="Torqvoice"
+            alt="Frembol"
             width={32}
             height={32}
             className="object-contain"
           />
-          <span className="font-bold text-lg uppercase tracking-wider">Torqvoice</span>
+          <span className="font-bold text-lg uppercase tracking-wider">Frembol</span>
         </div>
 
         <h1 className="pt-6 font-semibold text-xl">{t('team.setupPageTitle')}</h1>

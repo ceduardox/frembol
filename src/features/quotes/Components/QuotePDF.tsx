@@ -96,7 +96,7 @@ export function QuotePDF({
   })
 
   const quoteNum = data.quoteNumber || 'QUOTE'
-  const shopName = workshop?.name || 'Torqvoice'
+  const shopName = workshop?.name || 'Frembol'
   const fontFamily = pdfFamily(spec.page.fontFamily)
 
   return (

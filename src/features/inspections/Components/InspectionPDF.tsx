@@ -155,7 +155,7 @@ export function InspectionPDF({
   const df = dateFormat || DEFAULT_DATE_FORMAT
   const tz = timezone || undefined
   const testDate = formatDateForPdf(data.completedAt ?? data.createdAt, df, tz)
-  const shopName = workshop?.name || 'Torqvoice'
+  const shopName = workshop?.name || 'Frembol'
 
   const label = (key: string) => labels[key] || FALLBACK[key] || key
   const isBasic = (data.severityScale ?? data.template.severityScale) === 'basic'
@@ -305,7 +305,7 @@ export function InspectionPDF({
         {torqvoiceLogoDataUri && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
             <Image src={torqvoiceLogoDataUri} style={{ width: 12, height: 12 }} />
-            <Text style={{ fontSize: 7, fontFamily: fontBold, color: gray }}>Torqvoice</Text>
+            <Text style={{ fontSize: 7, fontFamily: fontBold, color: gray }}>Frembol</Text>
           </View>
         )}
       </View>
@@ -368,7 +368,7 @@ export function InspectionPDF({
           >
             <Image src={torqvoiceLogoDataUri} style={{ width: 12, height: 12 }} />
             <Text style={{ fontSize: 7, fontFamily: fontBold, color: 'rgba(255,255,255,0.7)' }}>
-              Torqvoice
+              Frembol
             </Text>
           </View>
         )}
@@ -422,7 +422,7 @@ export function InspectionPDF({
             }}
           >
             <Image src={torqvoiceLogoDataUri} style={{ width: 16, height: 16 }} />
-            <Text style={{ fontSize: 9, fontFamily: fontBold, color: gray }}>Torqvoice</Text>
+            <Text style={{ fontSize: 9, fontFamily: fontBold, color: gray }}>Frembol</Text>
           </View>
         )}
         <Text style={{ ...styles.invoiceTitle, color: primaryColor }}>
@@ -782,7 +782,7 @@ export function InspectionPDF({
             </Text>
             <Text style={{ fontSize: 7, color: gray }}>{labels.poweredBy || 'Powered by'}</Text>
             <Image src={torqvoiceLogoDataUri} style={{ width: 14, height: 14 }} />
-            <Text style={{ fontSize: 7, color: gray, fontFamily: fontBold }}>Torqvoice</Text>
+            <Text style={{ fontSize: 7, color: gray, fontFamily: fontBold }}>Ryztor LLC</Text>
           </View>
         ) : (
           <Text style={styles.footer}>

@@ -247,7 +247,7 @@ export function QuoteView({
   const tz = timezone || undefined
   const createdDate = fmtDate(quote.createdAt, df, tz)
   const validUntilDate = quote.validUntil ? fmtDate(quote.validUntil, df, tz) : null
-  const shopName = workshop.name || 'Torqvoice'
+  const shopName = workshop.name || 'Frembol'
 
   // Layout config overrides for header field visibility & ordering
   const headerVisibleFields = getVisibleFieldsForSection(layoutConfig, 'header')
@@ -536,9 +536,9 @@ export function QuoteView({
         {showTorqvoiceBranding && (
           <div className="mt-3 flex items-center justify-end gap-1.5">
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
-            <img src="/torqvoice_app_logo.png" alt="Torqvoice" className="h-3.5 w-3.5" />
+            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-3.5 w-3.5" />
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Torqvoice
+              Ryztor LLC
             </span>
           </div>
         )}
@@ -559,15 +559,10 @@ export function QuoteView({
         {showTorqvoiceBranding ? (
           <>
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
-            <img src="/torqvoice_app_logo.png" alt="Torqvoice" className="h-4 w-4" />
-            <a
-              href="https://torqvoice.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-              Torqvoice
-            </a>
+            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-4 w-4" />
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              Ryztor LLC
+            </span>
           </>
         ) : (
           <p className="text-center text-xs text-gray-400">{shopName}</p>

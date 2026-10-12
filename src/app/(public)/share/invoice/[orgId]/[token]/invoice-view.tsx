@@ -330,7 +330,7 @@ export function InvoiceView({
   const paidFromPayments = record.payments.reduce((sum, p) => sum + p.amount, 0)
   const totalPaid = record.manuallyPaid ? displayTotal : paidFromPayments
   const balanceDue = displayTotal - totalPaid
-  const shopName = workshop.name || record.shopName || 'Torqvoice'
+  const shopName = workshop.name || record.shopName || 'Frembol'
 
   // Layout config overrides for header field visibility & ordering
   const headerVisibleFields = getVisibleFieldsForSection(layoutConfig, 'header')
@@ -828,15 +828,10 @@ export function InvoiceView({
         {showTorqvoiceBranding ? (
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
-            <img src="/torqvoice_app_logo.png" alt="Torqvoice" className="h-4 w-4" />
-            <a
-              href="https://torqvoice.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-              Torqvoice
-            </a>
+            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-4 w-4" />
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              Ryztor LLC
+            </span>
           </div>
         ) : (
           <p className="text-center text-xs text-gray-400">{shopName}</p>

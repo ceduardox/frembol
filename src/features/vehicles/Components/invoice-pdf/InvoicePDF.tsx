@@ -79,7 +79,7 @@ export function InvoicePDF({
     inspectionResults,
   })
 
-  const shopDisplayName = workshop?.name || data.shopName || 'Torqvoice'
+  const shopDisplayName = workshop?.name || data.shopName || 'Frembol'
   const invoiceNum = data.invoiceNumber || `INV-${data.id.slice(-8).toUpperCase()}`
   const fontFamily = pdfFamily(spec.page.fontFamily)
 

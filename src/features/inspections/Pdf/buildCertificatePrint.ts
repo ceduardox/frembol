@@ -281,7 +281,7 @@ export function buildCertificatePrintSpec(input: CertificatePrintInput): Documen
   const tz = input.timezone || undefined
   const testDate = formatDateForPdf(data.completedAt ?? data.createdAt, df, tz)
   const nextDue = data.nextTestDue ? formatDateForPdf(data.nextTestDue, df, tz) : null
-  const shopName = workshop?.name || 'Torqvoice'
+  const shopName = workshop?.name || 'Frembol'
   const scale: SeverityScale =
     (data.severityScale ?? data.template.severityScale) === 'basic' ? 'basic' : 'eu'
   const country = data.country ?? data.template.country

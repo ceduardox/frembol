@@ -196,7 +196,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
   const openedOn = day(data.startDateTime ?? data.serviceDate)
   const printedOn = day(job.printedAt)
 
-  const shopDisplayName = workshop?.name || data.shopName || 'Torqvoice'
+  const shopDisplayName = workshop?.name || data.shopName || 'Frembol'
   const customer = data.customer ?? data.vehicle?.customer
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`

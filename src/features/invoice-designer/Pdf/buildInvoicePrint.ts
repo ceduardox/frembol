@@ -197,7 +197,7 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
   const balanceDue = paymentSummary ? displayTotal - paymentSummary.totalPaid : displayTotal
   const isPaidInFull = paymentSummary ? paymentSummary.totalPaid >= displayTotal : false
 
-  const shopDisplayName = workshop?.name || data.shopName || 'Torqvoice'
+  const shopDisplayName = workshop?.name || data.shopName || 'Frembol'
   const customer = data.customer ?? data.vehicle?.customer
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`

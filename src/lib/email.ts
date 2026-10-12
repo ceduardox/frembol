@@ -109,7 +109,7 @@ export async function getFromAddress(): Promise<string> {
   const map = new Map(rows.map((r) => [r.key, r.value]))
 
   const fromEmail = map.get(keys.email) || process.env.SMTP_FROM_EMAIL || 'noreply@example.com'
-  const fromName = map.get(keys.name) || 'Torqvoice'
+  const fromName = map.get(keys.name) || 'Frembol'
 
   return `${fromName} <${fromEmail}>`
 }
@@ -643,7 +643,7 @@ function orgFromAddressFor(provider: EmailProvider, settings: SettingsMap): stri
   const keys = keyMap[provider]
 
   const fromEmail = settings.get(keys.email) || 'noreply@example.com'
-  const fromName = settings.get(keys.name) || 'Torqvoice'
+  const fromName = settings.get(keys.name) || 'Frembol'
 
   return `${fromName} <${fromEmail}>`
 }

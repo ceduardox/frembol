@@ -62,7 +62,7 @@ export function renderAccountMail(mail: AccountMail): { html: string; text: stri
   const heading = mail.heading ?? mail.subject
   const link = mail.link
   const notes = mail.notes ?? []
-  const reason = mail.reason ?? 'this is the address on your Torqvoice account'
+  const reason = mail.reason ?? 'this is the address on your Frembol account'
 
   const text = [
     greeting,
@@ -74,7 +74,7 @@ export function renderAccountMail(mail: AccountMail): { html: string; text: stri
     ),
     ...(link ? [`${link.text}: ${link.url}`, ''] : []),
     ...notes.flatMap((n) => [n, '']),
-    'Torqvoice',
+    'Frembol',
   ].join('\n')
 
   const p = (s: string, muted = false) =>
@@ -110,7 +110,7 @@ export function renderAccountMail(mail: AccountMail): { html: string; text: stri
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: ${PAGE}; font-family: ${FONT};">`,
     '<tr><td align="center" style="padding: 32px 16px;">',
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; color: ${INK}; text-align: left;">`,
-    `<tr><td style="padding: 0 0 20px 0; font-size: 18px; font-weight: 700; color: ${INK};">Torqvoice</td></tr>`,
+    `<tr><td style="padding: 0 0 20px 0; font-size: 18px; font-weight: 700; color: ${INK};">Frembol</td></tr>`,
     `<tr><td style="background: #ffffff; border: 1px solid ${LINE}; border-radius: 8px; padding: 32px;">`,
     `<h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; line-height: 1.3; color: ${INK};">${escapeHtml(heading)}</h1>`,
     p(greeting),
@@ -118,7 +118,7 @@ export function renderAccountMail(mail: AccountMail): { html: string; text: stri
     ...(link ? [button(link)] : []),
     ...notes.map((s) => p(s, true)),
     '</td></tr>',
-    `<tr><td style="padding: 20px 8px 0 8px; font-size: 12px; line-height: 1.5; color: ${MUTED};">You are receiving this because ${escapeHtml(reason)}: ${escapeHtml(mail.to)}<br>Torqvoice</td></tr>`,
+    `<tr><td style="padding: 20px 8px 0 8px; font-size: 12px; line-height: 1.5; color: ${MUTED};">You are receiving this because ${escapeHtml(reason)}: ${escapeHtml(mail.to)}<br>Frembol</td></tr>`,
     '</table>',
     '</td></tr>',
     '</table>',

@@ -188,7 +188,7 @@ export function StatusReportView({
 
         {/* Footer */}
         {showBranding && (
-          <p className="text-center text-xs text-gray-400 py-4">{t('poweredBy')} Torqvoice</p>
+          <p className="text-center text-xs text-gray-400 py-4">{t('poweredBy')} Ryztor LLC</p>
         )}
       </div>
     </div>
