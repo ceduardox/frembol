@@ -114,7 +114,7 @@ export function CompanySettings({
       <ReadOnlyBanner />
       <ReadOnlyWrapper>
         <AppCard icon={ImageIcon} title={t('company.logoTitle')}>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/50">
               {logoUrl ? (
                 <Image
@@ -129,7 +129,7 @@ export function CompanySettings({
                 <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -259,8 +259,14 @@ export function CompanySettings({
           </div>
         </AppCard>
         <SaveButton>
-          <div className="flex items-center justify-between">
-            <Button data-save-shortcut size="sm" onClick={handleSave} disabled={saving}>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              data-save-shortcut
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={handleSave}
+              disabled={saving}
+            >
               {saving ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               ) : (
@@ -268,7 +274,12 @@ export function CompanySettings({
               )}
               {t('company.saveCompany')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowCreateOrg(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowCreateOrg(true)}
+            >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               {t('company.addNewCompany')}
             </Button>
