@@ -40,7 +40,20 @@ export function withDeviceCookie(request: Request): { request: Request; issued: 
     'cookie',
     existing ? `${existing}; ${DEVICE_COOKIE}=${issued}` : `${DEVICE_COOKIE}=${issued}`
   )
-  return { request: new Request(request, { headers }), issued }
+  try {
+    return { request: new Request(request, { headers }), issued }
+  } catch {
+    return {
+      request: new Request(request.url, {
+        method: request.method,
+        headers,
+        body: request.body,
+        // @ts-expect-error duplex is required in Node when body is a readable stream
+        duplex: request.body ? 'half' : undefined,
+      }),
+      issued,
+    }
+  }
 }
 
 /** Sets the freshly issued id on the response, leaving other cookies alone. */

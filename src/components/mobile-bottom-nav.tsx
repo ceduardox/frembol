@@ -153,7 +153,7 @@ export function MobileBottomNav({
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span>{t(labelKey)}</span>
+                <span className="text-center leading-tight">{t(labelKey)}</span>
               </Link>
             )
           })}
@@ -169,7 +169,7 @@ export function MobileBottomNav({
             )}
           >
             <Menu className="h-5 w-5" />
-            <span>{t('more')}</span>
+            <span className="text-center leading-tight">{t('more')}</span>
           </button>
         </div>
       </nav>
@@ -214,7 +214,7 @@ export function MobileBottomNav({
                       )}
                     >
                       <Icon className="h-5 w-5" />
-                      <span>{t(labelKey)}</span>
+                      <span className="text-center leading-tight">{t(labelKey)}</span>
                     </Link>
                   )
                 })}
@@ -242,7 +242,7 @@ export function MobileBottomNav({
                       )}
                     >
                       <Icon className="h-5 w-5" />
-                      <span>{t(labelKey)}</span>
+                      <span className="text-center leading-tight">{t(labelKey)}</span>
                     </Link>
                   )
                 })}
@@ -264,7 +264,7 @@ export function MobileBottomNav({
                 )}
               >
                 <Settings className="h-5 w-5" />
-                <span>{t('settings')}</span>
+                <span className="text-center leading-tight">{t('settings')}</span>
               </Link>
               {isSuperAdmin && (
                 <Link
@@ -278,7 +278,7 @@ export function MobileBottomNav({
                   )}
                 >
                   <ShieldCheck className="h-5 w-5" />
-                  <span>{t('adminPanel')}</span>
+                  <span className="text-center leading-tight">{t('adminPanel')}</span>
                 </Link>
               )}
             </nav>
