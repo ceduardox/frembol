@@ -273,12 +273,12 @@ export function VehiclePickerDialog({
                   </div>
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" className="flex-1" onClick={() => setPickerStep('create')}>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button variant="ghost" className="sm:flex-1" onClick={() => setPickerStep('create')}>
                   <Plus className="h-4 w-4 mr-1" />
                   {isMarine ? t('addNewVehicleMarine') : t('addNewVehicle')}
                 </Button>
-                <Button variant="ghost" className="flex-1" onClick={() => setPickerStep('sale')}>
+                <Button variant="ghost" className="sm:flex-1" onClick={() => setPickerStep('sale')}>
                   <ShoppingCart className="h-4 w-4 mr-1" />
                   {t('partsSale')}
                 </Button>
@@ -344,7 +344,7 @@ export function VehiclePickerDialog({
                         {tc('cancel')}
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="sale-customer-name">{t('customerName')}</Label>
                         <Input
@@ -403,7 +403,7 @@ export function VehiclePickerDialog({
               </div>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-make">{isMarine ? t('makeMarine') : t('make')}</Label>
                   <Input
@@ -424,7 +424,7 @@ export function VehiclePickerDialog({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-year">{t('year')}</Label>
                   <Input
@@ -496,7 +496,7 @@ export function VehiclePickerDialog({
                         {tc('cancel')}
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="new-customer-name">{t('customerName')}</Label>
                         <Input
