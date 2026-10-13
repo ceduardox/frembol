@@ -274,11 +274,19 @@ export function VehiclePickerDialog({
                 )}
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="ghost" className="sm:flex-1" onClick={() => setPickerStep('create')}>
+                <Button
+                  variant="ghost"
+                  className="border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary sm:flex-1"
+                  onClick={() => setPickerStep('create')}
+                >
                   <Plus className="h-4 w-4 mr-1" />
                   {isMarine ? t('addNewVehicleMarine') : t('addNewVehicle')}
                 </Button>
-                <Button variant="ghost" className="sm:flex-1" onClick={() => setPickerStep('sale')}>
+                <Button
+                  variant="ghost"
+                  className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 sm:flex-1"
+                  onClick={() => setPickerStep('sale')}
+                >
                   <ShoppingCart className="h-4 w-4 mr-1" />
                   {t('partsSale')}
                 </Button>
