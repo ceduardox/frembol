@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -125,6 +125,28 @@ export function MobileBottomNav({
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
   )
 
+  // Mobile browsers grow and shrink the visible area as their address bar
+  // hides/shows on scroll, which drags a fixed bottom bar down with it. Pin the
+  // bar to the *visual* viewport instead, so it stays where the user is looking.
+  useEffect(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) return
+    const update = () => {
+      const gap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      document.documentElement.style.setProperty('--mobile-nav-bottom', `${Math.round(gap)}px`)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+      window.removeEventListener('orientationchange', update)
+      document.documentElement.style.removeProperty('--mobile-nav-bottom')
+    }
+  }, [])
+
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     const result = await lookupPartByBarcode(barcode)
     setScannedBarcode(barcode)
@@ -139,7 +161,10 @@ export function MobileBottomNav({
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav
+        className="fixed left-0 right-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        style={{ bottom: 'var(--mobile-nav-bottom, 0px)' }}
+      >
         <div className="grid grid-cols-5">
           {visiblePrimaryItems.map(({ href, icon: Icon, labelKey }) => {
             const isActive = pathname === href || pathname.startsWith(`${href}/`)
