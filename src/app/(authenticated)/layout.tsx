@@ -350,7 +350,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                           Without it a page that wants to fill the window (the
                           work board's week timeline) stopped at its content and
                           left the rest of the screen blank. */}
-                              <div className="flex min-h-0 flex-1 flex-col pb-14 md:pb-0">
+                              <div className="flex min-h-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
                                 {children}
                               </div>
                             </SidebarInset>

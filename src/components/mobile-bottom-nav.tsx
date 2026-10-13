@@ -55,7 +55,7 @@ const vehiclesItem = { href: '/vehicles', icon: Car, labelKey: 'vehicles' } as c
 const vesselsItem = { href: '/vehicles', icon: Ship, labelKey: 'vessels' } as const
 
 const primaryItems = [
-  { href: '/work-orders', icon: ClipboardList, labelKey: 'workOrders' },
+  { href: '/work-orders', icon: ClipboardList, labelKey: 'workOrdersShort' },
   { href: '/customers', icon: Users, labelKey: 'customers' },
   { href: '/inventory', icon: Package, labelKey: 'inventory' },
 ] as const
