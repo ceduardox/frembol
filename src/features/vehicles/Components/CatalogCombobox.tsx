@@ -42,6 +42,7 @@ export function CatalogCombobox({
   useLabel,
   disabled,
   listClassName,
+  logoFor,
 }: {
   id?: string
   value: string
@@ -53,10 +54,13 @@ export function CatalogCombobox({
   useLabel: (value: string) => string
   disabled?: boolean
   listClassName?: string
+  /** Optional brand logo for an option (makes). Falls back to the icon. */
+  logoFor?: (value: string) => string | undefined
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const Icon = icon ? ICONS[icon] : undefined
+  const selectedLogo = logoFor?.(value)
   const trimmed = search.trim()
   const known = options.some((o) => o.toLowerCase() === trimmed.toLowerCase())
 
@@ -79,7 +83,13 @@ export function CatalogCombobox({
           className="border-input dark:bg-input/30 h-9 w-full justify-between rounded-md px-3 font-normal shadow-xs"
         >
           <span className="flex min-w-0 items-center gap-2">
-            {Icon && <Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />}
+            {selectedLogo ? (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white">
+                <img src={selectedLogo} alt="" className="h-3.5 w-3.5 object-contain" />
+              </span>
+            ) : Icon ? (
+              <Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+            ) : null}
             <span className={cn('truncate', !value && 'text-muted-foreground')}>
               {value || placeholder}
             </span>
@@ -105,23 +115,32 @@ export function CatalogCombobox({
               {emptyLabel}
             </CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option}
-                  value={option}
-                  onSelect={() => pick(option)}
-                  className="gap-2"
-                >
-                  {Icon && <Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />}
-                  <span className="flex-1 truncate">{option}</span>
-                  <Check
-                    className={cn(
-                      'h-3.5 w-3.5 shrink-0',
-                      value === option ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                </CommandItem>
-              ))}
+              {options.map((option) => {
+                const logo = logoFor?.(option)
+                return (
+                  <CommandItem
+                    key={option}
+                    value={option}
+                    onSelect={() => pick(option)}
+                    className="gap-2"
+                  >
+                    {logo ? (
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white">
+                        <img src={logo} alt="" className="h-3.5 w-3.5 object-contain" />
+                      </span>
+                    ) : Icon ? (
+                      <Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                    ) : null}
+                    <span className="flex-1 truncate">{option}</span>
+                    <Check
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0',
+                        value === option ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  </CommandItem>
+                )
+              })}
             </CommandGroup>
             {trimmed && !known && (
               <CommandGroup>

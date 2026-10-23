@@ -36,6 +36,7 @@ import { toast } from 'sonner'
 import { useGlassModal } from '@/components/glass-modal'
 import { useDateSettings } from '@/components/date-settings-context'
 import { inspectionDueInput } from '../Lib/inspectionDueInput'
+import { carLogoUrl } from '../Lib/carLogos'
 import { createVehicle, updateVehicle } from '../Actions/vehicleActions'
 import type { VehicleDocumentScan } from '../Actions/aiAnalyzeVehicleDocument'
 import { ScanDocumentButton } from './ScanDocumentButton'
@@ -688,6 +689,7 @@ export function VehicleForm({
                         options={makeOptions}
                         placeholder="Toyota"
                         icon="make"
+                        logoFor={carLogoUrl}
                         emptyLabel={t('catalogEmpty')}
                         useLabel={(v) => t('catalogUse', { value: v })}
                       />

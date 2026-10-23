@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CatalogCombobox } from '@/features/vehicles/Components/CatalogCombobox'
+import { carLogoUrl } from '@/features/vehicles/Lib/carLogos'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -472,6 +473,7 @@ export function VehiclePickerDialog({
                       options={makeOptions}
                       placeholder="Toyota"
                       icon="make"
+                      logoFor={carLogoUrl}
                       emptyLabel={tf('catalogEmpty')}
                       useLabel={(v) => tf('catalogUse', { value: v })}
                     />
