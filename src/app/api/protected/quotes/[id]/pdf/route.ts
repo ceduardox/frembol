@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { buildQuotePdfBuffer } from '@/features/quotes/Pdf/buildQuotePdfBuffer'
+import { resolveWorkshopLocale } from '@/i18n/locale-from-request'
 import { getAuthContext } from '@/lib/get-auth-context'
 
 /**
@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const { id } = await params
     // The workshop reads its own copy in its own language; a customer's copy
     // follows the customer's.
-    const locale = (await cookies()).get('locale')?.value || 'en'
+    const locale = await resolveWorkshopLocale()
 
     const pdf = await buildQuotePdfBuffer(id, ctx.organizationId, locale)
     if (!pdf) {

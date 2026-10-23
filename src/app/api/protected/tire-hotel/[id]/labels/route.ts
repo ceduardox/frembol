@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import React from 'react'
 import { renderToBuffer } from '@react-pdf/renderer'
 import '@/features/vehicles/Components/invoice-pdf/fonts'
-import { cookies } from 'next/headers'
+import { resolveWorkshopLocale } from '@/i18n/locale-from-request'
 import { createTranslator } from 'next-intl'
 import { getAuthContext } from '@/lib/get-auth-context'
 import { db } from '@/lib/db'
@@ -63,8 +63,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ? Math.max(1, Math.min(40, Math.round(copiesParam)))
       : defaultCopies(set.quantity)
 
-    const cookieStore = await cookies()
-    const locale = cookieStore.get('locale')?.value || 'en'
+    const locale = await resolveWorkshopLocale()
     // The namespace mixes strings and nested objects, so it is read loosely
     // and each value checked where it is used.
     let messages: Record<string, unknown>

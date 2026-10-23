@@ -1,3 +1,4 @@
+import { cookies, headers } from 'next/headers'
 import { db } from '@/lib/db'
 import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
 import { type Locale, defaultLocale, locales } from './config'
@@ -82,4 +83,18 @@ export async function resolveCustomerLocale(
   }
 
   return getBestLocaleFromHeader(acceptLanguageHeader) ?? defaultLocale
+}
+
+/**
+ * The language a workshop's own document is printed in.
+ *
+ * Resolved the same way the interface is: the chosen `locale` cookie, else the
+ * browser's Accept-Language, else the default. Reading only the cookie was why
+ * a Spanish UI (chosen by Accept-Language, with no cookie yet) printed English
+ * PDFs — the route fell back to `en`.
+ */
+export async function resolveWorkshopLocale(): Promise<Locale> {
+  const cookieLocale = (await cookies()).get('locale')?.value
+  if (locales.includes(cookieLocale as Locale)) return cookieLocale as Locale
+  return getBestLocaleFromHeader((await headers()).get('accept-language')) ?? defaultLocale
 }
