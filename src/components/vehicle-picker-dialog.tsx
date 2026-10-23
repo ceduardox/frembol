@@ -560,7 +560,10 @@ export function VehiclePickerDialog({
                       <SelectValue placeholder={t('selectCustomer')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__new__">
+                      <SelectItem
+                        value="__new__"
+                        className="bg-yellow-400/15 font-semibold text-amber-800 focus:bg-yellow-400/25 focus:text-amber-900 dark:text-yellow-300 dark:focus:text-yellow-200"
+                      >
                         <span className="flex items-center gap-1.5">
                           <UserPlus className="h-3.5 w-3.5" />
                           {t('createNewCustomer')}
