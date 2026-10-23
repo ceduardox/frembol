@@ -403,8 +403,6 @@
     "copied": "Copied",
     "shareWhatsapp": "Share on WhatsApp",
     "invalidMobile": "That does not look like a valid mobile number for the selected country.",
-    "appNotPublishedDesk": "The mobile app is not published yet. To give web access, add the person as a Team member and share their invitation link.",
-    "appNotPublishedTech": "The mobile app is not published yet. Ask your workshop for the invitation link to sign in on the web.",
     "invite": "Invite",
     "invited": "Member invited successfully.",
     "userNotFoundTitle": "User Not Found",

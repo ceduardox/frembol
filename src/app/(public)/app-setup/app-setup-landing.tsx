@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Download, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PLAY_STORE_URL, TECH_APP_PUBLISHED } from '@/lib/app-links'
+import { PLAY_STORE_URL } from '@/lib/app-links'
 
 /**
  * Reads the code out of the fragment and tells the technician what to do.
@@ -42,57 +42,43 @@ export function AppSetupLanding() {
           <span className="font-bold text-lg uppercase tracking-wider">Frembol</span>
         </div>
 
-        {TECH_APP_PUBLISHED && (
-          <>
-            <h1 className="pt-6 font-semibold text-xl">{t('team.setupPageTitle')}</h1>
-            <p className="pt-2 text-muted-foreground text-sm">{t('team.setupPageBody')}</p>
-          </>
-        )}
+        <h1 className="pt-6 font-semibold text-xl">{t('team.setupPageTitle')}</h1>
+        <p className="pt-2 text-muted-foreground text-sm">{t('team.setupPageBody')}</p>
 
-        {!TECH_APP_PUBLISHED ? (
-          <div className="mt-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-            {t('team.appNotPublishedTech')}
+        {display && (
+          <div className="mt-6 rounded-lg border bg-muted/40 p-4 text-center">
+            <p className="text-muted-foreground text-xs">{t('team.setupPageCode')}</p>
+            <p className="pt-1 font-mono font-semibold text-2xl tracking-[0.2em]">{display}</p>
           </div>
-        ) : (
-          <>
-            {display && (
-              <div className="mt-6 rounded-lg border bg-muted/40 p-4 text-center">
-                <p className="text-muted-foreground text-xs">{t('team.setupPageCode')}</p>
-                <p className="pt-1 font-mono font-semibold text-2xl tracking-[0.2em]">
-                  {display}
-                </p>
-              </div>
-            )}
-
-            {/* Opens the app when it is installed, and does nothing visible when it
-                is not, which is why the instruction above stands on its own and
-                this is the second thing on the page rather than the first. */}
-            {code && (
-              <Button
-                className="mt-4 w-full"
-                onClick={() => {
-                  window.location.href = `torqvoicetech://setup-code?code=${encodeURIComponent(code)}&url=${encodeURIComponent(window.location.origin)}`
-                }}
-              >
-                <Smartphone className="mr-2 h-4 w-4" />
-                {t('team.setupPageOpenApp')}
-              </Button>
-            )}
-
-            {/* For a phone that does not have it yet. The button above opens the
-                app and does nothing visible when it is missing, which is exactly
-                the moment somebody needs this. */}
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground"
-            >
-              <Download className="h-4 w-4" />
-              {t('team.setupPageInstall')}
-            </a>
-          </>
         )}
+
+        {/* Opens the app when it is installed, and does nothing visible when it
+            is not, which is why the instruction above stands on its own and
+            this is the second thing on the page rather than the first. */}
+        {code && (
+          <Button
+            className="mt-4 w-full"
+            onClick={() => {
+              window.location.href = `torqvoicetech://setup-code?code=${encodeURIComponent(code)}&url=${encodeURIComponent(window.location.origin)}`
+            }}
+          >
+            <Smartphone className="mr-2 h-4 w-4" />
+            {t('team.setupPageOpenApp')}
+          </Button>
+        )}
+
+        {/* For a phone that does not have it yet. The button above opens the
+            app and does nothing visible when it is missing, which is exactly
+            the moment somebody needs this. */}
+        <a
+          href={PLAY_STORE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-2 text-muted-foreground text-sm underline underline-offset-4 hover:text-foreground"
+        >
+          <Download className="h-4 w-4" />
+          {t('team.setupPageInstall')}
+        </a>
 
         <p className="pt-6 text-muted-foreground text-xs">{t('team.setupPageExpiry')}</p>
       </div>
