@@ -190,6 +190,9 @@ export function AddPersonDialog({
   // Team member
   const [email, setEmail] = useState('')
   const [roleValue, setRoleValue] = useState('member')
+  /** The link for a pending invitation, so it can be copied and shared by hand. */
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const reset = useCallback(() => {
     setKind(null)
@@ -202,6 +205,8 @@ export function AddPersonDialog({
     setClash(null)
     setScanned(false)
     setEmail('')
+    setInviteLink(null)
+    setCopied(false)
     setColor(BOARD_COLOURS[0])
     setRoleValue('member')
   }, [])
@@ -291,6 +296,7 @@ export function AddPersonDialog({
         return
       }
       onChanged()
+      setInviteLink(joined.data?.inviteLink ?? null)
       setStep('done')
       setBusy(false)
     },
@@ -705,6 +711,51 @@ export function AddPersonDialog({
                     : t('team.stepInvitedBody')}
               </p>
             </div>
+
+            {kind === 'member' && inviteLink && (
+              <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-left">
+                <p className="text-xs font-medium">{t('team.inviteLinkTitle')}</p>
+                <p className="text-[11px] text-muted-foreground">{t('team.inviteLinkHint')}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={inviteLink}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="h-8 text-[11px]"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(inviteLink)
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 1500)
+                      } catch {
+                        // Clipboard may be blocked; the field can be selected by hand.
+                      }
+                    }}
+                  >
+                    {copied ? t('team.copied') : t('team.copyLink')}
+                  </Button>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`${t('team.inviteLinkTitle')}: ${inviteLink}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('team.shareWhatsapp')}
+                  </a>
+                </Button>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={reset}>
                 {t('team.stepDoneAnother')}

@@ -61,6 +61,9 @@ export async function createAndSendInvitation(input: CreateInvitationInput) {
     },
   })
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const inviteLink = `${baseUrl}/auth/sign-up?invite=${token}`
+
   try {
     await sendInvitationMail({
       organizationId,
@@ -71,13 +74,14 @@ export async function createAndSendInvitation(input: CreateInvitationInput) {
       invitedById,
       expiresAt,
     })
-  } catch {
-    // Roll back the invitation record so the admin can retry.
-    await db.teamInvitation.delete({ where: { id: invitation.id } })
-    throw new Error('Failed to send invitation email. Please try again.')
+  } catch (error) {
+    // Best effort: the same link can be copied and shared by hand (WhatsApp),
+    // so a missing mail provider must not block adding somebody. The
+    // invitation stays pending until it is accepted or expires.
+    console.error('[invitation] email not sent; share the link manually', error)
   }
 
-  return invitation
+  return { invitation, inviteLink }
 }
 
 export type InvitationMailInput = {

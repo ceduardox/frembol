@@ -190,7 +190,7 @@ export async function inviteMember(input: unknown) {
       const seatsDirectly =
         !!invitedUser && (invitedUser.emailVerified || !(await emailVerificationRequired()))
       if (!seatsDirectly) {
-        await createAndSendInvitation({
+        const { inviteLink } = await createAndSendInvitation({
           organizationId,
           organizationName: membership.organization.name,
           invitedById: userId,
@@ -199,7 +199,7 @@ export async function inviteMember(input: unknown) {
           roleId: data.roleId,
         })
         revalidatePath('/settings/team')
-        return { invited: true, email: data.email, role: data.role }
+        return { invited: true, email: data.email, role: data.role, inviteLink }
       }
 
       const existingMembership = await db.organizationMember.findFirst({
@@ -219,7 +219,7 @@ export async function inviteMember(input: unknown) {
       })
 
       revalidatePath('/settings/team')
-      return { invited: true, email: data.email, role: data.role }
+      return { invited: true, email: data.email, role: data.role, inviteLink: null }
     },
     {
       requiredPermissions: [

@@ -34,9 +34,10 @@ export async function acceptInvitation(input: unknown) {
       return { success: false, error: 'This invitation has expired' }
     }
 
-    if (invitation.email !== session.user.email) {
-      return { success: false, error: 'This invitation was sent to a different email address' }
-    }
+    // The token is the permission now, not the address: a link copied and
+    // shared by hand (WhatsApp) is opened by the person it was meant for, who
+    // signs up with their own email. The invited address stays as a note on the
+    // pending row for the team page.
 
     // Check if already a member
     const existingMembership = await db.organizationMember.findFirst({
