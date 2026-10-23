@@ -4,9 +4,15 @@ import { memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Layers, Plus, Trash2, Wrench } from 'lucide-react'
+import { ChevronDown, Clock, Layers, Plus, Tag, Trash2, Wrench } from 'lucide-react'
 import { useFormatCurrency } from '@/components/currency-settings-context'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import type { QuoteLaborInput } from './quote-page-types'
 import { isShopFeeLine } from '@/features/settings/Lib/shopFee'
@@ -20,10 +26,12 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
   onUpdate,
   onDelete,
   tDescriptionPlaceholder,
-  tHourlyTag,
-  tServiceTag,
   tHourlyHint,
   tServiceHint,
+  tPerHour,
+  tFixedPrice,
+  tPerHourShort,
+  tFixedShort,
   tQty,
   tHours,
   tDeleteRow,
@@ -36,11 +44,13 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
   onUpdate: (index: number, field: keyof QuoteLaborInput, value: string | number | boolean) => void
   onDelete: (index: number) => void
   tDescriptionPlaceholder: string
-  tHourlyTag: string
-  tServiceTag: string
-  /** Each describes its own mode and says a click switches; shown on that mode's tag. */
+  /** Each describes its own mode; shown in the picker. */
   tHourlyHint: string
   tServiceHint: string
+  tPerHour: string
+  tFixedPrice: string
+  tPerHourShort: string
+  tFixedShort: string
   tQty: string
   tHours: string
   tDeleteRow: string
@@ -50,6 +60,12 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
   const isFee = isShopFeeLine(labor)
   const feeLocked = useShopFeeLocked()
   const formatCurrency = useFormatCurrency()
+
+  // Switching to a fixed price means one unit, so quantity x price = price.
+  const setPricing = (type: 'hourly' | 'service') => {
+    onUpdate(index, 'pricingType', type)
+    if (type === 'service') onUpdate(index, 'hours', 1)
+  }
 
   return (
     <div
@@ -64,22 +80,7 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/10 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
             {index + 1}
           </span>
-          {isFee ? (
-            <ShopFeeTag />
-          ) : (
-            <button
-              type="button"
-              className={`rounded-md border px-2 py-0.5 text-[11px] font-medium transition-all active:scale-95 ${
-                isService
-                  ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                  : 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-              }`}
-              onClick={() => onUpdate(index, 'pricingType', isService ? 'hourly' : 'service')}
-              title={isService ? tServiceHint : tHourlyHint}
-            >
-              {isService ? tServiceTag : tHourlyTag}
-            </button>
-          )}
+          {isFee && <ShopFeeTag />}
         </div>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
@@ -113,28 +114,15 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
           rows={1}
           className="min-h-9 flex-1 resize-none font-medium text-sm"
         />
-        <div className="hidden sm:block">
-          {isFee ? (
+        {isFee && (
+          <div className="hidden shrink-0 sm:block">
             <ShopFeeTag />
-          ) : (
-            <button
-              type="button"
-              className={`shrink-0 rounded-md border px-2 text-[10px] font-medium transition-all active:scale-95 ${
-                isService
-                  ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:border-blue-500/50'
-                  : 'border-muted text-muted-foreground hover:bg-muted hover:text-foreground hover:border-foreground/20'
-              }`}
-              onClick={() => onUpdate(index, 'pricingType', isService ? 'hourly' : 'service')}
-              title={isService ? tServiceHint : tHourlyHint}
-            >
-              {isService ? tServiceTag : tHourlyTag}
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Hours / Quantity */}
-      <div className="space-y-1 sm:space-y-0">
+      <div className={cn('space-y-1 sm:space-y-0', isService && 'opacity-70')}>
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
           {isService || isFee ? tQty : tHours}
         </span>
@@ -152,22 +140,59 @@ const QuoteLaborRow = memo(function QuoteLaborRow({
         />
       </div>
 
-      {/* Rate */}
+      {/* Rate / fixed price, with the charging mode as a suffix picker */}
       <div className="space-y-1 sm:space-y-0">
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
-          {`Tarifa (${cs})`}
+          {isService ? `${tFixedPrice} (${cs})` : `Tarifa (${cs})`}
         </span>
-        <Input
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="0.01"
-          value={labor.rate}
-          disabled={isFee && feeLocked}
-          onFocus={(e) => e.currentTarget.select()}
-          onChange={(e) => onUpdate(index, 'rate', e.target.value)}
-          className="h-8 sm:h-9 text-xs sm:text-sm"
-        />
+        <div className="relative">
+          <Input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={labor.rate}
+            disabled={isFee && feeLocked}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => onUpdate(index, 'rate', e.target.value)}
+            className="h-8 pr-12 text-xs sm:h-9 sm:pr-16 sm:text-sm"
+          />
+          {!isFee && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    'absolute top-1/2 right-1 flex h-6 -translate-y-1/2 items-center gap-0.5 rounded px-1.5 text-[10px] font-semibold transition-colors',
+                    isService
+                      ? 'bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 dark:text-blue-300'
+                      : 'bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 dark:text-amber-300'
+                  )}
+                  aria-label={isService ? tFixedPrice : tPerHour}
+                >
+                  {isService ? tFixedShort : tPerHourShort}
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => setPricing('hourly')}>
+                  <Clock className="mr-2 h-3.5 w-3.5" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{tPerHour}</span>
+                    <span className="text-[10px] text-muted-foreground">{tHourlyHint}</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPricing('service')}>
+                  <Tag className="mr-2 h-3.5 w-3.5" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{tFixedPrice}</span>
+                    <span className="text-[10px] text-muted-foreground">{tServiceHint}</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Total Display */}
@@ -313,10 +338,12 @@ export const QuoteLaborEditor = memo(function QuoteLaborEditor({
                   onUpdate={onUpdate}
                   onDelete={onDelete}
                   tDescriptionPlaceholder={t('labor.descriptionPlaceholder')}
-                  tHourlyTag={t('labor.hourlyTag')}
-                  tServiceTag={t('labor.serviceTag')}
                   tHourlyHint={t('labor.hourlyHint')}
                   tServiceHint={t('labor.serviceHint')}
+                  tPerHour={t('labor.perHour')}
+                  tFixedPrice={t('labor.fixedPrice')}
+                  tPerHourShort={t('labor.perHourShort')}
+                  tFixedShort={t('labor.fixedShort')}
                   tQty={t('labor.qty')}
                   tHours={t('labor.hours')}
                   tDeleteRow={t('labor.deleteRow')}

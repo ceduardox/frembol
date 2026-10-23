@@ -138,6 +138,10 @@
     "serviceTag": "SERV",
     "hourlyHint": "À l'heure : facturé selon les heures travaillées (heures × taux/h). Cliquez pour changer.",
     "serviceHint": "Forfait : facturé au prix fixe par unité. Cliquez pour changer.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Supprimer la ligne",
     "excludeFromTotal": "Exclure du total"
   },

@@ -138,6 +138,10 @@
     "serviceTag": "PSL",
     "hourlyHint": "Valandinis: skaičiuojama pagal darbo valandas (valandos × įkainis/val.). Spustelėkite, kad pakeistumėte.",
     "serviceHint": "Paslauga: apmokestinama fiksuota suma už vienetą. Spustelėkite, kad pakeistumėte.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Ištrinti eilutę",
     "excludeFromTotal": "Neįskaičiuoti į sumą"
   },

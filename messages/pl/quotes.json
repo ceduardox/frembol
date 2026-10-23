@@ -138,6 +138,10 @@
     "serviceTag": "SVC",
     "hourlyHint": "Godzinowo: liczone według przepracowanych godzin (godziny × stawka/godz.). Kliknij, aby zmienić.",
     "serviceHint": "Usługa: rozliczana jako stała opłata za jednostkę. Kliknij, aby zmienić.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Usuń wiersz",
     "excludeFromTotal": "Wyłącz z sumy"
   },

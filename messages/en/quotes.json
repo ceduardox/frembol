@@ -138,6 +138,10 @@
     "serviceTag": "SVC",
     "hourlyHint": "Hourly: priced by hours worked (hours × rate/hr). Click to switch.",
     "serviceHint": "Service: priced as a flat fee per unit. Click to switch.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Delete row",
     "excludeFromTotal": "Exclude from total"
   },

@@ -138,6 +138,10 @@
     "serviceTag": "SVC",
     "hourlyHint": "Timepris: beregnes etter arbeidede timer (timer × sats/t). Klikk for å bytte.",
     "serviceHint": "Fastpris: beregnes som en fast sum per enhet. Klikk for å bytte.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Slett rad",
     "excludeFromTotal": "Hold utenfor summen"
   },

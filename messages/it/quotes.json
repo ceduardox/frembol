@@ -138,6 +138,10 @@
     "serviceTag": "SVC",
     "hourlyHint": "A ore: calcolato sulle ore lavorate (ore × tariffa/h). Clicca per cambiare.",
     "serviceHint": "Servizio: addebitato come importo fisso per unità. Clicca per cambiare.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Elimina riga",
     "excludeFromTotal": "Escludi dal totale"
   },

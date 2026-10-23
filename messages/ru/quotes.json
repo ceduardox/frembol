@@ -138,6 +138,10 @@
     "serviceTag": "усл.",
     "hourlyHint": "Почасовая: оценка по нормо-часам (часы × ставка/час). Нажмите для изменения.",
     "serviceHint": "Услуга: фиксированная цена за единицу. Нажмите для изменения.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Удалить строку",
     "excludeFromTotal": "Не включать в итог"
   },

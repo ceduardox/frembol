@@ -138,6 +138,10 @@
     "serviceTag": "SVC",
     "hourlyHint": "Saatlik: çalışılan saate göre hesaplanır (saat × ücret/saat). Değiştirmek için tıklayın.",
     "serviceHint": "Hizmet: birim başına sabit ücret olarak hesaplanır. Değiştirmek için tıklayın.",
+    "perHour": "Per hour",
+    "fixedPrice": "Fixed price",
+    "perHourShort": "hr",
+    "fixedShort": "fixed",
     "deleteRow": "Satırı sil",
     "excludeFromTotal": "Toplama dahil etme"
   },
