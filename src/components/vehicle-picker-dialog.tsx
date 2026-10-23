@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { CatalogCombobox } from '@/features/vehicles/Components/CatalogCombobox'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -58,6 +59,7 @@ export function VehiclePickerDialog({
   const router = useRouter()
   const t = useTranslations('workOrders.vehiclePicker')
   const tc = useTranslations('common.buttons')
+  const tf = useTranslations('vehicles.form')
   const isMarine = useServiceType() === 'marine'
   // Every caller's own title speaks of vehicles, so a marine workshop gets the
   // picker's vessel title whatever was passed.
@@ -75,6 +77,46 @@ export function VehiclePickerDialog({
   const [newCustomerName, setNewCustomerName] = useState('')
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Make/model/year pick from the same catalogue the full vehicle form uses,
+  // so a quick "new work order" gets the same searchable dropdowns.
+  const [catalog, setCatalog] = useState<{ name: string; models: string[] }[]>([])
+  useEffect(() => {
+    if (!open || catalog.length > 0) return
+    let cancelled = false
+    fetch('/vehicle-catalog.json')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.makes) setCatalog(data.makes)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [open, catalog.length])
+
+  const makeOptions = useMemo(() => catalog.map((m) => m.name), [catalog])
+  const modelOptions = useMemo(() => {
+    const key = newMake.trim().toLowerCase()
+    if (!key) return [] as string[]
+    return catalog.find((m) => m.name.toLowerCase() === key)?.models ?? []
+  }, [catalog, newMake])
+  // Recomputed on every render so the list follows the current year (2026 →
+  // 2027) without anyone touching the code.
+  const yearOptions = (() => {
+    const current = new Date().getFullYear()
+    const years: string[] = []
+    for (let y = current + 1; y >= 1980; y--) years.push(String(y))
+    return years
+  })()
+  const handleMakeChange = (next: string) => {
+    setNewMake(next)
+    const key = next.trim().toLowerCase()
+    const list = catalog.find((m) => m.name.toLowerCase() === key)?.models ?? []
+    if (newModel && !list.some((mo) => mo.toLowerCase() === newModel.toLowerCase())) {
+      setNewModel('')
+    }
+  }
 
   const filteredVehicles = useMemo(() => {
     if (!vehicleSearch.trim()) return vehicles
@@ -414,34 +456,74 @@ export function VehiclePickerDialog({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-make">{isMarine ? t('makeMarine') : t('make')}</Label>
-                  <Input
-                    id="new-make"
-                    placeholder={isMarine ? 'e.g. Boston Whaler' : 'e.g. Toyota'}
-                    value={newMake}
-                    onChange={(e) => setNewMake(e.target.value)}
-                    autoFocus
-                  />
+                  {isMarine ? (
+                    <Input
+                      id="new-make"
+                      placeholder="e.g. Boston Whaler"
+                      value={newMake}
+                      onChange={(e) => setNewMake(e.target.value)}
+                      autoFocus
+                    />
+                  ) : (
+                    <CatalogCombobox
+                      id="new-make"
+                      value={newMake}
+                      onChange={handleMakeChange}
+                      options={makeOptions}
+                      placeholder="Toyota"
+                      icon="make"
+                      emptyLabel={tf('catalogEmpty')}
+                      useLabel={(v) => tf('catalogUse', { value: v })}
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="new-model">{t('model')}</Label>
-                  <Input
-                    id="new-model"
-                    placeholder={isMarine ? 'e.g. Montauk 170' : 'e.g. Camry'}
-                    value={newModel}
-                    onChange={(e) => setNewModel(e.target.value)}
-                  />
+                  {isMarine ? (
+                    <Input
+                      id="new-model"
+                      placeholder="e.g. Montauk 170"
+                      value={newModel}
+                      onChange={(e) => setNewModel(e.target.value)}
+                    />
+                  ) : (
+                    <CatalogCombobox
+                      id="new-model"
+                      value={newModel}
+                      onChange={setNewModel}
+                      options={modelOptions}
+                      placeholder="Camry"
+                      icon="model"
+                      emptyLabel={tf('catalogEmpty')}
+                      useLabel={(v) => tf('catalogUse', { value: v })}
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="new-year">{t('year')}</Label>
-                  <Input
-                    id="new-year"
-                    type="number"
-                    placeholder={`e.g. ${new Date().getFullYear()}`}
-                    value={newYear}
-                    onChange={(e) => setNewYear(e.target.value)}
-                  />
+                  {isMarine ? (
+                    <Input
+                      id="new-year"
+                      type="number"
+                      inputMode="numeric"
+                      placeholder={`e.g. ${new Date().getFullYear()}`}
+                      value={newYear}
+                      onChange={(e) => setNewYear(e.target.value)}
+                    />
+                  ) : (
+                    <CatalogCombobox
+                      id="new-year"
+                      value={newYear}
+                      onChange={setNewYear}
+                      options={yearOptions}
+                      placeholder={String(new Date().getFullYear())}
+                      icon="year"
+                      emptyLabel={tf('catalogEmpty')}
+                      useLabel={(v) => tf('catalogUse', { value: v })}
+                    />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="new-plate">
