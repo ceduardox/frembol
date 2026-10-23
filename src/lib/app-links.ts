@@ -11,3 +11,12 @@ export const PLAY_STORE_URL =
 
 /** The Android package, which is also what a deep link resolves against. */
 export const ANDROID_PACKAGE = 'com.torqvoice.technician'
+
+/**
+ * Whether the technician app is published to the stores yet.
+ *
+ * False until it ships: the app-only setup steps then hide their store links
+ * and point people at the web invitation instead of a dead end. Flip to true
+ * when the app is available.
+ */
+export const TECH_APP_PUBLISHED = false

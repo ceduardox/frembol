@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { QRCodeSVG } from 'qrcode.react'
-import { PLAY_STORE_URL } from '@/lib/app-links'
+import { PLAY_STORE_URL, TECH_APP_PUBLISHED } from '@/lib/app-links'
 import { Check, Copy, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -53,6 +53,14 @@ export function SetupCodeHandoff({
   }, [issued])
 
   if (error) return <p className="text-destructive text-sm">{error}</p>
+
+  if (!TECH_APP_PUBLISHED) {
+    return (
+      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+        {t('team.appNotPublishedDesk')}
+      </div>
+    )
+  }
 
   if (!issued) {
     return (
