@@ -379,9 +379,12 @@ export function VehiclePickerDialog({
                     </Button>
                   </>
                 ) : (
-                  <div className="space-y-3 rounded-md border p-3">
+                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 shadow-sm ring-1 ring-amber-500/20">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{t('newCustomer')}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                        <UserPlus className="h-4 w-4" />
+                        {t('newCustomer')}
+                      </p>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -572,9 +575,12 @@ export function VehiclePickerDialog({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="space-y-3 rounded-md border p-3">
+                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 shadow-sm ring-1 ring-amber-500/20">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{t('newCustomer')}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                        <UserPlus className="h-4 w-4" />
+                        {t('newCustomer')}
+                      </p>
                       <Button
                         variant="ghost"
                         size="sm"
