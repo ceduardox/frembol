@@ -33,6 +33,7 @@ import { QuoteDocumentsManager } from '@/features/quotes/Components/QuoteDocumen
 import {
   ArrowLeft,
   Camera,
+  Check,
   Download,
   Eye,
   FileText,
@@ -62,6 +63,7 @@ import { QuoteCustomerResponse } from './QuoteCustomerResponse'
 import { VehicleCombobox } from './VehicleCombobox'
 import { lineTotal } from '@/features/inventory/Lib/partPricing'
 import type { WarrantyTexts } from '@/lib/warranty'
+import { cn } from '@/lib/utils'
 
 const LG_BREAKPOINT = 1024
 
@@ -106,21 +108,14 @@ export function QuotePageClient({
 }: {
   quote: QuoteRecord
   organizationId: string
-  /**
-   * Required rather than defaulted: a call site that forgot to wire it would
-   * render a locked quote as editable, which is the trap this exists to close.
-   */
   lockState: LockState
   canUnlock: boolean
   currencyCode?: string
   defaultTaxRate?: number
   taxEnabled?: boolean
   defaultLaborRate?: number
-  /** The workshop's shop fee, for re-pricing a percentage one as lines change. */
   shopFee?: ShopFeeConfig | null
-  /** The workshop's stock warranty texts, for the warranty panel to fill in. */
   warrantyTexts: WarrantyTexts
-  /** 'km' or 'mi', as the workshop measures distance. */
   distanceUnit: string
   laborPresets?: LaborPresetOption[]
   inventoryParts?: InventoryPartOption[]
@@ -151,9 +146,6 @@ export function QuotePageClient({
 
   const hasConvertTargets = state.convertTargets.length > 0
 
-  // Sending is what can lock the quote — by email or by link — so the page is
-  // re-rendered to pick up the lock rather than leaving the fieldset open and
-  // the next autosave to be refused.
   const handleQuoteSent = useCallback(() => router.refresh(), [router])
 
   useSaveShortcut(() => {
@@ -222,10 +214,6 @@ export function QuotePageClient({
     router.refresh()
   }, [quote.id, router])
 
-  // A locked quote offers no editing, rather than letting someone retype a
-  // line and meet the refusal on save. The lock is a fieldset per column, not
-  // one around the whole tab: a disabled fieldset disables every button inside
-  // it as well, and converting the quote or copying its link is not an edit.
   const leftColumn = (
     <fieldset disabled={lockState.locked} className="min-w-0 space-y-3">
       <QuotePartsEditor
@@ -280,63 +268,85 @@ export function QuotePageClient({
 
   return (
     <ShopFeeProvider value={shopFee}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/10">
         {/* Header */}
-        <div className="shrink-0 border-b bg-background px-4 py-2">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0 border-b bg-background px-4 py-2.5 shadow-2xs">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <Link
               href="/quotes"
-              className="flex min-w-0 items-center gap-3 text-foreground transition-colors hover:text-muted-foreground"
+              className="group flex min-w-0 items-center gap-2.5 text-foreground transition-colors hover:text-muted-foreground"
             >
-              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-muted/40 transition-colors group-hover:bg-muted active:scale-95">
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className={`shrink-0 text-xs ${statusColors[state.status] || ''}`}
+                    className={`shrink-0 text-xs px-2 py-0.5 ${statusColors[state.status] || ''}`}
                   >
                     {quoteStatusLabel(state.status, tStatus)}
                   </Badge>
-                  <h1 className="truncate text-lg font-semibold leading-tight">{quote.title}</h1>
+                  <h1 className="truncate text-base sm:text-lg font-bold leading-tight tracking-tight">
+                    {quote.title}
+                  </h1>
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
-                  {quote.quoteNumber || t('page.quote')}
+                  <span className="font-mono">{quote.quoteNumber || t('page.quote')}</span>
                   {quote.customer ? ` · ${quote.customer.name}` : ''}
                 </p>
               </div>
             </Link>
+
             <div className="flex flex-wrap items-center gap-2">
+              {/* Header live total indicator */}
+              <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                <span className="text-[10px] uppercase text-emerald-600/80 dark:text-emerald-400/80 font-medium">
+                  Total:
+                </span>
+                <span className="font-bold text-sm text-emerald-700 dark:text-emerald-300">
+                  {formatCurrency(state.totalAmount, currencyCode)}
+                </span>
+              </div>
+
               {state.hasUnsavedChanges && (
-                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                   {t('page.unsavedChanges')}
                 </span>
               )}
               {state.showSaved && !state.hasUnsavedChanges && (
-                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <Check className="h-3 w-3" />
                   {t('page.saved')}
                 </span>
               )}
+
               <Button
                 type="submit"
                 form="quote-form"
                 size="sm"
                 disabled={state.saving}
                 variant={state.hasUnsavedChanges ? 'default' : 'outline'}
-                className={state.hasUnsavedChanges ? 'animate-pulse' : ''}
+                className={cn(
+                  'active:scale-95 transition-all',
+                  state.hasUnsavedChanges && 'shadow-xs font-semibold animate-pulse'
+                )}
               >
                 {state.saving ? (
                   <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Save className="mr-1 h-3.5 w-3.5" />
                 )}
-                {t('page.save')}
+                <span>{t('page.save')}</span>
               </Button>
+
               <ButtonGroup>
                 <Button
                   variant="outline"
                   size="sm"
                   aria-label={tPreview('preview')}
                   disabled={state.saving}
+                  className="active:scale-95"
                   onClick={async () => {
                     if (state.saving) return
                     if (state.hasUnsavedChanges) await state.saveNow()
@@ -350,6 +360,7 @@ export function QuotePageClient({
                   variant="outline"
                   size="sm"
                   aria-label={t('page.pdf')}
+                  className="active:scale-95"
                   onClick={state.handleDownloadPDF}
                   disabled={state.downloading}
                 >
@@ -364,6 +375,7 @@ export function QuotePageClient({
                   variant="outline"
                   size="sm"
                   aria-label={t('page.email')}
+                  className="active:scale-95"
                   disabled={state.saving}
                   onClick={async () => {
                     if (state.saving) return
@@ -382,6 +394,7 @@ export function QuotePageClient({
                   variant="outline"
                   size="sm"
                   aria-label={t('page.share')}
+                  className="active:scale-95"
                   disabled={state.saving}
                   onClick={async () => {
                     if (state.saving) return
@@ -400,7 +413,7 @@ export function QuotePageClient({
                   variant="outline"
                   size="sm"
                   aria-label={t('page.delete')}
-                  className="text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 active:scale-95"
                   onClick={state.handleDelete}
                 >
                   <Trash2 className="h-3.5 w-3.5 sm:mr-1" />
@@ -413,7 +426,7 @@ export function QuotePageClient({
 
         {/* Tabs */}
         <div className="shrink-0 border-b bg-background px-4">
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {[
               { key: 'details' as TabType, label: t('page.tabs.details'), icon: FileText },
               { key: 'images' as TabType, label: t('page.tabs.images'), icon: Camera },
@@ -423,9 +436,9 @@ export function QuotePageClient({
                 key={key}
                 type="button"
                 onClick={() => state.setActiveTab(key)}
-                className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 border-b-2 py-2 px-3 text-sm font-medium transition-all active:scale-95 ${
                   state.activeTab === key
-                    ? 'border-primary text-primary'
+                    ? 'border-primary text-primary font-semibold'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -436,7 +449,7 @@ export function QuotePageClient({
           </div>
         </div>
 
-        {/* Above everything else: it is usually why the quote was opened. */}
+        {/* Above everything else: Customer message / Response */}
         {quote.customerMessage &&
           !quote.responseDismissedAt &&
           (state.status === 'changes_requested' || state.status === 'accepted') && (
@@ -473,27 +486,59 @@ export function QuotePageClient({
           >
             {isLarge ? (
               <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-                <ResizablePanel defaultSize={75} minSize={40}>
+                <ResizablePanel defaultSize={72} minSize={40}>
                   <div className="h-full overflow-y-auto overscroll-contain p-4 pr-2">
-                    <div className="space-y-3 pb-40">{leftColumn}</div>
+                    <div className="space-y-3 pb-36">{leftColumn}</div>
                   </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={25} minSize={15}>
+                <ResizablePanel defaultSize={28} minSize={20}>
                   <div className="h-full overflow-y-auto overscroll-contain p-4 pl-2">
-                    <div className="space-y-3 pb-40">{rightColumn}</div>
+                    <div className="space-y-3 pb-36">{rightColumn}</div>
                   </div>
                 </ResizablePanel>
               </ResizablePanelGroup>
             ) : (
-              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <div className="space-y-3 pb-40">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4">
+                <div className="space-y-3 pb-36">
                   {leftColumn}
                   {rightColumn}
                 </div>
               </div>
             )}
           </form>
+        )}
+
+        {/* Mobile sticky bottom bar for quick feedback and instant save */}
+        {!isLarge && state.activeTab === 'details' && (
+          <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t bg-background/95 px-4 py-2.5 backdrop-blur-md shadow-lg sm:hidden">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground">Total Presupuesto</span>
+              <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(state.totalAmount, currencyCode)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                form="quote-form"
+                size="sm"
+                disabled={state.saving}
+                variant={state.hasUnsavedChanges ? 'default' : 'outline'}
+                className={cn(
+                  'active:scale-95 shadow-xs font-semibold',
+                  state.hasUnsavedChanges && 'animate-pulse'
+                )}
+              >
+                {state.saving ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="mr-1 h-3.5 w-3.5" />
+                )}
+                {t('page.save')}
+              </Button>
+            </div>
+          </div>
         )}
 
         {state.activeTab === 'images' && (
@@ -563,13 +608,14 @@ export function QuotePageClient({
           emailEnabled={emailEnabled}
         />
 
+        {/* Convert Modal with interactive selectable cards */}
         <Dialog open={state.showConvertDialog} onOpenChange={state.setShowConvertDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{t('page.convertTitle')}</DialogTitle>
+              <DialogTitle className="text-base font-bold">{t('page.convertTitle')}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t('page.convertChoiceDescription')}</p>
+            <div className="space-y-4 pt-1">
+              <p className="text-xs text-muted-foreground">{t('page.convertChoiceDescription')}</p>
               <VehicleCombobox
                 value={state.convertVehicleId}
                 initialVehicle={state.selectedVehicle}
@@ -577,44 +623,59 @@ export function QuotePageClient({
                 noneLabel={t('details.none')}
                 onChange={(id) => state.setConvertVehicleId(id)}
               />
-              <div className="space-y-2">
-                <label className="flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm">
+              <div className="space-y-2.5">
+                <label
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 text-sm transition-all hover:border-primary/50 active:scale-[0.99]',
+                    state.convertMode === 'new'
+                      ? 'border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/30'
+                      : 'border-border bg-card'
+                  )}
+                >
                   <input
                     type="radio"
                     name="convert-mode"
-                    className="mt-0.5"
+                    className="mt-0.5 text-primary"
                     checked={state.convertMode === 'new'}
                     onChange={() => state.setConvertMode('new')}
                   />
-                  <span className="font-medium">{t('page.convertNew')}</span>
+                  <div>
+                    <span className="font-semibold text-foreground block">{t('page.convertNew')}</span>
+                  </div>
                 </label>
+
                 <div
-                  className={`space-y-2 rounded-lg border p-3 text-sm ${
-                    hasConvertTargets ? '' : 'opacity-60'
-                  }`}
+                  className={cn(
+                    'space-y-2 rounded-xl border p-3.5 text-sm transition-all',
+                    state.convertMode === 'existing'
+                      ? 'border-primary bg-primary/5 shadow-2xs ring-1 ring-primary/30'
+                      : 'border-border bg-card',
+                    !hasConvertTargets && 'opacity-60'
+                  )}
                 >
                   <label
-                    className={`flex items-start gap-2 ${
+                    className={cn(
+                      'flex items-start gap-3',
                       hasConvertTargets ? 'cursor-pointer' : 'cursor-not-allowed'
-                    }`}
+                    )}
                   >
                     <input
                       type="radio"
                       name="convert-mode"
-                      className="mt-0.5"
+                      className="mt-0.5 text-primary"
                       checked={state.convertMode === 'existing'}
                       disabled={!hasConvertTargets}
                       onChange={() => state.setConvertMode('existing')}
                     />
-                    <span className="font-medium">{t('page.convertExisting')}</span>
+                    <span className="font-semibold text-foreground">{t('page.convertExisting')}</span>
                   </label>
                   {!hasConvertTargets && state.convertVehicleId && !state.loadingConvertTargets && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground pl-6">
                       {t('page.convertNoOpenWorkOrders')}
                     </p>
                   )}
                   {state.convertMode === 'existing' && hasConvertTargets && (
-                    <>
+                    <div className="space-y-2 pl-6 pt-1">
                       <Select
                         value={state.convertTargetId}
                         onValueChange={state.setConvertTargetId}
@@ -648,13 +709,15 @@ export function QuotePageClient({
                           distanceUnit={distanceUnit}
                         />
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex gap-2 pt-2">
                 <Button
                   type="button"
+                  className="flex-1 active:scale-95"
                   onClick={state.handleConvert}
                   disabled={
                     state.converting ||
@@ -671,6 +734,7 @@ export function QuotePageClient({
                 <Button
                   type="button"
                   variant="ghost"
+                  className="active:scale-95"
                   onClick={() => state.setShowConvertDialog(false)}
                 >
                   {t('page.cancel')}

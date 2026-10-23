@@ -57,8 +57,6 @@ const QuotePartRow = memo(function QuotePartRow({
   tExcludeFromTotal: string
 }) {
   const formatCurrency = useFormatCurrency()
-  // Content without a name would be silently dropped on save (name is
-  // required); flag it loudly instead
   const nameMissing =
     !part.name.trim() &&
     !!(
@@ -67,31 +65,54 @@ const QuotePartRow = memo(function QuotePartRow({
       Number(part.unitPrice) > 0 ||
       Number(part.total) > 0
     )
+
   return (
     <div
-      className={`grid grid-cols-2 gap-2 sm:grid-cols-[1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] ${part.excluded ? 'line-through opacity-50' : ''}`}
+      className={cn(
+        'grid grid-cols-2 sm:grid-cols-[1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] gap-2.5 sm:gap-2 items-start rounded-xl border border-border/80 bg-card/60 p-3 shadow-2xs sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none transition-all hover:border-sky-500/30',
+        part.excluded && 'opacity-60 line-through bg-muted/20'
+      )}
     >
-      <div className="flex flex-col gap-1">
-        <Input
-          placeholder={tPartNumber}
-          value={part.partNumber ?? ''}
-          onChange={(e) => onUpdate(index, 'partNumber', e.target.value)}
-        />
-        {/* The category decides which group the line prints under on a sheet
-            that groups its parts. A stocked part brings its own; a typed line
-            can be given one here. */}
-        <Input
-          list={categoryListId}
-          placeholder={tCategory}
-          aria-label={tCategory}
-          value={part.category ?? ''}
-          onChange={(e) => onUpdate(index, 'category', e.target.value)}
-          className="h-7 text-xs"
-        />
+      {/* Mobile Row Indicator & Exclude/Delete on small screens */}
+      <div className="col-span-2 flex items-center justify-between pb-1 sm:hidden">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/10 text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+            {index + 1}
+          </span>
+          {part.inventoryPartId && (
+            <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-600 dark:text-sky-400">
+              Stock
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={part.excluded ?? false}
+              onChange={(e) => onUpdate(index, 'excluded', e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-gray-300"
+            />
+            <span className="text-[11px]">{tExcludeFromTotal}</span>
+          </label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground hover:text-destructive active:scale-90"
+            onClick={() => onDelete(index)}
+            aria-label={tDeleteRow}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
-      <div className="relative">
-        {/* A textarea, as on the invoice: a part often needs a second line,
-            and it grows with what is typed rather than starting tall. */}
+
+      {/* Part Name & Suggestions (Full width on mobile, col 2 on desktop) */}
+      <div className="col-span-2 sm:col-span-1 sm:order-2 relative">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden block mb-1">
+          {tNamePlaceholder}
+        </span>
         <Textarea
           placeholder={tNamePlaceholder}
           value={part.name}
@@ -99,7 +120,7 @@ const QuotePartRow = memo(function QuotePartRow({
           rows={1}
           aria-invalid={nameMissing}
           className={cn(
-            'min-h-9 w-full resize-none',
+            'min-h-9 w-full resize-none font-medium text-sm',
             nameMissing && 'border-destructive focus-visible:ring-destructive'
           )}
         />
@@ -111,55 +132,119 @@ const QuotePartRow = memo(function QuotePartRow({
           onSelect={(picked) => onSelectSuggestion(index, picked)}
         />
       </div>
-      {/* The unit rides along from the stocked part; shown, not edited. */}
-      <div className="relative">
+
+      {/* Part Number & Category */}
+      <div className="col-span-2 sm:col-span-1 sm:order-1 flex flex-col gap-1">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+          {tPartNumber} / {tCategory}
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-1 gap-1.5 sm:gap-1">
+          <Input
+            placeholder={tPartNumber}
+            value={part.partNumber ?? ''}
+            onChange={(e) => onUpdate(index, 'partNumber', e.target.value)}
+            className="sm:h-9 h-8 text-xs"
+          />
+          <Input
+            list={categoryListId}
+            placeholder={tCategory}
+            aria-label={tCategory}
+            value={part.category ?? ''}
+            onChange={(e) => onUpdate(index, 'category', e.target.value)}
+            className="h-7 text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Quantity */}
+      <div className="space-y-1 sm:space-y-0 sm:order-3">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+          Cantidad
+        </span>
+        <div className="relative">
+          <Input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={part.quantity}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
+            className={cn('h-8 sm:h-9 text-xs sm:text-sm', part.unit && 'pr-9')}
+          />
+          {part.unit && (
+            <span className="pointer-events-none absolute right-2 top-1/2 max-w-8 -translate-y-1/2 truncate text-xs text-muted-foreground">
+              {part.unit}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Unit Cost */}
+      <div className="space-y-1 sm:space-y-0 sm:order-4">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+          Costo Unit.
+        </span>
         <Input
           type="number"
+          inputMode="decimal"
           min="0"
-          step="any"
-          value={part.quantity}
-          onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
-          className={cn(part.unit && 'pr-9')}
+          step="0.01"
+          value={part.unitCost}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onUpdate(index, 'unitCost', e.target.value)}
+          onBlur={(e) => onUpdate(index, 'unitCost', e.target.value, { commit: true })}
+          className="h-8 sm:h-9 text-xs sm:text-sm"
         />
-        {part.unit && (
-          <span className="pointer-events-none absolute right-2 top-1/2 max-w-8 -translate-y-1/2 truncate text-xs text-muted-foreground">
-            {part.unit}
-          </span>
-        )}
       </div>
-      <Input
-        type="number"
-        min="0"
-        step="0.01"
-        value={part.unitCost}
-        onChange={(e) => onUpdate(index, 'unitCost', e.target.value)}
-        // The margin is restated here rather than on each keystroke: a cost
-        // still being typed is not a cost anyone meant.
-        onBlur={(e) => onUpdate(index, 'unitCost', e.target.value, { commit: true })}
-      />
-      <Input
-        type="number"
-        min="0"
-        step="0.1"
-        value={part.markupPercent}
-        onChange={(e) => onUpdate(index, 'markupPercent', e.target.value)}
-      />
-      <Input
-        type="number"
-        min="0"
-        step="0.01"
-        value={part.unitPrice}
-        onChange={(e) => onUpdate(index, 'unitPrice', e.target.value)}
-      />
-      <div className="flex items-center rounded-md bg-muted/50 px-3 text-sm font-medium">
-        {formatCurrency(part.total, currencyCode)}
+
+      {/* Markup */}
+      <div className="space-y-1 sm:space-y-0 sm:order-5">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+          Margen %
+        </span>
+        <Input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.1"
+          value={part.markupPercent}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onUpdate(index, 'markupPercent', e.target.value)}
+          className="h-8 sm:h-9 text-xs sm:text-sm"
+        />
       </div>
-      <div className="flex items-center gap-1">
+
+      {/* Unit Price */}
+      <div className="space-y-1 sm:space-y-0 sm:order-6">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:hidden">
+          Precio Unit.
+        </span>
+        <Input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={part.unitPrice}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onUpdate(index, 'unitPrice', e.target.value)}
+          className="h-8 sm:h-9 text-xs sm:text-sm"
+        />
+      </div>
+
+      {/* Total Display */}
+      <div className="col-span-2 sm:col-span-1 sm:order-7 flex sm:h-9 items-center justify-between sm:justify-end rounded-md bg-sky-500/10 sm:bg-muted/40 px-3 py-1.5 sm:py-0 text-sm font-semibold text-sky-700 dark:text-sky-300 sm:text-foreground">
+        <span className="text-xs text-muted-foreground sm:hidden font-medium">Subtotal línea:</span>
+        <span>{formatCurrency(part.total, currencyCode)}</span>
+      </div>
+
+      {/* Desktop Exclude & Delete Controls */}
+      <div className="hidden sm:flex sm:order-8 items-center gap-1">
         <input
           type="checkbox"
           checked={part.excluded ?? false}
           onChange={(e) => onUpdate(index, 'excluded', e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
+          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
           title={tExcludeFromTotal}
           aria-label={tExcludeFromTotal}
         />
@@ -167,7 +252,7 @@ const QuotePartRow = memo(function QuotePartRow({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-destructive"
+          className="h-9 w-9 text-muted-foreground hover:text-destructive active:scale-90"
           onClick={() => onDelete(index)}
           aria-label={tDeleteRow}
         >
@@ -211,8 +296,6 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
   const [pickerOpen, setPickerOpen] = useState(false)
   const canPickFromStock = inventoryParts.length > 0 && !!onAddBulk
   const categoryListId = useId()
-  // The categories the stock already uses, offered as the line is typed, so a
-  // free-text part lands in the same group as the stocked ones.
   const categories = useMemo(
     () =>
       [
@@ -221,15 +304,9 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
     [inventoryParts]
   )
 
-  // Applying a suggestion touches five fields. onUpdate handles one at a time,
-  // so call it per field rather than leaving the row half-populated; the
-  // inventory link is what makes the job deduct stock on conversion.
   const handleSelectSuggestion = useCallback(
     (index: number, picked: PartSuggestion) => {
       const current = partItems[index]
-      // Derive from the row's own quantity so the line still satisfies
-      // total === quantity * unitPrice. Defaulting an empty or zero quantity
-      // to 1 would bill a total the row's own fields do not add up to.
       const quantity = parseQuantity(current?.quantity)
       const { unitPrice } = resolvePartPrice(picked)
       const unitCost = Number(picked.unitCost) || 0
@@ -247,20 +324,47 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
   )
 
   return (
-    <div className="rounded-lg border p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{t('parts.title')}</h3>
+    <div className="rounded-xl border border-sky-500/20 bg-card p-3 sm:p-4 space-y-3 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <Package className="h-4 w-4" />
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
+            {t('parts.title')}
+            {partItems.length > 0 && (
+              <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-600 dark:text-sky-400">
+                {partItems.length}
+              </span>
+            )}
+          </h3>
+        </div>
         <div className="flex items-center gap-2">
           {canPickFromStock && (
-            <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-              <Package className="mr-1 h-3.5 w-3.5" /> {t('parts.addFromInventory')}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPickerOpen(true)}
+              className="text-xs hover:border-sky-500/40 hover:bg-sky-500/5 active:scale-95"
+            >
+              <Package className="mr-1 h-3.5 w-3.5 text-sky-500" />
+              <span>{t('parts.addFromInventory')}</span>
             </Button>
           )}
-          <Button type="button" variant="outline" size="sm" onClick={onAdd}>
-            <Plus className="mr-1 h-3.5 w-3.5" /> {t('parts.addPart')}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onAdd}
+            className="text-xs hover:border-sky-500/40 hover:bg-sky-500/5 active:scale-95"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5 text-sky-500" />
+            <span>{t('parts.addPart')}</span>
           </Button>
         </div>
       </div>
+
       {partItems.length > 0 && (
         <>
           <datalist id={categoryListId}>
@@ -268,41 +372,49 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
               <option key={category} value={category} />
             ))}
           </datalist>
-          <div className="hidden grid-cols-[1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] gap-2 text-xs font-medium text-muted-foreground sm:grid">
+
+          {/* Desktop Table Headers */}
+          <div className="hidden grid-cols-[1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] gap-2 px-1 text-xs font-medium text-muted-foreground sm:grid">
             <span>{t('parts.partNumber')}</span>
             <span>{t('parts.name')}</span>
             <span>{t('parts.qty')}</span>
             <span>{t('parts.unitCost')}</span>
             <span>{t('parts.markupPercent')}</span>
             <span>{t('parts.unitPrice')}</span>
-            <span>{t('parts.total')}</span>
+            <span className="text-right">{t('parts.total')}</span>
             <span />
           </div>
-          {partItems.map((part, i) => (
-            <QuotePartRow
-              key={i}
-              part={part}
-              index={i}
-              currencyCode={currencyCode}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              inventoryParts={inventoryParts}
-              onSelectSuggestion={handleSelectSuggestion}
-              tPartNumber={t('parts.partNumber')}
-              tCategory={t('parts.category')}
-              categoryListId={categoryListId}
-              tNamePlaceholder={t('parts.namePlaceholder')}
-              tDeleteRow={t('parts.deleteRow')}
-              tExcludeFromTotal={t('parts.excludeFromTotal')}
-            />
-          ))}
+
+          <div className="space-y-2.5 sm:space-y-2">
+            {partItems.map((part, i) => (
+              <QuotePartRow
+                key={i}
+                part={part}
+                index={i}
+                currencyCode={currencyCode}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                inventoryParts={inventoryParts}
+                onSelectSuggestion={handleSelectSuggestion}
+                tPartNumber={t('parts.partNumber')}
+                tCategory={t('parts.category')}
+                categoryListId={categoryListId}
+                tNamePlaceholder={t('parts.namePlaceholder')}
+                tDeleteRow={t('parts.deleteRow')}
+                tExcludeFromTotal={t('parts.excludeFromTotal')}
+              />
+            ))}
+          </div>
+
           <button
             type="button"
-            className="flex w-full items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sky-500/30 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-sky-500/60 hover:bg-sky-500/5 hover:text-sky-600 active:scale-[0.99]"
             onClick={onAdd}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
+            <span>{t('parts.addPart')}</span>
           </button>
+
           {partItems.some(
             (p) =>
               !p.name.trim() &&
@@ -310,14 +422,23 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
                 Number(p.unitCost) > 0 ||
                 Number(p.unitPrice) > 0 ||
                 Number(p.total) > 0)
-          ) && <p className="text-xs text-destructive">{t('parts.nameMissingHint')}</p>}
-          <div className="flex justify-end pt-1 text-sm">
-            <span className="font-medium">
-              {t('parts.subtotal', { amount: formatCurrency(partsSubtotal, currencyCode) })}
-            </span>
+          ) && (
+            <p className="rounded-md bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+              {t('parts.nameMissingHint')}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end border-t border-border/50 pt-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase font-medium">Subtotal Repuestos:</span>
+              <span className="font-semibold text-sky-600 dark:text-sky-400">
+                {formatCurrency(partsSubtotal, currencyCode)}
+              </span>
+            </div>
           </div>
         </>
       )}
+
       {canPickFromStock && (
         <InventoryPickerDialog
           open={pickerOpen}
@@ -343,15 +464,36 @@ export const QuotePartsEditor = memo(function QuotePartsEditor({
           }}
         />
       )}
+
       {partItems.length === 0 && (
-        <button
-          type="button"
-          className="flex w-full items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
-          onClick={onAdd}
-        >
-          <Plus className="mr-1 h-4 w-4" />
-          <span className="text-sm">{t('parts.addPart')}</span>
-        </button>
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-sky-500/30 p-6 text-center">
+          <Package className="h-8 w-8 text-sky-500/50 mb-2" />
+          <p className="text-xs text-muted-foreground mb-3">{t('parts.title')}</p>
+          <div className="flex gap-2">
+            {canPickFromStock && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPickerOpen(true)}
+                className="text-xs hover:border-sky-500/40 active:scale-95"
+              >
+                <Package className="mr-1 h-3.5 w-3.5 text-sky-500" />
+                {t('parts.addFromInventory')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onAdd}
+              className="text-xs hover:border-sky-500/40 active:scale-95"
+            >
+              <Plus className="mr-1 h-3.5 w-3.5 text-sky-500" />
+              {t('parts.addPart')}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

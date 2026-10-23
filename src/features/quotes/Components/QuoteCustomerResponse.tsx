@@ -6,11 +6,6 @@ import { useFormatDate } from '@/lib/use-format-date'
 
 /**
  * What the customer said back, at the top of the quote.
- *
- * It used to sit in the right column below the details and the custom fields,
- * and below every line on a phone, so a workshop opening the quote from a
- * "Changes requested" notification had to scroll to find the one thing it came
- * for. It is not part of the form, so a locked quote leaves it usable.
  */
 export function QuoteCustomerResponse({
   status,
@@ -28,46 +23,45 @@ export function QuoteCustomerResponse({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: (key: string, values?: any) => string
 }) {
-  // The workshop's zone, so the server's render and the browser's agree.
   const { formatDateTime } = useFormatDate()
   const changes = status === 'changes_requested'
 
   return (
     <div
-      className={`rounded-lg border p-3 ${
+      className={`rounded-xl border p-3.5 shadow-2xs transition-all ${
         changes
-          ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20'
-          : 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20'
+          ? 'border-orange-500/30 bg-orange-500/10 dark:border-orange-500/20 dark:bg-orange-950/20'
+          : 'border-emerald-500/30 bg-emerald-500/10 dark:border-emerald-500/20 dark:bg-emerald-950/20'
       }`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
             <h3
-              className={`flex items-center gap-1.5 text-sm font-semibold ${
+              className={`flex items-center gap-1.5 text-sm font-bold ${
                 changes
                   ? 'text-orange-700 dark:text-orange-400'
                   : 'text-emerald-700 dark:text-emerald-400'
               }`}
             >
-              <MessageSquare className="h-3.5 w-3.5" />
+              <MessageSquare className="h-4 w-4" />
               {changes ? t('page.changesRequested') : t('page.quoteAccepted')}
             </h3>
             <span
               className={`text-xs ${
                 changes
-                  ? 'text-orange-500 dark:text-orange-500'
-                  : 'text-emerald-500 dark:text-emerald-500'
+                  ? 'text-orange-600/80 dark:text-orange-400/80'
+                  : 'text-emerald-600/80 dark:text-emerald-400/80'
               }`}
             >
               {formatDateTime(respondedAt)}
             </span>
           </div>
           <p
-            className={`whitespace-pre-line break-words text-sm ${
+            className={`whitespace-pre-line break-words text-sm font-medium ${
               changes
-                ? 'text-orange-600 dark:text-orange-400'
-                : 'text-emerald-600 dark:text-emerald-400'
+                ? 'text-orange-800 dark:text-orange-200'
+                : 'text-emerald-800 dark:text-emerald-200'
             }`}
           >
             &ldquo;{message}&rdquo;
@@ -77,14 +71,14 @@ export function QuoteCustomerResponse({
           type="button"
           variant="outline"
           size="sm"
-          className="shrink-0"
+          className="shrink-0 active:scale-95 transition-all text-xs"
           disabled={resolving}
           onClick={onResolve}
         >
           {resolving ? (
             <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Check className="mr-1 h-3.5 w-3.5" />
+            <Check className="mr-1 h-3.5 w-3.5 text-emerald-500" />
           )}
           {t('page.markResolved')}
         </Button>

@@ -70,7 +70,6 @@ export function QuoteShareDialog({
     const result = await generateQuotePublicLink(quoteId)
     if (result.success && result.data) {
       setPublicToken(result.data.token)
-      // Handing over a link is a way of sending the quote.
       onSent?.()
     }
     setGeneratingLink(false)
@@ -140,12 +139,9 @@ export function QuoteShareDialog({
 
     if (results.length > 0) {
       toast.success(results.join(' & '))
-      // Either channel re-issues the quote, and the lock may have engaged.
       onSent?.()
     }
     setSending(false)
-    // Done once everything ticked has gone. A channel that failed stays ticked
-    // and the dialog stays open, so it can be tried again.
     if (results.length > 0 && !failed) onOpenChange(false)
   }
 
@@ -156,39 +152,50 @@ export function QuoteShareDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
+            <Link2 className="h-5 w-5 text-primary" />
             {t('shareDialog.title')}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t('shareDialog.description')}</p>
+        <div className="space-y-4 pt-1">
+          <p className="text-xs text-muted-foreground">{t('shareDialog.description')}</p>
           {publicUrl ? (
             <>
-              <div className="flex items-center gap-2">
-                <Input value={publicUrl} readOnly className="text-xs font-mono" />
+              <div className="flex items-center gap-2 rounded-xl border bg-muted/40 p-1.5 pl-3">
+                <Input
+                  value={publicUrl}
+                  readOnly
+                  className="text-xs font-mono border-0 bg-transparent shadow-none focus-visible:ring-0 p-0 h-auto select-all"
+                />
                 <Button
-                  variant="outline"
-                  size="icon"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleCopy}
+                  className="shrink-0 active:scale-95 text-xs font-medium"
                   aria-label={t('shareDialog.copyLink')}
                 >
                   {copied ? (
-                    <Check className="h-4 w-4 text-emerald-500" />
+                    <>
+                      <Check className="mr-1 h-3.5 w-3.5 text-emerald-500" />
+                      <span>Copiado</span>
+                    </>
                   ) : (
-                    <Copy className="h-4 w-4" />
+                    <>
+                      <Copy className="mr-1 h-3.5 w-3.5" />
+                      <span>{t('shareDialog.copyLink')}</span>
+                    </>
                   )}
                 </Button>
               </div>
 
               {/* Notify customer */}
               {customer && (emailEnabled || smsEnabled) && (
-                <div className="space-y-3 rounded-lg border p-3">
-                  <p className="text-sm font-medium">
+                <div className="space-y-3 rounded-xl border border-border/80 bg-card p-3 sm:p-4 shadow-2xs">
+                  <p className="text-xs font-semibold text-foreground">
                     {t('shareDialog.notifyTitle', { name: customer.name })}
                   </p>
                   <div className="space-y-2">
                     {emailEnabled && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <Checkbox
                           id="notify-email-quote"
                           checked={notifyEmail}
@@ -197,11 +204,11 @@ export function QuoteShareDialog({
                         />
                         <Label
                           htmlFor="notify-email-quote"
-                          className={`flex items-center gap-1.5 text-sm ${!hasEmail ? 'text-muted-foreground/50' : ''}`}
+                          className={`flex items-center gap-1.5 text-xs cursor-pointer ${!hasEmail ? 'text-muted-foreground/50' : ''}`}
                         >
-                          <Mail className="h-3.5 w-3.5" />
-                          {t('shareDialog.email')}
-                          {!hasEmail && <span className="text-xs">{t('shareDialog.noEmail')}</span>}
+                          <Mail className="h-3.5 w-3.5 text-blue-500" />
+                          <span>{t('shareDialog.email')}</span>
+                          {!hasEmail && <span className="text-[10px] text-muted-foreground">({t('shareDialog.noEmail')})</span>}
                         </Label>
                       </div>
                     )}
@@ -216,7 +223,7 @@ export function QuoteShareDialog({
                       </div>
                     )}
                     {smsEnabled && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <Checkbox
                           id="notify-sms-quote"
                           checked={notifySms}
@@ -225,22 +232,21 @@ export function QuoteShareDialog({
                         />
                         <Label
                           htmlFor="notify-sms-quote"
-                          className={`flex items-center gap-1.5 text-sm ${!hasPhone ? 'text-muted-foreground/50' : ''}`}
+                          className={`flex items-center gap-1.5 text-xs cursor-pointer ${!hasPhone ? 'text-muted-foreground/50' : ''}`}
                         >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                          {t('shareDialog.sms')}
-                          {!hasPhone && <span className="text-xs">{t('shareDialog.noPhone')}</span>}
+                          <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                          <span>{t('shareDialog.sms')}</span>
+                          {!hasPhone && <span className="text-[10px] text-muted-foreground">({t('shareDialog.noPhone')})</span>}
                         </Label>
                       </div>
                     )}
                   </div>
-                  {/* Always here, disabled until a channel is ticked: it used to
-                      appear on the first tick and shove the dialog around. */}
+
                   <Button
                     size="sm"
                     onClick={handleNotify}
                     disabled={sending || !canNotify}
-                    className="w-full"
+                    className="w-full active:scale-95 transition-all"
                   >
                     {sending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
                     {t('shareDialog.sendNotification')}
@@ -251,14 +257,14 @@ export function QuoteShareDialog({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:bg-destructive/10 active:scale-95 text-xs"
                 onClick={handleRevoke}
               >
                 {t('shareDialog.revokeLink')}
               </Button>
             </>
           ) : (
-            <Button onClick={handleGenerate} disabled={generatingLink}>
+            <Button onClick={handleGenerate} disabled={generatingLink} className="w-full active:scale-95">
               {generatingLink && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('shareDialog.generateLink')}
             </Button>

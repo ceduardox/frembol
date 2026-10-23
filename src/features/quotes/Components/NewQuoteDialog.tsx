@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DocsLink } from '@/components/docs-link'
-import { Loader2 } from 'lucide-react'
+import { FileSignature, Loader2 } from 'lucide-react'
 import { createQuote } from '../Actions/quoteActions'
 import { VehicleCombobox } from './VehicleCombobox'
 import { CustomerCombobox } from './CustomerCombobox'
@@ -73,8 +73,6 @@ export function NewQuoteDialog({
       title: title.trim(),
       vehicleId: vehicleId || undefined,
       customerId: customerId || undefined,
-      // Midday keeps the quote on the day that was picked no matter which side
-      // of UTC the workshop sits on
       validUntil: defaultValidUntil ? `${defaultValidUntil}T12:00:00` : undefined,
       status: 'draft',
       subtotal: 0,
@@ -99,12 +97,19 @@ export function NewQuoteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>{t('form.newQuote')}</DialogTitle>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FileSignature className="h-4 w-4" />
+            </div>
+            <DialogTitle className="text-base font-bold">{t('form.newQuote')}</DialogTitle>
+          </div>
           <DocsLink href="/docs/features/quotes" variant="hint" className="self-start" />
         </DialogHeader>
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="new-quote-title">{t('details.titleLabel')}</Label>
+        <form onSubmit={handleCreate} className="space-y-4 pt-1">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-quote-title" className="text-xs text-muted-foreground">
+              {t('details.titleLabel')}
+            </Label>
             <Input
               id="new-quote-title"
               value={title}
@@ -115,8 +120,8 @@ export function NewQuoteDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('details.customer')}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t('details.customer')}</Label>
             <CustomerCombobox
               value={customerId}
               initialCustomer={customerId === defaultCustomer?.id ? defaultCustomer : null}
@@ -124,7 +129,6 @@ export function NewQuoteDialog({
               noneLabel={t('details.none')}
               onChange={(id) => {
                 setCustomerId(id)
-                // A vehicle belonging to another customer no longer fits
                 if (id && vehicleId && vehicleCustomerId !== id) {
                   setVehicleId('')
                   setVehicleCustomerId(null)
@@ -133,8 +137,8 @@ export function NewQuoteDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('details.vehicle')}</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">{t('details.vehicle')}</Label>
             <VehicleCombobox
               value={vehicleId}
               customerId={customerId || undefined}
@@ -151,11 +155,21 @@ export function NewQuoteDialog({
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2.5 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="active:scale-95"
+              onClick={() => onOpenChange(false)}
+            >
               {t('form.cancel')}
             </Button>
-            <Button data-save-shortcut type="submit" disabled={creating || !title.trim()}>
+            <Button
+              data-save-shortcut
+              type="submit"
+              disabled={creating || !title.trim()}
+              className="active:scale-95"
+            >
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('form.createQuote')}
             </Button>

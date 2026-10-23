@@ -13,7 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowRight, Car, ClipboardCheck, Users, X } from 'lucide-react'
+import {
+  ArrowRight,
+  Calculator,
+  Car,
+  ClipboardCheck,
+  FileSpreadsheet,
+  Users,
+  X,
+} from 'lucide-react'
 import { SharedLinkCard } from '@/components/shared-link-card'
 import { useFormatCurrency } from '@/components/currency-settings-context'
 import { netLineTotal } from '@/lib/tax'
@@ -45,6 +53,16 @@ interface QuoteRightColumnProps {
   lockReason: LockReason | null
 }
 
+const statusDots: Record<string, string> = {
+  draft: 'bg-slate-400',
+  sent: 'bg-blue-500',
+  accepted: 'bg-emerald-500',
+  rejected: 'bg-rose-500',
+  expired: 'bg-amber-500',
+  converted: 'bg-violet-500',
+  changes_requested: 'bg-orange-500',
+}
+
 export const QuoteRightColumn = memo(function QuoteRightColumn({
   state,
   quote,
@@ -60,21 +78,20 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
   const [validUntil, setValidUntil] = useState(state.defaultValidDate)
   const locked = lockReason !== null
   const statusAllowed = (value: string) => !lockReason || quoteStatusKeepsLock(lockReason, value)
+
   return (
-    // Gaps rather than space-y: the fieldsets below are display:contents, and
-    // a margin on one of those spaces nothing.
     <div className="flex flex-col gap-3">
-      {/* Convert to Work Order */}
+      {/* Convert to Work Order CTA */}
       {quote.status !== 'converted' && (
-        <div className="rounded-lg border p-3">
+        <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-3 shadow-2xs">
           <Button
             type="button"
-            variant="outline"
             size="sm"
-            className="w-full"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs active:scale-[0.98] transition-all"
             onClick={() => state.setShowConvertDialog(true)}
           >
-            <ArrowRight className="mr-1 h-3.5 w-3.5" /> {t('page.convertToWorkOrder')}
+            <ArrowRight className="mr-1.5 h-4 w-4" />
+            <span>{t('page.convertToWorkOrder')}</span>
           </Button>
         </div>
       )}
@@ -92,14 +109,20 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
         />
       )}
 
-      {/* The fields that edit the quote sit in fieldsets a lock disables. The
-          actions do not: converting, the shared link and the status, because a
-          disabled fieldset disables the buttons inside it too. */}
+      {/* Vehicle & Customer */}
       <fieldset disabled={locked} className="contents">
-        {/* Vehicle & Customer */}
-        <div className="rounded-lg border p-3 space-y-3">
+        <div className="rounded-xl border border-border/80 bg-card p-3 sm:p-4 space-y-3 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Users className="h-4 w-4" />
+            </div>
+            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+              {t('details.customer')} & {t('details.vehicle')}
+            </h3>
+          </div>
+
           <div className="space-y-1">
-            <Label className="text-xs">{t('details.customer')}</Label>
+            <Label className="text-xs text-muted-foreground">{t('details.customer')}</Label>
             <CustomerCombobox
               value={state.customerId}
               initialCustomer={state.selectedCustomer}
@@ -108,7 +131,6 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
               onChange={(id, customer) => {
                 state.setCustomerId(id)
                 state.setSelectedCustomer(customer)
-                // A vehicle belonging to another customer no longer fits
                 if (id && state.selectedVehicle && state.selectedVehicle.customerId !== id) {
                   state.setVehicleId('')
                   state.setSelectedVehicle(null)
@@ -117,26 +139,27 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
               }}
             />
           </div>
+
           {state.selectedCustomer && (
-            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-              <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 transition-colors">
+              <Users className="h-4 w-4 shrink-0 text-blue-500" />
               <Link
                 href={`/customers/${state.selectedCustomer.id}`}
                 target="_blank"
-                className="min-w-0 flex-1 text-sm hover:underline"
+                className="min-w-0 flex-1 text-sm font-medium hover:underline text-foreground"
               >
-                <span className="font-medium">{state.selectedCustomer.name}</span>
+                <span className="truncate">{state.selectedCustomer.name}</span>
                 {state.selectedCustomer.company && (
-                  <span className="ml-1.5 text-muted-foreground">
-                    {state.selectedCustomer.company}
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({state.selectedCustomer.company})
                   </span>
                 )}
               </Link>
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                size="icon-xs"
+                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground active:scale-90"
                 onClick={() => {
                   state.setCustomerId('')
                   state.setSelectedCustomer(null)
@@ -148,8 +171,9 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
               </Button>
             </div>
           )}
+
           <div className="space-y-1">
-            <Label className="text-xs">{t('details.vehicle')}</Label>
+            <Label className="text-xs text-muted-foreground">{t('details.vehicle')}</Label>
             <VehicleCombobox
               value={state.vehicleId}
               customerId={state.customerId || undefined}
@@ -173,20 +197,21 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
               }}
             />
           </div>
+
           {state.selectedVehicle && (
-            <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-              <Car className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 transition-colors">
+              <Car className="h-4 w-4 shrink-0 text-indigo-500" />
               <Link
                 href={`/vehicles/${state.selectedVehicle.id}`}
                 target="_blank"
-                className="min-w-0 flex-1 text-sm hover:underline"
+                className="min-w-0 flex-1 text-sm font-medium hover:underline text-foreground"
               >
-                <span className="font-medium">
+                <span>
                   {state.selectedVehicle.year} {state.selectedVehicle.make}{' '}
                   {state.selectedVehicle.model}
                 </span>
                 {state.selectedVehicle.licensePlate && (
-                  <span className="ml-1.5 text-muted-foreground">
+                  <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">
                     {state.selectedVehicle.licensePlate}
                   </span>
                 )}
@@ -194,8 +219,8 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                size="icon-xs"
+                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground active:scale-90"
                 onClick={() => {
                   state.setVehicleId('')
                   state.setSelectedVehicle(null)
@@ -211,11 +236,17 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
       </fieldset>
 
       {/* Quote Details */}
-      <div className="flex flex-col gap-3 rounded-lg border p-3">
-        <h3 className="text-sm font-semibold">{t('details.title')}</h3>
+      <div className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card p-3 sm:p-4 shadow-2xs">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <FileSpreadsheet className="h-4 w-4" />
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">{t('details.title')}</h3>
+        </div>
+
         <fieldset disabled={locked} className="contents">
           <div className="space-y-1">
-            <Label htmlFor="title" className="text-xs">
+            <Label htmlFor="title" className="text-xs text-muted-foreground">
               {t('details.titleLabel')}
             </Label>
             <Input
@@ -228,46 +259,65 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
             />
           </div>
         </fieldset>
+
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <Label className="text-xs">{t('details.status')}</Label>
+            <Label className="text-xs text-muted-foreground">{t('details.status')}</Label>
             <Select
               value={state.status}
               onValueChange={state.changeStatus}
               disabled={state.changingStatus}
             >
-              <SelectTrigger aria-label={t('details.status')}>
-                <SelectValue />
+              <SelectTrigger aria-label={t('details.status')} className="h-9">
+                <div className="flex items-center gap-2 truncate">
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${statusDots[state.status] || 'bg-slate-400'}`} />
+                  <SelectValue />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft" disabled={!statusAllowed('draft')}>
-                  {t('details.statusDraft')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-slate-400" />
+                    <span>{t('details.statusDraft')}</span>
+                  </div>
                 </SelectItem>
                 <SelectItem value="sent" disabled={!statusAllowed('sent')}>
-                  {t('details.statusSent')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span>{t('details.statusSent')}</span>
+                  </div>
                 </SelectItem>
                 <SelectItem value="accepted" disabled={!statusAllowed('accepted')}>
-                  {t('details.statusAccepted')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>{t('details.statusAccepted')}</span>
+                  </div>
                 </SelectItem>
                 <SelectItem value="rejected" disabled={!statusAllowed('rejected')}>
-                  {t('details.statusRejected')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    <span>{t('details.statusRejected')}</span>
+                  </div>
                 </SelectItem>
-                {/* Statuses the customer or a conversion sets, never picked by
-                      hand. Listed so the select can show them: with no option
-                      to match, it reports an empty value and the page would
-                      save a status the server refuses. */}
                 <SelectItem value="changes_requested" disabled>
-                  {t('page.changesRequested')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
+                    <span>{t('page.changesRequested')}</span>
+                  </div>
                 </SelectItem>
                 <SelectItem value="converted" disabled>
-                  {t('list.statusConverted')}
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-violet-500" />
+                    <span>{t('list.statusConverted')}</span>
+                  </div>
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
+
           <fieldset disabled={locked} className="contents">
             <div className="space-y-1">
-              <Label htmlFor="validUntil" className="text-xs">
+              <Label htmlFor="validUntil" className="text-xs text-muted-foreground">
                 {t('details.validUntil')}
               </Label>
               <DateInput
@@ -282,12 +332,13 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
             </div>
           </fieldset>
         </div>
+
         {quote.inspectionId && (
           <Link
             href={`/inspections/${quote.inspectionId}`}
-            className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50"
           >
-            <ClipboardCheck className="h-3.5 w-3.5 shrink-0" />
+            <ClipboardCheck className="h-4 w-4 shrink-0 text-primary" />
             <span>{t('details.viewInspection')}</span>
           </Link>
         )}
@@ -303,11 +354,9 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
         />
       </fieldset>
 
-      {/* Totals */}
+      {/* Totals Summary Card with guided colors and numeric keypad */}
       <fieldset disabled={locked} className="contents">
         {(() => {
-          // Universal display: net per category, net subtotal, net discount, tax, gross total.
-          // Same layout as the quote PDF/share view so the user always sees the breakdown.
           const displayPartsSubtotal = netLineTotal(
             state.partsSubtotal,
             state.taxRate,
@@ -324,27 +373,38 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
             state.taxRate,
             state.taxInclusive
           )
+
           return (
-            <div className="rounded-lg border p-3 space-y-2">
-              <h3 className="text-sm font-semibold">{t('totals.title')}</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('totals.parts')}</span>
-                  <span>{formatCurrency(displayPartsSubtotal, currencyCode)}</span>
+            <div className="rounded-xl border border-emerald-500/25 bg-gradient-to-b from-card to-emerald-500/5 p-3 sm:p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <Calculator className="h-4 w-4" />
+                  </div>
+                  <h3 className="text-sm font-semibold tracking-tight text-foreground">{t('totals.title')}</h3>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{t('totals.labor')}</span>
-                  <span>{formatCurrency(displayLaborSubtotal, currencyCode)}</span>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>{t('totals.parts')}</span>
+                  <span className="font-medium text-foreground">{formatCurrency(displayPartsSubtotal, currencyCode)}</span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>{t('totals.labor')}</span>
+                  <span className="font-medium text-foreground">{formatCurrency(displayLaborSubtotal, currencyCode)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-border/50 pt-1.5 font-medium">
                   <span className="text-muted-foreground">{t('totals.subtotal')}</span>
-                  <span className="font-medium">
+                  <span className="text-foreground">
                     {formatCurrency(displaySubtotal, currencyCode)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{t('totals.discount')}</span>
+
+                {/* Discount */}
+                <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">{t('totals.discount')}</span>
                     <Select
                       value={state.discountType}
                       onValueChange={(v) => {
@@ -352,7 +412,7 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
                         state.markDirty()
                       }}
                     >
-                      <SelectTrigger className="h-7 w-28 text-xs">
+                      <SelectTrigger className="h-7 w-26 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -362,65 +422,82 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
                       </SelectContent>
                     </Select>
                     {state.discountType !== 'none' && (
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={state.discountValue}
-                        onChange={(e) => {
-                          state.setDiscountValue(e.target.value === '' ? 0 : Number(e.target.value))
-                          state.markDirty()
-                        }}
-                        className="h-7 w-20 text-right text-xs"
-                      />
-                    )}
-                    {state.discountType === 'percentage' && (
-                      <span className="text-muted-foreground">%</span>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          value={state.discountValue}
+                          onChange={(e) => {
+                            state.setDiscountValue(e.target.value === '' ? 0 : Number(e.target.value))
+                            state.markDirty()
+                          }}
+                          className="h-7 w-20 text-right text-xs pr-4"
+                        />
+                        {state.discountType === 'percentage' && (
+                          <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                            %
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   {displayDiscountAmount > 0 && (
-                    <span className="text-destructive">
+                    <span className="font-medium text-destructive">
                       {formatCurrency(-displayDiscountAmount, currencyCode)}
                     </span>
                   )}
                 </div>
+
+                {/* Tax */}
                 {state.taxEnabled && state.taxComponents && state.taxComponents.length > 0 ? (
                   state.taxComponents.map((component) => (
                     <div
                       key={component.name}
-                      className="flex items-center justify-between text-sm"
+                      className="flex items-center justify-between text-xs text-muted-foreground"
                       data-testid="tax-component-row"
                     >
-                      <span className="text-muted-foreground">{taxComponentLabel(component)}</span>
-                      <span>{formatCurrency(component.amount, currencyCode)}</span>
+                      <span>{taxComponentLabel(component)}</span>
+                      <span className="font-medium text-foreground">{formatCurrency(component.amount, currencyCode)}</span>
                     </div>
                   ))
                 ) : state.taxEnabled ? (
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{t('totals.tax')}</span>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={state.taxRate}
-                        onChange={(e) => {
-                          state.setTaxRate(e.target.value === '' ? 0 : Number(e.target.value))
-                          state.markDirty()
-                        }}
-                        className="h-7 w-20 text-right text-xs"
-                      />
-                      <span className="text-muted-foreground">%</span>
+                  <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">{t('totals.tax')}</span>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.1"
+                          value={state.taxRate}
+                          onChange={(e) => {
+                            state.setTaxRate(e.target.value === '' ? 0 : Number(e.target.value))
+                            state.markDirty()
+                          }}
+                          className="h-7 w-16 text-right text-xs pr-4"
+                        />
+                        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                          %
+                        </span>
+                      </div>
                     </div>
-                    <span>{formatCurrency(state.taxAmount, currencyCode)}</span>
+                    <span className="font-medium text-foreground">{formatCurrency(state.taxAmount, currencyCode)}</span>
                   </div>
                 ) : null}
-                <div className="flex items-center justify-between border-t pt-2 text-lg font-bold">
-                  <span>{t('totals.total')}</span>
-                  <span>{formatCurrency(state.totalAmount, currencyCode)}</span>
+
+                {/* Grand Total */}
+                <div className="flex items-center justify-between border-t-2 border-emerald-500/30 pt-3">
+                  <span className="text-base font-bold text-foreground">{t('totals.total')}</span>
+                  <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(state.totalAmount, currencyCode)}
+                  </span>
                 </div>
+
                 {state.taxInclusive && (
-                  <p className="text-xs text-muted-foreground italic">
+                  <p className="text-[11px] text-muted-foreground italic">
                     {t('totals.inclusiveModeHint')}
                   </p>
                 )}
@@ -430,7 +507,7 @@ export const QuoteRightColumn = memo(function QuoteRightColumn({
         })()}
       </fieldset>
 
-      {/* Warranty: what the customer is offered, stated before they accept */}
+      {/* Warranty */}
       <fieldset disabled={locked} className="contents">
         <WarrantySection
           value={state.warranty}

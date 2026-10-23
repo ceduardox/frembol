@@ -93,13 +93,13 @@ export interface QuoteRecord {
 }
 
 export const statusColors: Record<string, string> = {
-  draft: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-  sent: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  accepted: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  rejected: 'bg-red-500/10 text-red-500 border-red-500/20',
-  expired: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  converted: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  changes_requested: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  draft: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30 font-medium',
+  sent: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 font-medium',
+  accepted: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-medium',
+  rejected: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30 font-medium',
+  expired: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 font-medium',
+  converted: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30 font-medium',
+  changes_requested: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30 font-medium',
 }
 
 export const emptyPart = (): QuotePartInput => ({
@@ -120,9 +120,9 @@ export const emptyPart = (): QuotePartInput => ({
 
 export const makeEmptyLabor = (defaultRate: number): QuoteLaborInput => ({
   description: '',
-  hours: 0,
+  hours: 1,
   rate: defaultRate,
-  total: 0,
+  total: defaultRate,
   pricingType: 'hourly',
   excluded: false,
 })
