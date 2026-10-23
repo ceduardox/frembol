@@ -379,9 +379,9 @@ export function VehiclePickerDialog({
                     </Button>
                   </>
                 ) : (
-                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 shadow-sm ring-1 ring-amber-500/20">
+                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 p-3 shadow-sm ring-2 ring-yellow-400/40">
                     <div className="flex items-center justify-between">
-                      <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-amber-800 dark:text-yellow-300">
                         <UserPlus className="h-4 w-4" />
                         {t('newCustomer')}
                       </p>
@@ -575,9 +575,9 @@ export function VehiclePickerDialog({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 shadow-sm ring-1 ring-amber-500/20">
+                  <div className="animate-in fade-in-0 slide-in-from-top-1 space-y-3 rounded-lg border-2 border-yellow-400 bg-yellow-400/15 p-3 shadow-sm ring-2 ring-yellow-400/40">
                     <div className="flex items-center justify-between">
-                      <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-amber-800 dark:text-yellow-300">
                         <UserPlus className="h-4 w-4" />
                         {t('newCustomer')}
                       </p>
