@@ -31,11 +31,13 @@ export function CountryPicker({
   value,
   onChange,
   disabled,
+  className,
 }: {
   /** ISO region code, not a dial code: Canada and the US are both +1. */
   value: string
   onChange: (region: string) => void
   disabled?: boolean
+  className?: string
 }) {
   const t = useTranslations('settings')
   const locale = useLocale()
@@ -55,14 +57,16 @@ export function CountryPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between font-normal"
+          className={cn('w-full justify-between font-normal', className)}
         >
           {selected ? (
-            <span>
+            <span className="min-w-0 flex-1 truncate text-left">
               {selected.name} <span className="text-muted-foreground">({selected.dial})</span>
             </span>
           ) : (
-            <span className="text-muted-foreground">{t('team.workshopCountryPlaceholder')}</span>
+            <span className="truncate text-muted-foreground">
+              {t('team.workshopCountryPlaceholder')}
+            </span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>

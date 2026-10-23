@@ -180,6 +180,7 @@ export function AddPersonDialog({
   // Technician
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
   const [created, setCreated] = useState<{ userId: string; name: string } | null>(null)
   const [issued, setIssued] = useState<IssuedCode | null>(null)
   /** Somebody here already holds that number. Their name, for the question. */
@@ -193,6 +194,7 @@ export function AddPersonDialog({
   /** The link for a pending invitation, so it can be copied and shared by hand. */
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [credentialsCopied, setCredentialsCopied] = useState(false)
 
   const reset = useCallback(() => {
     setKind(null)
@@ -200,6 +202,7 @@ export function AddPersonDialog({
     setError(null)
     setName('')
     setPhone('')
+    setPassword('')
     setCreated(null)
     setIssued(null)
     setClash(null)
@@ -207,6 +210,7 @@ export function AddPersonDialog({
     setEmail('')
     setInviteLink(null)
     setCopied(false)
+    setCredentialsCopied(false)
     setColor(BOARD_COLOURS[0])
     setRoleValue('member')
   }, [])
@@ -224,6 +228,9 @@ export function AddPersonDialog({
     setKind(next)
     setStep('details')
     setError(null)
+    // A password is pre-filled so web access never lands as an afterthought
+    // the desk forgot to configure; it stays editable.
+    if (next === 'technician') setPassword((current) => current || generatePassword())
   }, [])
 
   const addTechnician = useCallback(
@@ -237,6 +244,7 @@ export function AddPersonDialog({
         phone: phone.trim(),
         resolve,
         dialCode: country || undefined,
+        password: password || undefined,
       })
       if (!result.success) {
         const message = result.error || ''
@@ -274,7 +282,7 @@ export function AddPersonDialog({
       else setError(code.error || t('team.setupAppFailed'))
       setBusy(false)
     },
-    [busy, name, phone, country, onChanged, t]
+    [busy, name, phone, password, country, onChanged, t]
   )
 
   const addMember = useCallback(
@@ -487,6 +495,30 @@ export function AddPersonDialog({
               <p className="text-muted-foreground text-xs">{t('team.addTechnicianNote')}</p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="tech-password">{t('team.technicianPassword')}</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="tech-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  className="font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPassword(generatePassword())}
+                  disabled={busy}
+                >
+                  {t('team.technicianPasswordGenerate')}
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-xs">{t('team.technicianPasswordHint')}</p>
+            </div>
+
             {error && <p className="text-destructive text-sm">{error}</p>}
 
             <Footer
@@ -497,7 +529,7 @@ export function AddPersonDialog({
               }}
               submitLabel={t('team.addTechnicianSubmit')}
               busy={busy}
-              disabled={!name.trim() || !phone.trim()}
+              disabled={!name.trim() || !phone.trim() || password.length < 8}
             />
           </form>
         )}
@@ -681,6 +713,36 @@ export function AddPersonDialog({
         {step === 'handoff' && (
           <>
             <StepIntro title={t('team.techHandoffTitle')} blurb={t('team.techHandoffBlurb')} />
+
+            <div className="space-y-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-left">
+              <p className="text-xs font-medium">{t('team.webAccessTitle')}</p>
+              <p className="text-[11px] text-muted-foreground">{t('team.webAccessHint')}</p>
+              <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-sm">
+                <span className="text-muted-foreground">{t('team.technicianPhone')}</span>
+                <span className="font-medium tabular-nums">{preview}</span>
+                <span className="text-muted-foreground">{t('team.technicianPassword')}</span>
+                <span className="font-mono font-medium">{password}</span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  const text = `${t('team.webAccessTitle')}\n${workshopUrl}/auth/phone\n${t('team.technicianPhone')}: ${preview}\n${t('team.technicianPassword')}: ${password}`
+                  try {
+                    await navigator.clipboard.writeText(text)
+                    setCredentialsCopied(true)
+                    setTimeout(() => setCredentialsCopied(false), 1500)
+                  } catch {
+                    // Clipboard may be blocked; the fields can be read by hand.
+                  }
+                }}
+              >
+                {credentialsCopied ? t('team.copied') : t('team.copyCredentials')}
+              </Button>
+            </div>
+
             <SetupCodeHandoff
               issued={issued}
               error={error}
@@ -812,6 +874,16 @@ function ChoiceButton({
       </span>
     </button>
   )
+}
+
+/** A readable password the desk can dictate: no ambiguous characters. */
+function generatePassword() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789'
+  const bytes = new Uint8Array(10)
+  crypto.getRandomValues(bytes)
+  let out = ''
+  for (const b of bytes) out += alphabet[b % alphabet.length]
+  return out
 }
 
 function Footer({

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Fingerprint, Loader2, PlayCircle, XCircle } from 'lucide-react'
+import { Building2, Fingerprint, Loader2, PlayCircle, Wrench, XCircle } from 'lucide-react'
 import { AuthLogo } from '@/components/auth-logo'
 import { AuthCard, AuthShell } from '@/components/auth/auth-shell'
 import { GoogleMark } from '@/components/auth/google-mark'
@@ -180,6 +180,21 @@ function SignInFormInner({
             </Link>
           </p>
         )}
+      </div>
+
+      <div className="mb-5 grid grid-cols-2 gap-2">
+        <Button asChild variant="outline" className="h-10">
+          <Link href="/auth/phone">
+            <Wrench className="mr-2 h-4 w-4" />
+            {t('roleMechanic')}
+          </Link>
+        </Button>
+        <Button asChild variant="secondary" className="h-10">
+          <Link href="/auth/sign-in" aria-current="page">
+            <Building2 className="mr-2 h-4 w-4" />
+            {t('roleWorkshop')}
+          </Link>
+        </Button>
       </div>
 
       {error && (

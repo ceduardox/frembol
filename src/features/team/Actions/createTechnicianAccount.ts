@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { hashPassword } from 'better-auth/crypto'
 import { db, type TxClient } from '@/lib/db'
 import { notificationBus } from '@/lib/notification-bus'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
@@ -59,12 +60,14 @@ const schema = z.object({
    * remembered as the workshop's default so it is only ever answered once.
    */
   dialCode: z.string().trim().max(6).optional(),
+  /** Optional: lets the person sign in on the web with their phone + this password. */
+  password: z.string().min(8).max(200).optional(),
 })
 
 export async function createTechnicianAccount(input: unknown) {
   return withAuth(
     async ({ organizationId, userId }) => {
-      const { name, phone, email, resolve, dialCode } = schema.parse(input)
+      const { name, phone, email, resolve, dialCode, password } = schema.parse(input)
 
       const dial = normalizeCountryCode(dialCode)
       // Already international, so the code in front of the field is irrelevant.
@@ -122,7 +125,14 @@ export async function createTechnicianAccount(input: unknown) {
         }
 
         if (resolve === 'reuse') {
-          return reinstate(existing.id, existing.userId, organizationId, name, email || null)
+          return reinstate(
+            existing.id,
+            existing.userId,
+            organizationId,
+            name,
+            email || null,
+            password ?? null
+          )
         }
 
         // Takeover. The number moves to the new person and the old record keeps
@@ -145,7 +155,14 @@ export async function createTechnicianAccount(input: unknown) {
       } else if (existing?.userId) {
         // Not here any more: deactivated, or left with no membership behind
         // them. Either way this is a homecoming and the row already exists.
-        return reinstate(existing.id, existing.userId, organizationId, name, email || null)
+        return reinstate(
+          existing.id,
+          existing.userId,
+          organizationId,
+          name,
+          email || null,
+          password ?? null
+        )
       }
 
       if (email) {
@@ -172,6 +189,21 @@ export async function createTechnicianAccount(input: unknown) {
           },
           select: { id: true },
         })
+
+        // A password makes the same account usable on the web, signed in with
+        // the phone number. Better Auth keeps credentials in its `account`
+        // row; without this the phone-created account only works in the app.
+        if (password) {
+          const passwordHash = await hashPassword(password)
+          await tx.account.create({
+            data: {
+              userId: user.id,
+              accountId: user.id,
+              providerId: 'credential',
+              password: passwordHash,
+            },
+          })
+        }
 
         // The role the app actually needs, which is not "none".
         //
@@ -246,7 +278,8 @@ async function reinstate(
   userId: string,
   organizationId: string,
   name: string,
-  email: string | null
+  email: string | null,
+  password: string | null
 ) {
   const technician = await db.$transaction(async (tx) => {
     const current = await tx.user.findUnique({
@@ -310,6 +343,26 @@ async function reinstate(
       // Left with no role, which since the permission fix means the app would
       // refuse them on every screen.
       await tx.organizationMember.update({ where: { id: membership.id }, data: { roleId } })
+    }
+
+    // The same rule as the email above: a password on an account that also
+    // opens another workshop is a way in this desk does not get to set.
+    if (password && !shared) {
+      const passwordHash = await hashPassword(password)
+      const credential = await tx.account.findFirst({
+        where: { userId, providerId: 'credential' },
+        select: { id: true },
+      })
+      if (credential) {
+        await tx.account.update({
+          where: { id: credential.id },
+          data: { password: passwordHash },
+        })
+      } else {
+        await tx.account.create({
+          data: { userId, accountId: userId, providerId: 'credential', password: passwordHash },
+        })
+      }
     }
 
     return tx.technician.update({
