@@ -79,6 +79,7 @@
     "date": "Date",
     "type": "Type",
     "mileage": "Mileage",
+    "mileageMetric": "Odometer (km)",
     "mileageMarine": "Engine Hours",
     "status": "Status",
     "technician": "Technician",

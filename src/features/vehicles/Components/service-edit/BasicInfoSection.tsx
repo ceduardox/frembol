@@ -22,6 +22,7 @@ interface BasicInfoSectionProps {
   selectedVehicleId: string | null
   setSelectedVehicleId: (id: string) => void
   techName: string
+  unitSystem: 'metric' | 'imperial'
   customer?: CustomerInfo | null
   initialVehicle?: {
     id: string
@@ -38,6 +39,7 @@ export function BasicInfoSection({
   selectedVehicleId,
   setSelectedVehicleId,
   techName,
+  unitSystem,
   customer,
   initialVehicle,
 }: BasicInfoSectionProps) {
@@ -101,7 +103,11 @@ export function BasicInfoSection({
       {selectedVehicleId && (
         <div className="space-y-1">
           <Label htmlFor="mileage" className="text-xs">
-            {serviceType === 'marine' ? t('mileageMarine') : t('mileage')}
+            {serviceType === 'marine'
+              ? t('mileageMarine')
+              : unitSystem === 'metric'
+                ? t('mileageMetric')
+                : t('mileage')}
           </Label>
           <Input
             id="mileage"

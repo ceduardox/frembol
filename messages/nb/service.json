@@ -79,6 +79,7 @@
     "date": "Dato",
     "type": "Type",
     "mileage": "Kilometerstand",
+    "mileageMetric": "Kilometerstand (km)",
     "mileageMarine": "Motortimer",
     "status": "Status",
     "technician": "Tekniker",

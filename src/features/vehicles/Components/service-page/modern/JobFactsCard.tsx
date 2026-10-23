@@ -32,6 +32,7 @@ interface JobFactsCardProps {
   selectedVehicleId: string | null
   setSelectedVehicleId: (id: string) => void
   techName: string
+  unitSystem: 'metric' | 'imperial'
   initialVehicle?: {
     id: string
     make: string
@@ -164,6 +165,7 @@ export function JobFactsCard({
   selectedVehicleId,
   setSelectedVehicleId,
   techName,
+  unitSystem,
   initialVehicle,
 }: JobFactsCardProps) {
   const t = useTranslations('service')
@@ -364,7 +366,11 @@ export function JobFactsCard({
             {selectedVehicleId && (
               <div className="flex items-center gap-2">
                 <Label htmlFor="mileage" className={factLabel}>
-                  {serviceType === 'marine' ? t('basicInfo.mileageMarine') : t('basicInfo.mileage')}
+                  {serviceType === 'marine'
+                    ? t('basicInfo.mileageMarine')
+                    : unitSystem === 'metric'
+                      ? t('basicInfo.mileageMetric')
+                      : t('basicInfo.mileage')}
                 </Label>
                 <Input
                   id="mileage"

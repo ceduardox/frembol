@@ -79,6 +79,7 @@
     "date": "Fecha",
     "type": "Tipo",
     "mileage": "Millaje",
+    "mileageMetric": "Kilometraje (km)",
     "mileageMarine": "Horas de Motor",
     "status": "Estado",
     "technician": "Técnico",

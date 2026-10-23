@@ -79,6 +79,7 @@
     "date": "Datum",
     "type": "Typ",
     "mileage": "Kilometerstand",
+    "mileageMetric": "Kilometerstand (km)",
     "mileageMarine": "Betriebsstunden",
     "status": "Status",
     "technician": "Techniker",

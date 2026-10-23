@@ -79,6 +79,7 @@
     "date": "Дата",
     "type": "Тип",
     "mileage": "Пробег",
+    "mileageMetric": "Пробег (км)",
     "mileageMarine": "Моточасы",
     "status": "Статус",
     "technician": "Механик",

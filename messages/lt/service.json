@@ -79,6 +79,7 @@
     "date": "Data",
     "type": "Tipas",
     "mileage": "Rida",
+    "mileageMetric": "Rida (km)",
     "mileageMarine": "Variklio valandos",
     "status": "Būsena",
     "technician": "Technikas",

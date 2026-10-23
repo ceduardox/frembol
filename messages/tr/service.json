@@ -79,6 +79,7 @@
     "date": "Tarih",
     "type": "Tür",
     "mileage": "Kilometre",
+    "mileageMetric": "Kilometre (km)",
     "mileageMarine": "Motor Saatleri",
     "status": "Durum",
     "technician": "Teknisyen",

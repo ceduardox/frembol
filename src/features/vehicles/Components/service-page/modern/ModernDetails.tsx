@@ -316,6 +316,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                   selectedVehicleId={formState.selectedVehicleId}
                   setSelectedVehicleId={formState.dirtySetSelectedVehicleId}
                   techName={formState.techName}
+                  unitSystem={unitSystem}
                   initialVehicle={props.initialVehicle}
                 />
 

@@ -119,6 +119,7 @@ export function DetailsRightColumn({
         selectedVehicleId={formState.selectedVehicleId}
         setSelectedVehicleId={formState.dirtySetSelectedVehicleId}
         techName={formState.techName}
+        unitSystem={unitSystem}
         customer={record.customer ?? record.vehicle?.customer}
         initialVehicle={initialVehicle}
       />
