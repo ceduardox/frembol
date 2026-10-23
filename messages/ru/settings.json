@@ -402,6 +402,7 @@
     "copyLink": "Copy link",
     "copied": "Copied",
     "shareWhatsapp": "Share on WhatsApp",
+    "invalidMobile": "That does not look like a valid mobile number for the selected country.",
     "invite": "Пригласить",
     "invited": "Участник успешно приглашён.",
     "userNotFoundTitle": "Пользователь не найден",

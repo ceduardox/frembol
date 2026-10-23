@@ -167,7 +167,7 @@ export function AddPersonDialog({
     process.env.NEXT_PUBLIC_APP_URL ??
     (typeof window === 'undefined' ? '' : window.location.origin)
 
-  const [region, setRegion] = useState('')
+  const [region, setRegion] = useState('BO')
   const [color, setColor] = useState(BOARD_COLOURS[0])
   const countries = useMemo(() => countriesFor(locale), [locale])
   const country = dialCode || countries.find((c) => c.region === region)?.dial || ''
@@ -239,7 +239,12 @@ export function AddPersonDialog({
         dialCode: country || undefined,
       })
       if (!result.success) {
-        setError(result.error || t('team.addTechnicianFailed'))
+        const message = result.error || ''
+        setError(
+          message.includes('does not look like a mobile number')
+            ? t('team.invalidMobile')
+            : message || t('team.addTechnicianFailed')
+        )
         setBusy(false)
         return
       }

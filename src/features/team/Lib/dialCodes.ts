@@ -16,6 +16,7 @@ export const DIAL_CODES: readonly { region: string; dial: string }[] = [
   { region: 'AU', dial: '+61' },
   { region: 'BE', dial: '+32' },
   { region: 'BG', dial: '+359' },
+  { region: 'BO', dial: '+591' },
   { region: 'BR', dial: '+55' },
   { region: 'CA', dial: '+1' },
   { region: 'CH', dial: '+41' },
