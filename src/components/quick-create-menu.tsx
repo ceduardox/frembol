@@ -28,6 +28,8 @@ import { NewInspectionDialog } from '@/features/inspections/Components/NewInspec
 import { getVehicles } from '@/features/vehicles/Actions/vehicleActions'
 import { getCustomersList } from '@/features/customers/Actions/customerActions'
 import { getTemplates } from '@/features/inspections/Actions/templateActions'
+import { usePermissions } from '@/components/permissions-context'
+import { PermissionSubject } from '@/lib/permissions'
 
 interface VehicleOption {
   id: string
@@ -105,6 +107,27 @@ export function QuickCreateMenu() {
     }
   }
 
+  const { canCreate, canManageSettings } = usePermissions()
+  // Each entry is the permission its action asks for on the server. A role
+  // that cannot create the thing should not be offered the menu item that
+  // opens the form, only to be refused on submit.
+  const canCreateWorkOrder = canCreate(PermissionSubject.SERVICES)
+  const canCreateCustomer = canCreate(PermissionSubject.CUSTOMERS)
+  const canCreateVehicle = canCreate(PermissionSubject.VEHICLES)
+  const canCreateQuote = canCreate(PermissionSubject.QUOTES)
+  const canCreatePart = canCreate(PermissionSubject.INVENTORY)
+  const canCreateInspection = canCreate(PermissionSubject.INSPECTIONS)
+  const hasAnyAction =
+    canCreateWorkOrder ||
+    canCreateCustomer ||
+    canCreateVehicle ||
+    canCreateQuote ||
+    canCreatePart ||
+    canCreateInspection ||
+    canManageSettings
+
+  if (!hasAnyAction) return null
+
   return (
     <>
       <DropdownMenu>
@@ -121,40 +144,56 @@ export function QuickCreateMenu() {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuLabel>{t('quickCreate.title')}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={handleNewWorkOrder}>
-            <Wrench className="h-4 w-4" />
-            {t('quickCreate.workOrder')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => router.push('/customers?create=true')}>
-            <Users className="h-4 w-4" />
-            {t('quickCreate.customer')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => router.push('/vehicles?create=true')}>
-            <Car className="h-4 w-4" />
-            {t('quickCreate.vehicle')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => router.push('/quotes?create=true')}>
-            <FileText className="h-4 w-4" />
-            {t('quickCreate.quote')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => router.push('/inventory?create=true')}>
-            <Package className="h-4 w-4" />
-            {t('quickCreate.part')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleNewInspection}>
-            <ClipboardCheck className="h-4 w-4" />
-            {t('quickCreate.inspection')}
-          </DropdownMenuItem>
+          {canCreateWorkOrder && (
+            <DropdownMenuItem onSelect={handleNewWorkOrder}>
+              <Wrench className="h-4 w-4" />
+              {t('quickCreate.workOrder')}
+            </DropdownMenuItem>
+          )}
+          {canCreateCustomer && (
+            <DropdownMenuItem onSelect={() => router.push('/customers?create=true')}>
+              <Users className="h-4 w-4" />
+              {t('quickCreate.customer')}
+            </DropdownMenuItem>
+          )}
+          {canCreateVehicle && (
+            <DropdownMenuItem onSelect={() => router.push('/vehicles?create=true')}>
+              <Car className="h-4 w-4" />
+              {t('quickCreate.vehicle')}
+            </DropdownMenuItem>
+          )}
+          {canCreateQuote && (
+            <DropdownMenuItem onSelect={() => router.push('/quotes?create=true')}>
+              <FileText className="h-4 w-4" />
+              {t('quickCreate.quote')}
+            </DropdownMenuItem>
+          )}
+          {canCreatePart && (
+            <DropdownMenuItem onSelect={() => router.push('/inventory?create=true')}>
+              <Package className="h-4 w-4" />
+              {t('quickCreate.part')}
+            </DropdownMenuItem>
+          )}
+          {canCreateInspection && (
+            <DropdownMenuItem onSelect={handleNewInspection}>
+              <ClipboardCheck className="h-4 w-4" />
+              {t('quickCreate.inspection')}
+            </DropdownMenuItem>
+          )}
 
-          {/* Everything above creates a record. This creates a person, which
-              is a different kind of act and belongs behind its own heading:
-              adding a mechanic is not the same errand as booking a car in. */}
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel>{t('quickCreate.shopActions')}</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => router.push('/settings/team?add=true')}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            {t('quickCreate.person')}
-          </DropdownMenuItem>
+          {canManageSettings && (
+            <>
+              {/* Everything above creates a record. This creates a person, which
+                  is a different kind of act and belongs behind its own heading:
+                  adding a mechanic is not the same errand as booking a car in. */}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>{t('quickCreate.shopActions')}</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => router.push('/settings/team?add=true')}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                {t('quickCreate.person')}
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <VehiclePickerDialog

@@ -39,6 +39,7 @@ import { isAiConfigured } from '@/features/integrations/Lib/ai'
 import { WORKSHOP_CHAT_ENABLED } from '@/features/ai/constants'
 import { getManifest } from '@/integrations/registry'
 import { PlateLookupProvider } from '@/components/plate-lookup-context'
+import { PermissionsProvider } from '@/components/permissions-context'
 import { PlateLookupCommand } from '@/features/vehicles/Components/PlateLookupCommand'
 import { OPEN_SERVICE_STATUSES } from '@/lib/service-record'
 import { countUnreadMessages } from '@/features/messaging/Lib/unreadCount'
@@ -117,6 +118,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let hasAnyAccess = true
   /** Whether the plate lookup may offer to add a vehicle it did not find. */
   let canCreateVehicles = true
+  /**
+   * What the quick-create menu may offer. Read access is not enough: creating
+   * a record is its own permission, and offering the entry anyway turns the
+   * menu into a list of refusals.
+   */
+  let creatableSubjects: string[] = isOwnerOrAdmin ? allSubjects : []
+  let canManageSettings = isOwnerOrAdmin
 
   if (!isOwnerOrAdmin) {
     const membership = await getCachedMembership(data.userId)
@@ -149,6 +157,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
       canCreateVehicles = hasPermission(userPermissions, {
         action: PermissionAction.CREATE,
         subject: PermissionSubject.VEHICLES,
+      })
+      creatableSubjects = allSubjects.filter((subject) =>
+        hasPermission(userPermissions, {
+          action: PermissionAction.CREATE,
+          subject: subject as PermissionSubject,
+        })
+      )
+      canManageSettings = hasPermission(userPermissions, {
+        action: PermissionAction.MANAGE,
+        subject: PermissionSubject.SETTINGS,
       })
       // A role that grants nothing readable. Every page behind the nav would
       // answer "Your role does not allow this", so say it once instead.
@@ -351,7 +369,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
                           work board's week timeline) stopped at its content and
                           left the rest of the screen blank. */}
                               <div className="flex min-h-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
-                                {children}
+                                <PermissionsProvider
+                                  creatableSubjects={creatableSubjects}
+                                  canManageSettings={canManageSettings}
+                                >
+                                  {children}
+                                </PermissionsProvider>
                               </div>
                             </SidebarInset>
                             <SearchCommand />
