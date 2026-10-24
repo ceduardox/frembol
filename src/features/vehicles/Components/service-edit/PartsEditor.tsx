@@ -112,8 +112,6 @@ function SortablePartRow({
       }
     : undefined
 
-  // Same rule the save refuses on, so the red border and the refusal can
-  // never disagree about which rows are a problem.
   const nameMissing = partRowHasContent(part) && !part.name.trim()
 
   return (
@@ -121,10 +119,8 @@ function SortablePartRow({
       ref={dragEnabled ? setNodeRef : undefined}
       style={style}
       className={cn(
-        // Stacked card while the editor is narrow, one table row once its
-        // container is wide enough to hold every column at a usable size
-        'grid grid-cols-[auto_1fr] gap-2 rounded-lg border p-2',
-        '@2xl:grid-cols-[auto_1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] @2xl:rounded-none @2xl:border-0 @2xl:p-0',
+        'grid grid-cols-[auto_1fr] gap-2 rounded-xl border border-border/80 bg-card/60 p-3 shadow-2xs hover:border-sky-500/30 transition-all',
+        '@2xl:grid-cols-[auto_1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] @2xl:rounded-none @2xl:border-0 @2xl:bg-transparent @2xl:p-0 @2xl:shadow-none',
         isDragging && dragEnabled && 'z-10 opacity-75'
       )}
     >
@@ -135,30 +131,10 @@ function SortablePartRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <div className="flex min-w-0 flex-col gap-2 @2xl:contents">
-        <FieldRow label={t('partNumber')}>
-          <div className="flex w-full flex-col gap-1">
-            <Input
-              placeholder={t('partNumber')}
-              value={part.partNumber ?? ''}
-              onChange={(e) => updatePart(index, 'partNumber', e.target.value)}
-            />
-            {/* The category decides which group the line prints under on a
-                sheet that groups its parts. A stocked part brings its own;
-                a typed line can be given one here. */}
-            <Input
-              list={categoryListId}
-              placeholder={t('category')}
-              aria-label={t('category')}
-              value={part.category ?? ''}
-              onChange={(e) => updatePart(index, 'category', e.target.value)}
-              className="h-7 text-xs"
-            />
-          </div>
-        </FieldRow>
-        {/* The name identifies the row, so it leads the stacked card even
-            though the part number comes first in the desktop grid */}
-        <FieldRow label={t('name')} className="order-first @2xl:order-none">
+
+      <div className="grid min-w-0 grid-cols-2 gap-2.5 @2xl:contents">
+        {/* Name: spans full width on mobile, 2nd column on desktop */}
+        <FieldRow label={t('name')} className="col-span-2 order-first @2xl:order-none @2xl:col-span-1">
           <div className="relative w-full">
             <Textarea
               placeholder={t('namePlaceholder')}
@@ -167,7 +143,7 @@ function SortablePartRow({
               rows={1}
               aria-invalid={nameMissing}
               className={cn(
-                'min-h-9 w-full resize-none',
+                'min-h-9 w-full resize-none font-medium text-sm',
                 nameMissing && 'border-destructive focus-visible:ring-destructive'
               )}
             />
@@ -182,17 +158,38 @@ function SortablePartRow({
             />
           </div>
         </FieldRow>
-        <FieldRow label={t('qty')}>
-          {/* The unit is a property of the stocked part, snapshotted at pick
-              time, so it renders as a suffix rather than an editable field. */}
+
+        {/* Part Number & Category: spans full width on mobile, 1st column on desktop */}
+        <FieldRow label={t('partNumber')} className="col-span-2 @2xl:col-span-1">
+          <div className="flex w-full flex-col gap-1">
+            <Input
+              placeholder={t('partNumber')}
+              value={part.partNumber ?? ''}
+              onChange={(e) => updatePart(index, 'partNumber', e.target.value)}
+              className="h-8 @2xl:h-9 text-xs @2xl:text-sm"
+            />
+            <Input
+              list={categoryListId}
+              placeholder={t('category')}
+              aria-label={t('category')}
+              value={part.category ?? ''}
+              onChange={(e) => updatePart(index, 'category', e.target.value)}
+              className="h-7 text-xs"
+            />
+          </div>
+        </FieldRow>
+
+        {/* Quantity */}
+        <FieldRow label={t('qty')} className="col-span-1">
           <div className="relative w-full">
             <Input
               type="number"
+              inputMode="decimal"
               min="0"
               step="any"
               value={part.quantity}
               onChange={(e) => updatePart(index, 'quantity', e.target.value)}
-              className={cn(part.unit && 'pr-9')}
+              className={cn('h-8 @2xl:h-9 text-xs @2xl:text-sm', part.unit && 'pr-9')}
             />
             {part.unit && (
               <span className="pointer-events-none absolute right-2 top-1/2 max-w-8 -translate-y-1/2 truncate text-xs text-muted-foreground">
@@ -201,56 +198,65 @@ function SortablePartRow({
             )}
           </div>
         </FieldRow>
-        <FieldRow label={t('unitCost')} hint={t('unitCostHint')}>
+
+        {/* Unit Price on mobile (paired with Quantity), in table order on desktop */}
+        <FieldRow label={t('unitCost')} hint={t('unitCostHint')} className="col-span-1">
           <Input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             placeholder={t('unitCost')}
             title={t('unitCostHint')}
             value={part.unitCost ?? 0}
             onChange={(e) => updatePart(index, 'unitCost', e.target.value)}
-            // The margin is restated here rather than on each keystroke: a
-            // cost still being typed is not a cost anyone meant.
             onBlur={(e) => updatePart(index, 'unitCost', e.target.value, { commit: true })}
+            className="h-8 @2xl:h-9 text-xs @2xl:text-sm"
           />
         </FieldRow>
-        <FieldRow label={t('markupPercent')} hint={t('markupPercentHint')}>
+
+        {/* Markup Percent */}
+        <FieldRow label={t('markupPercent')} hint={t('markupPercentHint')} className="col-span-1">
           <div className="relative w-full">
             <Input
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.1"
               placeholder={t('markupPercent')}
               title={t('markupPercentHint')}
               value={part.markupPercent ?? 0}
               onChange={(e) => updatePart(index, 'markupPercent', e.target.value)}
-              className="pr-6"
+              className="h-8 @2xl:h-9 text-xs @2xl:text-sm pr-6"
             />
             <Percent className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
           </div>
         </FieldRow>
-        <FieldRow label={t('unitPrice')}>
+
+        {/* Unit Price */}
+        <FieldRow label={t('unitPrice')} className="col-span-1">
           <Input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             value={part.unitPrice}
             onChange={(e) => updatePart(index, 'unitPrice', e.target.value)}
+            className="h-8 @2xl:h-9 text-xs @2xl:text-sm"
           />
         </FieldRow>
-        <div className="flex items-center gap-2 @2xl:contents">
-          <span className="w-24 shrink-0 text-xs text-muted-foreground @2xl:hidden">
-            {t('total')}
-          </span>
-          <div className="flex h-9 flex-1 items-center rounded-md bg-muted/50 px-3 text-sm font-medium">
+
+        {/* Total & Delete Action */}
+        <div className="col-span-2 flex items-center justify-between border-t border-border/50 pt-2 @2xl:contents">
+          <span className="text-xs text-muted-foreground font-medium @2xl:hidden">{t('total')}:</span>
+          <div className="flex h-8 @2xl:h-9 items-center rounded-md bg-sky-500/10 @2xl:bg-muted/50 px-2.5 @2xl:px-3 text-xs @2xl:text-sm font-semibold text-sky-700 dark:text-sky-300 @2xl:text-foreground">
             {formatCurrency(part.total, currencyCode)}
           </div>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+            className="h-8 w-8 @2xl:h-9 @2xl:w-9 shrink-0 text-muted-foreground hover:text-destructive active:scale-90"
             onClick={onDelete}
             aria-label={t('deleteRow')}
           >
@@ -279,8 +285,6 @@ export function PartsEditor({
   const t = useTranslations('service.parts')
   const modern = useModernWorkOrder()
   const categoryListId = useId()
-  // The categories the stock already uses, offered as the line is typed, so a
-  // free-text part lands in the same group as the stocked ones.
   const categories = useMemo(
     () =>
       [
@@ -292,17 +296,11 @@ export function PartsEditor({
   useEffect(() => setMounted(true), [])
   const keyCounterRef = useRef(0)
 
-  // Applying a suggestion sets name, number, cost, price and the stock link
-  // together. Doing it in one setPartItems pass keeps the row consistent and
-  // avoids five renders; the inventoryPartId is what makes the job deduct
-  // stock when it is saved.
   const handleSelectSuggestion = useCallback(
     (index: number, picked: PartSuggestion) => {
       setPartItems((prev) =>
         prev.map((row, i) => {
           if (i !== index) return row
-          // Same pricing rule as the inventory picker, so a part costs the
-          // same however it was added to the line.
           const { unitPrice, markupPercent } = resolvePartPrice(picked, {
             defaultMarkupPercent,
             markupAppliesToInventory,
@@ -316,9 +314,6 @@ export function PartsEditor({
             unitCost: picked.unitCost,
             unitPrice,
             markupPercent,
-            // Derived from the row's own quantity, so the line still satisfies
-            // total === quantity * unitPrice. Defaulting an empty or zero
-            // quantity to 1 would bill a total its fields do not add up to.
             total: lineTotal(row.quantity, unitPrice),
             inventoryPartId: picked.id,
           }
@@ -329,7 +324,6 @@ export function PartsEditor({
   )
   const keysRef = useRef<string[]>([])
 
-  // Keep keys array in sync with items length
   while (keysRef.current.length < partItems.length) {
     keysRef.current.push(`part-${keyCounterRef.current++}`)
   }
@@ -358,48 +352,43 @@ export function PartsEditor({
   const addPartAtStart = useCallback(() => {
     const key = `part-${keyCounterRef.current++}`
     keysRef.current = [key, ...keysRef.current]
-    setPartItems((prev) => [emptyPart(defaultMarkupPercent), ...prev])
-  }, [setPartItems, defaultMarkupPercent])
+    setPartItems((prev) => [emptyPart(), ...prev])
+  }, [setPartItems])
 
   const addPartAtEnd = useCallback(() => {
     const key = `part-${keyCounterRef.current++}`
     keysRef.current = [...keysRef.current, key]
-    setPartItems((prev) => [...prev, emptyPart(defaultMarkupPercent)])
-  }, [setPartItems, defaultMarkupPercent])
+    setPartItems((prev) => [...prev, emptyPart()])
+  }, [setPartItems])
 
   const deletePart = useCallback(
     (index: number) => {
-      keysRef.current = keysRef.current.filter((_, j) => j !== index)
-      setPartItems((prev) => prev.filter((_, j) => j !== index))
+      keysRef.current = keysRef.current.filter((_, i) => i !== index)
+      setPartItems((prev) => prev.filter((_, i) => i !== index))
     },
     [setPartItems]
   )
 
-  /**
-   * Apply the default markup % to every eligible row. Eligible means:
-   *  - non-inventory rows always, OR
-   *  - all rows when `markupAppliesToInventory` is true.
-   * Recomputes unitPrice = unitCost * (1 + markup/100) and total = qty * unitPrice.
-   * Customer never sees cost or markup — only unitPrice/total.
-   */
   const applyMarkupToAll = useCallback(() => {
+    if (defaultMarkupPercent <= 0) return
     setPartItems((prev) =>
-      prev.map((p) => {
-        const eligible = markupAppliesToInventory || !p.inventoryPartId
-        if (!eligible) return p
-        const unitPrice = priceFromCostAndMarkup(p.unitCost, defaultMarkupPercent)
+      prev.map((part) => {
+        if (!markupAppliesToInventory && part.inventoryPartId) return part
+        const cost = part.unitCost ?? 0
+        if (cost <= 0) return part
+        const newPrice = priceFromCostAndMarkup(cost, defaultMarkupPercent)
         return {
-          ...p,
+          ...part,
           markupPercent: defaultMarkupPercent,
-          unitPrice,
-          total: lineTotal(p.quantity, unitPrice),
+          unitPrice: newPrice,
+          total: lineTotal(part.quantity, newPrice),
         }
       })
     )
-  }, [setPartItems, defaultMarkupPercent, markupAppliesToInventory])
+  }, [defaultMarkupPercent, markupAppliesToInventory, setPartItems])
 
   const actions = (
-    <div className="flex gap-1.5">
+    <div className="flex flex-wrap gap-1.5">
       {defaultMarkupPercent > 0 && partItems.length > 0 && (
         <IconActionButton
           label={t('applyMarkup', { percent: defaultMarkupPercent })}
@@ -444,60 +433,70 @@ export function PartsEditor({
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={keysRef.current} strategy={verticalListSortingStrategy}>
-                {partItems.map((part, i) => (
-                  <SortablePartRow
-                    key={keysRef.current[i]}
-                    id={keysRef.current[i]}
-                    categoryListId={categoryListId}
-                    part={part}
-                    index={i}
-                    updatePart={updatePart}
-                    onDelete={() => deletePart(i)}
-                    currencyCode={currencyCode}
-                    t={t}
-                    dragEnabled
-                    inventoryParts={inventoryParts}
-                    onSelectSuggestion={handleSelectSuggestion}
-                    defaultMarkupPercent={defaultMarkupPercent}
-                    markupAppliesToInventory={markupAppliesToInventory}
-                  />
-                ))}
+                <div className="space-y-2.5 @2xl:space-y-2">
+                  {partItems.map((part, i) => (
+                    <SortablePartRow
+                      key={keysRef.current[i]}
+                      id={keysRef.current[i]}
+                      categoryListId={categoryListId}
+                      part={part}
+                      index={i}
+                      updatePart={updatePart}
+                      onDelete={() => deletePart(i)}
+                      currencyCode={currencyCode}
+                      t={t}
+                      dragEnabled
+                      inventoryParts={inventoryParts}
+                      onSelectSuggestion={handleSelectSuggestion}
+                      defaultMarkupPercent={defaultMarkupPercent}
+                      markupAppliesToInventory={markupAppliesToInventory}
+                    />
+                  ))}
+                </div>
               </SortableContext>
             </DndContext>
           ) : (
-            partItems.map((part, i) => (
-              <SortablePartRow
-                categoryListId={categoryListId}
-                key={keysRef.current[i]}
-                id={keysRef.current[i]}
-                part={part}
-                index={i}
-                updatePart={updatePart}
-                onDelete={() => deletePart(i)}
-                currencyCode={currencyCode}
-                t={t}
-                dragEnabled={false}
-                inventoryParts={inventoryParts}
-                onSelectSuggestion={handleSelectSuggestion}
-                defaultMarkupPercent={defaultMarkupPercent}
-                markupAppliesToInventory={markupAppliesToInventory}
-              />
-            ))
+            <div className="space-y-2.5 @2xl:space-y-2">
+              {partItems.map((part, i) => (
+                <SortablePartRow
+                  categoryListId={categoryListId}
+                  key={keysRef.current[i]}
+                  id={keysRef.current[i]}
+                  part={part}
+                  index={i}
+                  updatePart={updatePart}
+                  onDelete={() => deletePart(i)}
+                  currencyCode={currencyCode}
+                  t={t}
+                  dragEnabled={false}
+                  inventoryParts={inventoryParts}
+                  onSelectSuggestion={handleSelectSuggestion}
+                  defaultMarkupPercent={defaultMarkupPercent}
+                  markupAppliesToInventory={markupAppliesToInventory}
+                />
+              ))}
+            </div>
           )}
           <button
             type="button"
-            className="flex w-full items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sky-500/30 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-sky-500/60 hover:bg-sky-500/5 hover:text-sky-600 active:scale-[0.99]"
             onClick={addPartAtEnd}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
+            <span>{t('addPart')}</span>
           </button>
           {partItems.some((p) => !p.name.trim() && partRowHasContent(p)) && (
-            <p className="text-xs text-destructive">{t('nameMissingHint')}</p>
+            <p className="rounded-md bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+              {t('nameMissingHint')}
+            </p>
           )}
-          <div className="flex justify-end pt-1 text-sm">
-            <span className="font-medium">
-              {t('subtotal', { amount: formatCurrency(partsSubtotal, currencyCode) })}
-            </span>
+          <div className="flex items-center justify-end border-t border-border/50 pt-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase font-medium">Subtotal Repuestos:</span>
+              <span className="font-semibold text-sky-600 dark:text-sky-400">
+                {formatCurrency(partsSubtotal, currencyCode)}
+              </span>
+            </div>
           </div>
         </>
       )}
@@ -505,10 +504,10 @@ export function PartsEditor({
       {partItems.length === 0 && (
         <button
           type="button"
-          className="flex w-full items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+          className="flex w-full items-center justify-center rounded-lg border border-dashed border-sky-500/30 py-3 text-muted-foreground transition-all hover:border-sky-500/60 hover:bg-sky-500/5 hover:text-sky-600 active:scale-95"
           onClick={addPartAtEnd}
         >
-          <Plus className="mr-1 h-4 w-4" />
+          <Plus className="mr-1 h-4 w-4 text-sky-500" />
           <span className="text-sm">{t('addPart')}</span>
         </button>
       )}
@@ -522,10 +521,8 @@ export function PartsEditor({
         title={t('title')}
         badge={partItems.length || undefined}
         action={actions}
-        // The name suggestions drop below their row, past the card's edge on
-        // the last one; the sheen keeps the corners the card no longer clips.
-        className="@container overflow-visible before:rounded-lg after:rounded-lg"
-        contentClassName="space-y-2 px-3"
+        className="@container overflow-visible before:rounded-lg after:rounded-lg border-sky-500/20"
+        contentClassName="space-y-2 px-3 sm:px-4"
       >
         {body}
       </AppCard>
@@ -533,12 +530,14 @@ export function PartsEditor({
   }
 
   return (
-    // The details view splits into two resizable columns, so this editor can
-    // be narrower on a wide screen than it is on a phone. It sizes itself off
-    // its own container rather than the viewport.
-    <div className="@container space-y-2 rounded-lg border p-3">
+    <div className="@container space-y-3 rounded-xl border border-sky-500/20 bg-card p-3 sm:p-4 shadow-2xs">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{t('title')}</h3>
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <Package className="h-4 w-4" />
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">{t('title')}</h3>
+        </div>
         {actions}
       </div>
       {body}

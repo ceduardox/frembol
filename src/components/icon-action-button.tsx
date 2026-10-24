@@ -21,12 +21,6 @@ export interface IconActionButtonProps extends Omit<ButtonProps, 'children' | 's
 
 /**
  * Icon-only action button with the label in a tooltip.
- *
- * Toolbars carry the same set of actions in twelve languages, and labels like
- * "Fra varelageret" or "Kundenbenachrichtigung" blow the row apart on a phone.
- * Dropping to the icon keeps every toolbar the same width in every language;
- * the label still reaches pointer users through the tooltip and screen reader
- * users through the accessible name.
  */
 export function IconActionButton({
   label,
@@ -48,7 +42,7 @@ export function IconActionButton({
           variant={variant}
           size={size}
           disabled={disabled || loading}
-          className={cn('relative', className)}
+          className={cn('relative active:scale-95 transition-all', className)}
           {...props}
         >
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}

@@ -105,7 +105,7 @@ function SortableLaborRow({
       className={cn(
         // Stacked card while the editor is narrow, one table row once its
         // container is wide enough to hold every column at a usable size
-        'grid grid-cols-[auto_1fr] gap-2 rounded-lg border p-2',
+        'grid grid-cols-[auto_1fr] gap-2 rounded-xl border border-border/80 bg-card/60 p-3 shadow-2xs hover:border-amber-500/30 transition-all',
         '@2xl:grid-cols-[auto_2fr_1fr_1fr_1fr_auto] @2xl:rounded-none @2xl:border-0 @2xl:p-0',
         isDragging && dragEnabled && 'z-10 opacity-75'
       )}
@@ -117,8 +117,9 @@ function SortableLaborRow({
       >
         <GripVertical className="h-4 w-4" />
       </button>
-      <div className="flex min-w-0 flex-col gap-2 @2xl:contents">
-        <div className="flex gap-2">
+      <div className="grid min-w-0 grid-cols-2 gap-2.5 @2xl:contents">
+        {/* Description & Type Tag */}
+        <div className="col-span-2 flex gap-2 @2xl:col-span-1">
           <Textarea
             placeholder={t('descriptionPlaceholder')}
             value={labor.description}
@@ -126,7 +127,7 @@ function SortableLaborRow({
             rows={1}
             aria-invalid={descriptionMissing}
             className={cn(
-              'min-h-9 flex-1 resize-none',
+              'min-h-9 flex-1 resize-none font-medium text-sm',
               descriptionMissing && 'border-destructive focus-visible:ring-destructive'
             )}
           />
@@ -135,53 +136,56 @@ function SortableLaborRow({
           ) : (
             <button
               type="button"
-              className={`shrink-0 rounded-md border px-2 text-[10px] font-medium transition-all ${
+              className={cn(
+                'shrink-0 rounded-md border px-2.5 text-[10px] font-semibold transition-all active:scale-95',
                 isService
-                  ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:border-blue-500/50'
-                  : 'border-muted text-muted-foreground hover:bg-muted hover:text-foreground hover:border-foreground/20'
-              }`}
+                  ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:border-blue-500/50 dark:text-blue-400'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:border-amber-500/50 dark:text-amber-400'
+              )}
               onClick={() => updateLabor(index, 'pricingType', isService ? 'hourly' : 'service')}
-              // Says what the line is now, then that a click changes it. It used to
-              // describe the other mode, so hovering SVC read "Hourly".
               title={isService ? t('serviceHint') : t('hourlyHint')}
             >
               {isService ? t('serviceTag') : t('hourlyTag')}
             </button>
           )}
         </div>
-        <FieldRow label={isService || isFee ? t('qty') : t('hours')}>
+        <FieldRow label={isService || isFee ? t('qty') : t('hours')} className="col-span-1">
           <Input
             type="number"
+            inputMode="decimal"
             min="0"
             step={isService || isFee ? '1' : 'any'}
             placeholder={isService || isFee ? t('qty') : t('hours')}
             value={labor.hours}
             disabled={isFee}
             onChange={(e) => updateLabor(index, 'hours', e.target.value)}
+            className="h-8 @2xl:h-9 text-xs @2xl:text-sm"
           />
         </FieldRow>
-        <FieldRow label={rateLabel}>
+        <FieldRow label={rateLabel} className="col-span-1">
           <Input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.01"
             value={labor.rate}
             disabled={isFee && feeLocked}
             onChange={(e) => updateLabor(index, 'rate', e.target.value)}
+            className="h-8 @2xl:h-9 text-xs @2xl:text-sm"
           />
         </FieldRow>
-        <div className="flex items-center gap-2 @2xl:contents">
-          <span className="w-24 shrink-0 text-xs text-muted-foreground @2xl:hidden">
-            {t('total')}
+        <div className="col-span-2 flex items-center justify-between border-t border-border/50 pt-2 @2xl:contents">
+          <span className="text-xs text-muted-foreground font-medium @2xl:hidden">
+            {t('total')}:
           </span>
-          <div className="flex h-9 flex-1 items-center rounded-md bg-muted/50 px-3 text-sm font-medium">
+          <div className="flex h-8 @2xl:h-9 items-center rounded-md bg-amber-500/10 @2xl:bg-muted/50 px-2.5 @2xl:px-3 text-xs @2xl:text-sm font-semibold text-amber-700 dark:text-amber-300 @2xl:text-foreground">
             {formatCurrency(labor.total, currencyCode)}
           </div>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+            className="h-8 w-8 @2xl:h-9 @2xl:w-9 shrink-0 text-muted-foreground hover:text-destructive active:scale-90"
             onClick={onDelete}
             aria-label={t('deleteRow')}
           >
@@ -380,10 +384,11 @@ export function LaborEditor({
           )}
           <button
             type="button"
-            className="flex w-full items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+            className="flex w-full items-center justify-center rounded-lg border border-dashed border-amber-500/30 py-2 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-500/5 hover:border-amber-500/50 transition-all active:scale-[0.99]"
             onClick={addLaborAtEnd}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-1.5" />
+            <span>{t('addLabor')}</span>
           </button>
           {laborItems.some((l) => !l.description.trim() && laborRowHasContent(l)) && (
             <p className="text-xs text-destructive">{t('descriptionMissingHint')}</p>
@@ -397,22 +402,22 @@ export function LaborEditor({
       )}
 
       {laborItems.length === 0 && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2.5 p-4 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5">
           <button
             type="button"
-            className="flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-background/80 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-300 shadow-2xs hover:bg-amber-500/10 transition-all active:scale-[0.98]"
             onClick={addLaborAtEnd}
           >
-            <Plus className="mr-1 h-4 w-4" />
-            <span className="text-sm">{t('addLabor')}</span>
+            <Plus className="h-4 w-4" />
+            <span>{t('addLabor')}</span>
           </button>
           <button
             type="button"
-            className="flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/25 py-1.5 text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-blue-500/30 bg-background/80 py-2.5 text-sm font-medium text-blue-700 dark:text-blue-300 shadow-2xs hover:bg-blue-500/10 transition-all active:scale-[0.98]"
             onClick={addServiceAtEnd}
           >
-            <Wrench className="mr-1 h-4 w-4" />
-            <span className="text-sm">{t('addService')}</span>
+            <Wrench className="h-4 w-4" />
+            <span>{t('addService')}</span>
           </button>
         </div>
       )}

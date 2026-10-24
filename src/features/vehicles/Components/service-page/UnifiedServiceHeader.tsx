@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useFormatCurrency } from '@/components/currency-settings-context'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -78,6 +79,8 @@ interface UnifiedServiceHeaderProps {
   layout?: WorkOrderLayout
   /** Moves this browser to the other layout. */
   onSwitchLayout?: () => void
+  total?: number
+  currencyCode?: string
 }
 
 export function UnifiedServiceHeader({
@@ -106,8 +109,11 @@ export function UnifiedServiceHeader({
   meetingUrl = null,
   layout = 'classic',
   onSwitchLayout,
+  total,
+  currencyCode = 'USD',
 }: UnifiedServiceHeaderProps) {
   const t = useTranslations('service.header')
+  const formatCurrency = useFormatCurrency()
   const tPreview = useTranslations('common.pdfPreview')
   const tStatus = useTranslations('service.basicInfo.statusOptions')
   const tabs: { label: string; value: ServiceTab }[] = [
@@ -137,6 +143,14 @@ export function UnifiedServiceHeader({
               <Badge variant="outline" className={`shrink-0 text-xs ${statusColors[status] || ''}`}>
                 {statusMessageKeys[status] ? tStatus(statusMessageKeys[status]) : status}
               </Badge>
+              {typeof total === 'number' && (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold tabular-nums"
+                >
+                  {formatCurrency(total, currencyCode)}
+                </Badge>
+              )}
               <h1 className="truncate text-lg font-semibold leading-tight">{title}</h1>
             </div>
             <p className="truncate text-xs text-muted-foreground">{vehicleName}</p>

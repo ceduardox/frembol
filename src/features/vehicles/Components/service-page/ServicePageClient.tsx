@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@/lib/utils'
 import { ShopFeeProvider } from '@/features/settings/Components/ShopFeeContext'
 import { DocumentLockBanner } from '@/components/document-lock-banner'
 import { setInvoiceEditUnlocked } from '@/features/settings/Actions/documentLockActions'
@@ -39,7 +40,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { CalendarIcon, AlertTriangle, Loader2 } from 'lucide-react'
+import { CalendarIcon, AlertTriangle, Loader2, Save } from 'lucide-react'
+import { useFormatCurrency } from '@/components/currency-settings-context'
 import { deleteFinding } from '@/features/vehicles/Actions/findingActions'
 import { updateServiceRecord } from '@/features/vehicles/Actions/serviceActions'
 import { getSmsTemplates } from '@/features/sms/Actions/smsActions'
@@ -130,6 +132,7 @@ export function ServicePageClient({
 }: ServicePageClientProps) {
   const t = useTranslations('service')
   const router = useRouter()
+  const formatCurrency = useFormatCurrency()
 
   // Counter sales carry the customer directly; vehicle jobs resolve it via the vehicle.
   const customer = record.customer ?? record.vehicle?.customer ?? null
@@ -612,13 +615,15 @@ export function ServicePageClient({
 
   return (
     <ShopFeeProvider value={shopFee}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-16 lg:pb-0">
         {modern ? (
           <ModernHero
             record={record}
             status={formState.status}
             paymentStatus={formState.paymentStatus}
             warranty={formState.warranty}
+            total={formState.displayTotal}
+            currencyCode={currencyCode}
             actions={
               <>
                 <PresenceChips kind="serviceRecord" id={record.id} className="mr-1" />
@@ -653,6 +658,8 @@ export function ServicePageClient({
             title={record.title}
             status={formState.status}
             paymentStatus={formState.paymentStatus}
+            total={formState.displayTotal}
+            currencyCode={currencyCode}
             activeTab={activeTab}
             onTabChange={handleTabChange}
             tabCounts={{
@@ -1069,6 +1076,50 @@ export function ServicePageClient({
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Sticky bottom bar on mobile for rapid total check and 1-tap save */}
+        {activeTab === 'details' && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between border-t border-border/80 bg-background/95 px-4 py-2.5 shadow-lg backdrop-blur-md lg:hidden">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('totals.total')}
+              </span>
+              <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                {formatCurrency(formState.displayTotal, currencyCode)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {formState.hasUnsavedChanges && (
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                  {t('header.unsavedChanges')}
+                </span>
+              )}
+              {formState.showSaved && !formState.hasUnsavedChanges && (
+                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                  {t('header.saved')}
+                </span>
+              )}
+              <Button
+                type="submit"
+                form="service-record-form"
+                disabled={formState.loading || lockState.locked}
+                className={cn(
+                  'h-9 px-4 font-medium transition-all active:scale-95 shadow-sm',
+                  formState.hasUnsavedChanges
+                    ? 'bg-primary text-primary-foreground animate-pulse'
+                    : 'bg-primary text-primary-foreground'
+                )}
+              >
+                {formState.loading ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-1.5 h-4 w-4" />
+                )}
+                {t('header.save')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </ShopFeeProvider>
   )

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useFormatDate } from '@/lib/use-format-date'
+import { useFormatCurrency } from '@/components/currency-settings-context'
 import { NewInspectionDialog } from '@/features/inspections/Components/NewInspectionDialog'
 import type { WarrantyFields } from '@/lib/warranty'
 import {
@@ -38,6 +39,8 @@ interface ModernHeroProps {
   onTypeChange?: (type: string) => void
   /** A locked invoice shows the title and type and edits neither. */
   locked?: boolean
+  total?: number
+  currencyCode?: string
 }
 
 /** How much of a title the header shows before it is cut. */
@@ -189,9 +192,12 @@ export function ModernHero({
   type,
   onTypeChange,
   locked = false,
+  total,
+  currencyCode = 'USD',
 }: ModernHeroProps) {
   const t = useTranslations('service')
   const { formatDate, formatDateTime } = useFormatDate()
+  const formatCurrency = useFormatCurrency()
 
   const customer = record.customer ?? record.vehicle?.customer ?? null
   const vehicle = record.vehicle
@@ -267,6 +273,17 @@ export function ModernHero({
                   <span className={cn(pill, paymentStatusColors[paymentStatus])}>
                     {paymentStatusLabels[paymentStatus] || t('header.unpaid')}
                   </span>
+                  {typeof total === 'number' && (
+                    <span
+                      data-testid="service-hero-total"
+                      className={cn(
+                        pill,
+                        'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold tabular-nums'
+                      )}
+                    >
+                      {formatCurrency(total, currencyCode)}
+                    </span>
+                  )}
                   {type && onTypeChange && (
                     <Select value={type} onValueChange={onTypeChange} disabled={locked}>
                       <SelectTrigger
