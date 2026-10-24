@@ -698,3 +698,17 @@ html body[data-scroll-locked] {
   -webkit-text-security: disc;
   text-security: disc;
 }
+
+/* Number fields keep the typing, not the browser's up/down steppers. The
+   arrows sat inside the field and were easy to hit by accident; the value is
+   always typed or pasted here anyway. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

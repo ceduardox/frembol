@@ -2,7 +2,14 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Input({ className, type, inputMode, onWheel, ...props }: React.ComponentProps<'input'>) {
+function Input({
+  className,
+  type,
+  inputMode,
+  onWheel,
+  onFocus,
+  ...props
+}: React.ComponentProps<'input'>) {
   const handleWheel =
     type === 'number'
       ? (e: React.WheelEvent<HTMLInputElement>) => {
@@ -12,6 +19,23 @@ function Input({ className, type, inputMode, onWheel, ...props }: React.Componen
       : onWheel
 
   const computedInputMode = inputMode ?? (type === 'number' ? 'decimal' : undefined)
+
+  /**
+   * A number field is usually filled by typing over what is there, not by
+   * editing around it. Selecting the whole value on focus means a default 0
+   * (or a previous amount) is replaced by the first digit instead of becoming
+   * a leading zero. The frame wait lets the tap's caret placement finish first.
+   */
+  const handleFocus =
+    type === 'number'
+      ? (e: React.FocusEvent<HTMLInputElement>) => {
+          const el = e.currentTarget
+          setTimeout(() => {
+            if (document.activeElement === el) el.select()
+          }, 0)
+          onFocus?.(e)
+        }
+      : onFocus
 
   return (
     <input
@@ -25,6 +49,7 @@ function Input({ className, type, inputMode, onWheel, ...props }: React.Componen
         className
       )}
       onWheel={handleWheel}
+      onFocus={handleFocus}
       {...props}
     />
   )
