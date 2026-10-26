@@ -2,9 +2,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  MECHANIC_ROLE_NAME,
   MEMBER_PERMISSIONS,
   MEMBER_ROLE_NAME,
   TECHNICIAN_ROLE_NAME,
+  WASH_MANAGER_ROLE_NAME,
 } from '@/features/team/Lib/technicianRole'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
 
@@ -52,7 +54,7 @@ describe('the standard roles', () => {
     const lib = read('src/features/team/Lib/technicianRole.ts')
     // isAdmin bypasses every permission check, which hides what an account can
     // reach behind a boolean. Both roles are ordinary sets of permissions.
-    expect(lib.match(/isAdmin: false/g)?.length).toBe(2)
+    expect(lib.match(/isAdmin: false/g)?.length).toBe(4)
     expect(lib).not.toMatch(/isAdmin: true/)
   })
 
@@ -74,13 +76,17 @@ describe('the standard roles', () => {
     })
 
     it('returns the role already there rather than a second one', () => {
-      // Both helpers look the role up by name first and return early.
-      for (const name of [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME]) {
-        expect(lib).toContain(
-          `name: ${name === MEMBER_ROLE_NAME ? 'MEMBER' : 'TECHNICIAN'}_ROLE_NAME`
-        )
+      // Every helper looks its role up by name first and returns early.
+      const constants: Record<string, string> = {
+        [MEMBER_ROLE_NAME]: 'MEMBER_ROLE_NAME',
+        [TECHNICIAN_ROLE_NAME]: 'TECHNICIAN_ROLE_NAME',
+        [WASH_MANAGER_ROLE_NAME]: 'WASH_MANAGER_ROLE_NAME',
+        [MECHANIC_ROLE_NAME]: 'MECHANIC_ROLE_NAME',
       }
-      expect(lib.match(/if \(existing\) return existing\.id/g)?.length).toBe(2)
+      for (const constant of Object.values(constants)) {
+        expect(lib).toContain(`name: ${constant}`)
+      }
+      expect(lib.match(/if \(existing\) return existing\.id/g)?.length).toBe(4)
     })
   })
 

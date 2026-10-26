@@ -12,6 +12,7 @@ import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
 import { normalizeOrgPhone } from '@/lib/sms'
 import { withAuth } from '@/lib/with-auth'
 import {
+  ensureMechanicRole,
   ensureTechnicianRole,
   isPlaceholderEmail,
   PLACEHOLDER_EMAIL_DOMAIN,
@@ -62,12 +63,14 @@ const schema = z.object({
   dialCode: z.string().trim().max(6).optional(),
   /** Optional: lets the person sign in on the web with their phone + this password. */
   password: z.string().min(8).max(200).optional(),
+  /** The web role: the app-only Technician, or the workshop mechanic. */
+  role: z.enum(['technician', 'mechanic']).optional(),
 })
 
 export async function createTechnicianAccount(input: unknown) {
   return withAuth(
     async ({ organizationId, userId }) => {
-      const { name, phone, email, resolve, dialCode, password } = schema.parse(input)
+      const { name, phone, email, resolve, dialCode, password, role } = schema.parse(input)
 
       const dial = normalizeCountryCode(dialCode)
       // Already international, so the code in front of the field is irrelevant.
@@ -210,7 +213,10 @@ export async function createTechnicianAccount(input: unknown) {
         // withApiAuth enforces requiredPermissions exactly as withAuth does, so
         // an account with no role is refused by every screen in the technician
         // app and not merely by the office. See Lib/technicianRole.
-        const roleId = await ensureTechnicianRole(tx, organizationId)
+        const roleId =
+          role === 'mechanic'
+            ? await ensureMechanicRole(tx, organizationId)
+            : await ensureTechnicianRole(tx, organizationId)
 
         await tx.organizationMember.create({
           data: {

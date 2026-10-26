@@ -249,6 +249,7 @@ export function AddPersonDialog({
         resolve,
         dialCode: country || undefined,
         password: password || undefined,
+        role: 'mechanic',
       })
       if (!result.success) {
         const message = result.error || ''

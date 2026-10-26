@@ -40,6 +40,7 @@ export default async function DashboardPage() {
   if (auth && !auth.isAdmin) {
     const membership = await getCachedMembership(auth.userId)
     if (membership?.customRole?.homePanel === 'wash') redirect('/wash')
+    if (membership?.customRole?.homePanel === 'mechanics') redirect('/work-board')
   }
   const features = auth ? await getFeatures(auth.organizationId) : null
   const smsEnabled = features?.sms ?? false

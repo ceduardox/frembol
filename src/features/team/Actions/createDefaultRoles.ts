@@ -5,9 +5,11 @@ import { db } from '@/lib/db'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
 import { withAuth } from '@/lib/with-auth'
 import {
+  ensureMechanicRole,
   ensureMemberRole,
   ensureTechnicianRole,
   ensureWashManagerRole,
+  MECHANIC_ROLE_NAME,
   MEMBER_ROLE_NAME,
   TECHNICIAN_ROLE_NAME,
   WASH_MANAGER_ROLE_NAME,
@@ -32,7 +34,14 @@ export async function createDefaultRoles() {
       const before = await db.role.findMany({
         where: {
           organizationId,
-          name: { in: [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME, WASH_MANAGER_ROLE_NAME] },
+          name: {
+            in: [
+              MEMBER_ROLE_NAME,
+              TECHNICIAN_ROLE_NAME,
+              WASH_MANAGER_ROLE_NAME,
+              MECHANIC_ROLE_NAME,
+            ],
+          },
         },
         select: { name: true },
       })
@@ -41,10 +50,14 @@ export async function createDefaultRoles() {
       await ensureMemberRole(db, organizationId)
       await ensureTechnicianRole(db, organizationId)
       await ensureWashManagerRole(db, organizationId)
+      await ensureMechanicRole(db, organizationId)
 
-      const created = [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME, WASH_MANAGER_ROLE_NAME].filter(
-        (n) => !had.has(n)
-      )
+      const created = [
+        MEMBER_ROLE_NAME,
+        TECHNICIAN_ROLE_NAME,
+        WASH_MANAGER_ROLE_NAME,
+        MECHANIC_ROLE_NAME,
+      ].filter((n) => !had.has(n))
       revalidatePath('/settings/team')
       return { created }
     },

@@ -77,6 +77,34 @@ export const TECHNICIAN_ROLE_NAME = 'Technician'
  */
 export const WASH_MANAGER_ROLE_NAME = 'Encargado de lavadero'
 
+/**
+ * The workshop mechanic's role for the web app: booking the job, working
+ * mechanics or brakes, and looking after its parts. The generic Technician
+ * role stays deliberately app-only and cannot create a work order.
+ */
+export const MECHANIC_ROLE_NAME = 'Mecánico'
+
+export const MECHANIC_PERMISSIONS = [
+  { action: PermissionAction.READ, subject: PermissionSubject.SERVICES },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.SERVICES },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.SERVICES },
+  { action: PermissionAction.READ, subject: PermissionSubject.BRAKES },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.BRAKES },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.BRAKES },
+  { action: PermissionAction.READ, subject: PermissionSubject.WORK_ORDERS },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.WORK_ORDERS },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.WORK_ORDERS },
+  { action: PermissionAction.READ, subject: PermissionSubject.WORK_BOARD },
+  { action: PermissionAction.READ, subject: PermissionSubject.VEHICLES },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.VEHICLES },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.VEHICLES },
+  { action: PermissionAction.READ, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.READ, subject: PermissionSubject.INVENTORY },
+  { action: PermissionAction.READ, subject: PermissionSubject.LABOR_PRESETS },
+] as const
+
 export const WASH_MANAGER_PERMISSIONS = [
   { action: PermissionAction.READ, subject: PermissionSubject.WASH },
   { action: PermissionAction.CREATE, subject: PermissionSubject.WASH },
@@ -180,6 +208,28 @@ export async function ensureWashManagerRole(tx: Tx, organizationId: string): Pro
       homePanel: 'wash',
       permissions: {
         create: WASH_MANAGER_PERMISSIONS.map((p) => ({ action: p.action, subject: p.subject })),
+      },
+    },
+    select: { id: true },
+  })
+  return created.id
+}
+
+export async function ensureMechanicRole(tx: Tx, organizationId: string): Promise<string> {
+  const existing = await tx.role.findFirst({
+    where: { organizationId, name: MECHANIC_ROLE_NAME },
+    select: { id: true, homePanel: true },
+  })
+  if (existing) return existing.id
+
+  const created = await tx.role.create({
+    data: {
+      name: MECHANIC_ROLE_NAME,
+      organizationId,
+      isAdmin: false,
+      homePanel: 'mechanics',
+      permissions: {
+        create: MECHANIC_PERMISSIONS.map((p) => ({ action: p.action, subject: p.subject })),
       },
     },
     select: { id: true },
