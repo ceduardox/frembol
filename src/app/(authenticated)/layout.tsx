@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { NoAccess } from './no-access'
 import { AppSidebar } from '@/components/app-sidebar'
 import { FeatureHintProvider } from '@/components/feature-hint'
@@ -107,6 +108,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const allSubjects = Object.values(PermissionSubject)
   let visibleSubjects: string[] = allSubjects
 
+  // Read once: the role name, the home panel and the sidebar visibility all
+  // come from the same membership. Owners and admins may have none, which is
+  // why the built-in role word is the fallback below.
+  const membership = await getCachedMembership(data.userId)
+  const tNav = await getTranslations('navigation')
+
   /**
    * Whether this account can reach anything at all.
    *
@@ -127,7 +134,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let canManageSettings = isOwnerOrAdmin
 
   if (!isOwnerOrAdmin) {
-    const membership = await getCachedMembership(data.userId)
     if (!membership?.roleId) {
       /**
        * A member with no role at all.
@@ -187,6 +193,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const org = data.organizations.find((o) => o.id === data.organizationId)
     return <NoAccess organizationName={org?.name ?? ''} />
   }
+
+  // What the top bar and the sidebar call this person. A custom role keeps its
+  // own name ("Mecánico", "Encargado de lavadero"); the built-in tiers fall
+  // back to the words the sidebar already uses.
+  const roleName =
+    membership?.customRole?.name ??
+    (data.isSuperAdmin
+      ? tNav('sidebar.superAdmin')
+      : data.role === 'owner'
+        ? tNav('sidebar.roles.owner')
+        : data.role === 'admin'
+          ? tNav('sidebar.roles.admin')
+          : tNav('sidebar.roles.member'))
 
   // Live work for the sidebar pills. Each is a count of things still in hand,
   // never a running total, so the numbers stay small enough to mean
@@ -370,6 +389,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                               isAdminOrOwner={isOwnerOrAdmin}
                               counts={sidebarCounts}
                               isTechnician={technicianIds.length > 0}
+                              roleName={roleName}
                             />
                             <SidebarInset>
                               {/* A flex column with a real height, so the `flex-1` every
@@ -381,6 +401,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                                 <PermissionsProvider
                                   creatableSubjects={creatableSubjects}
                                   canManageSettings={canManageSettings}
+                                  roleName={roleName}
                                 >
                                   {children}
                                 </PermissionsProvider>

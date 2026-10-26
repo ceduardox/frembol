@@ -6,6 +6,8 @@ interface PermissionsValue {
   /** Subjects this account may create. `null` means "not resolved", so callers keep the old behaviour. */
   creatableSubjects: string[] | null
   canManageSettings: boolean
+  /** The role name the header and sidebar show: custom role or built-in tier. */
+  roleName?: string
 }
 
 const PermissionsContext = createContext<PermissionsValue>({
@@ -23,10 +25,11 @@ const PermissionsContext = createContext<PermissionsValue>({
 export function PermissionsProvider({
   creatableSubjects,
   canManageSettings,
+  roleName,
   children,
 }: PermissionsValue & { children: ReactNode }) {
   return (
-    <PermissionsContext.Provider value={{ creatableSubjects, canManageSettings }}>
+    <PermissionsContext.Provider value={{ creatableSubjects, canManageSettings, roleName }}>
       {children}
     </PermissionsContext.Provider>
   )

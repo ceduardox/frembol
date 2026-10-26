@@ -43,6 +43,7 @@ const MEMBERSHIP_SELECT = {
     select: {
       isAdmin: true,
       homePanel: true,
+      name: true,
       permissions: { select: { action: true, subject: true } },
     },
   },

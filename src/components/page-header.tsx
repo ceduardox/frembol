@@ -12,7 +12,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AlertTriangle, Search, X } from 'lucide-react'
@@ -23,6 +22,7 @@ import { QuickCreateMenu } from '@/components/quick-create-menu'
 import { DocsLink } from '@/components/docs-link'
 import { RunningClockPill } from '@/features/time-tracking/Components/RunningClockPill'
 import { useServiceType } from '@/components/service-type-context'
+import { usePermissions } from '@/components/permissions-context'
 
 function SearchTrigger() {
   const t = useTranslations('navigation')
@@ -207,6 +207,7 @@ export function PageHeader() {
   )
   const t = useTranslations('navigation.breadcrumbs')
   const tn = useTranslations('navigation')
+  const { roleName } = usePermissions()
   const isMarine = useServiceType() === 'marine'
   const crumb = (key: string) => t(isMarine ? (marineBreadcrumbKeys[key] ?? key) : key)
 
@@ -271,38 +272,45 @@ export function PageHeader() {
       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 bg-background px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            {segments.map((segment, i) => {
-              const isLast = i === segments.length - 1
-              if (isLast) {
+        <div className="flex min-w-0 flex-col justify-center gap-0.5">
+          <Breadcrumb>
+            <BreadcrumbList>
+              {segments.map((segment, i) => {
+                const isLast = i === segments.length - 1
+                if (isLast) {
+                  return (
+                    <BreadcrumbItem key={i}>
+                      {/* A trail of one is not a trail. Pages that sit at the
+                          top level get their crumb styled as the page title. */}
+                      <BreadcrumbPage
+                        className={segments.length === 1 ? 'text-base font-semibold' : undefined}
+                      >
+                        {crumb(segment.key)}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  )
+                }
                 return (
-                  <BreadcrumbItem key={i}>
-                    {/* A trail of one is not a trail. Pages that sit at the
-                        top level get their crumb styled as the page title. */}
-                    <BreadcrumbPage
-                      className={segments.length === 1 ? 'text-base font-semibold' : undefined}
-                    >
-                      {crumb(segment.key)}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
+                  <Fragment key={i}>
+                    <BreadcrumbItem className="hidden md:block">
+                      {segment.href ? (
+                        <BreadcrumbLink href={segment.href}>{crumb(segment.key)}</BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{crumb(segment.key)}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </Fragment>
                 )
-              }
-              return (
-                <Fragment key={i}>
-                  <BreadcrumbItem className="hidden md:block">
-                    {segment.href ? (
-                      <BreadcrumbLink href={segment.href}>{crumb(segment.key)}</BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{crumb(segment.key)}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                </Fragment>
-              )
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+          {roleName && (
+            <span className="max-w-[42vw] truncate text-[11px] leading-tight text-muted-foreground sm:max-w-none">
+              {roleName}
+            </span>
+          )}
+        </div>
         <div className="ml-auto flex items-center gap-2">
           {docsHref && <DocsLink href={docsHref} variant="header" className="hidden sm:flex" />}
           <RunningClockPill />

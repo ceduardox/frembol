@@ -137,6 +137,7 @@ export function AppSidebar({
   announcement = null,
   counts,
   isTechnician = false,
+  roleName,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   companyLogo?: string
@@ -152,6 +153,8 @@ export function AppSidebar({
   /** The one product announcement to show, worked out on the server. */
   announcement?: string | null
   counts?: SidebarCounts
+  /** The role name to show under the workshop, custom or built-in. */
+  roleName?: string
   /** Linked to a technician row: the dashboard is their job list even without the figures. */
   isTechnician?: boolean
 }) {
@@ -415,11 +418,13 @@ export function AppSidebar({
     })
 
   const activeOrg = organizations.find((o) => o.id === activeOrgId) || organizations[0]
-  const roleLabel = activeOrg?.role
-    ? NAMED_ROLES.has(activeOrg.role)
-      ? t(`sidebar.roles.${activeOrg.role}`)
-      : activeOrg.role
-    : null
+  const roleLabel =
+    roleName ??
+    (activeOrg?.role
+      ? NAMED_ROLES.has(activeOrg.role)
+        ? t(`sidebar.roles.${activeOrg.role}`)
+        : activeOrg.role
+      : null)
 
   const handleSwitchOrg = async (orgId: string) => {
     await switchOrganization(orgId)
