@@ -86,7 +86,10 @@
     "partsSaleDescription": "Crea una fattura senza veicolo, per la vendita di ricambi al banco.",
     "partsSaleDescriptionMarine": "Crea una fattura senza imbarcazione, per la vendita di ricambi al banco.",
     "createSale": "Crea vendita",
-    "none": "Nessuno"
+    "none": "Nessuno",
+    "receivePartTitle": "Ricevi pezzo",
+    "receivePartDescription": "Registra il pezzo portato dal cliente. Nessun veicolo necessario.",
+    "receivePartSubmit": "Ricevi pezzo"
   },
   "notify": {
     "title": "Notifica {name}",

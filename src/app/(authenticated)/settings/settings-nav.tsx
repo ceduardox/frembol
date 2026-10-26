@@ -20,6 +20,7 @@ import {
   Database,
   Disc3,
   Download,
+  Droplets,
   FileText,
   Gauge,
   Globe,
@@ -104,6 +105,7 @@ const settingsCategories: SettingsCategory[] = [
     key: 'workshop',
     items: [
       { key: 'workshop', href: '/settings/workshop', icon: Wrench },
+      { key: 'wash', href: '/settings/wash', icon: Droplets },
       { key: 'workOrderStatuses', href: '/settings/work-order-statuses', icon: ListChecks },
       { key: 'maintenance', href: '/settings/maintenance', icon: Gauge },
       { key: 'inspectionReminders', href: '/settings/inspection-reminders', icon: ClipboardCheck },

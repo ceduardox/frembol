@@ -2,6 +2,7 @@ import { Document, Page, Text, View, Image } from '@react-pdf/renderer'
 import { formatDateForPdf, DEFAULT_DATE_FORMAT } from '@/lib/format'
 import { createStyles, gray, getFontBold } from '@/features/vehicles/Components/invoice-pdf/styles'
 import type { TemplateConfig } from '@/features/vehicles/Components/invoice-pdf/types'
+import { RYZTOR_LOGO_DATA_URI } from '@/features/invoice-designer/Lib/ryztorBrand'
 import {
   CONDITION_TOKENS,
   TEST_RESULT_TOKENS,
@@ -781,7 +782,7 @@ export function InspectionPDF({
               ·{' '}
             </Text>
             <Text style={{ fontSize: 7, color: gray }}>{labels.poweredBy || 'Powered by'}</Text>
-            <Image src={torqvoiceLogoDataUri} style={{ width: 14, height: 14 }} />
+            <Image src={RYZTOR_LOGO_DATA_URI} style={{ width: 14, height: 14 }} />
             <Text style={{ fontSize: 7, color: gray, fontFamily: fontBold }}>Ryztor LLC</Text>
           </View>
         ) : (

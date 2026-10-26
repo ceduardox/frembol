@@ -27,7 +27,13 @@
     "filterUnviewed": "Não abertas",
     "filterUnviewedHint": "Faturas enviadas que nunca foram abertas",
     "filterCompleted": "Só concluídas",
-    "filterCompletedHint": "Mostra só as ordens de reparação marcadas como concluídas. Fica guardado para a próxima vez."
+    "filterCompletedHint": "Mostra só as ordens de reparação marcadas como concluídas. Fica guardado para a próxima vez.",
+    "kindAll": "Todos",
+    "kindMechanics": "Mecânica",
+    "kindBrakes": "Travões e embraiagem",
+    "kindWash": "Lavagem auto",
+    "kindParts": "Vendas",
+    "kindFilter": "Tipo de trabalho"
   },
   "recurring": {
     "title": "Recorrente",

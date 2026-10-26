@@ -213,6 +213,7 @@ export function DetailsLeftColumn({
           balanceDue={formState.balanceDue}
           currencyCode={currencyCode}
           onCreatePayment={actions.handleCreatePayment}
+                  onUpdatePayment={actions.handleUpdatePayment}
           onDeletePayment={actions.handleDeletePayment}
           onTogglePaid={actions.handleTogglePaid}
           paymentLoading={actions.paymentLoading}

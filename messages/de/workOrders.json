@@ -86,7 +86,10 @@
     "partsSaleDescription": "Rechnung ohne Fahrzeug erstellen, für Teileverkauf über die Theke.",
     "partsSaleDescriptionMarine": "Rechnung ohne Wasserfahrzeug erstellen, für Teileverkauf über die Theke.",
     "createSale": "Verkauf erstellen",
-    "none": "Keiner"
+    "none": "Keiner",
+    "receivePartTitle": "Teil annehmen",
+    "receivePartDescription": "Erfassen Sie das Teil, das der Kunde gebracht hat. Kein Fahrzeug nötig.",
+    "receivePartSubmit": "Teil annehmen"
   },
   "notify": {
     "title": "{name} benachrichtigen",

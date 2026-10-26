@@ -15,7 +15,9 @@
     "time_tracking": "Control de tiempo",
     "work_board": "Tablero de trabajo",
     "ai_assistant": "Asistente de IA",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "brakes": "Frenos y embragues",
+    "wash": "Lavadero"
   },
   "actions": {
     "create": "Crear",

@@ -376,7 +376,8 @@
     "lookupVin": "Buscar VIN",
     "lookupEnterVin": "Escribe primero un VIN",
     "lookupVinNotFound": "No se encontró ningún vehículo con ese VIN",
-    "lookupVinFailed": "No se pudo buscar el VIN"
+    "lookupVinFailed": "No se pudo buscar el VIN",
+    "catalogAdd": "Agregar «{value}»"
   },
   "archiveDialog": {
     "title": "Archivar vehículo",

@@ -80,7 +80,15 @@
     "part": "Ricambio",
     "inspection": "Ispezione",
     "shopActions": "Officina",
-    "person": "Aggiungi una persona"
+    "person": "Aggiungi una persona",
+    "mechanics": "Meccanica",
+    "mechanicsHint": "Veicolo completo",
+    "brakes": "Freni e frizione",
+    "brakesHint": "Pezzo o veicolo",
+    "wash": "Autolavaggio",
+    "washHint": "Auto, moto o camion",
+    "chooseTitle": "Cosa vuoi creare?",
+    "chooseDescription": "Scegli il tipo. Vedrai solo ciò che il tuo ruolo consente."
   },
   "purchaseWhiteLabel": "Acquista White-Label",
   "licenseExpired": "La tua licenza è scaduta. Le funzionalità potrebbero essere limitate.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} ordini di lavoro aperti",
       "inspections": "{count} ispezioni in corso",
       "reminders": "{count} promemoria in scadenza"
-    }
+    },
+    "wash": "Car wash"
   }
 }

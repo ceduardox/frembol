@@ -21,6 +21,7 @@ import {
 } from './certificateBlocks'
 import { signatureBlock } from './signatureBlock'
 import { conditionMapBlock } from './conditionMapBlock'
+import { RYZTOR_LOGO_DATA_URI } from '../Lib/ryztorBrand'
 
 /**
  * The single description of a document.
@@ -809,39 +810,6 @@ function letterhead(section: InvoiceSection, theme: DocumentTheme, data: Documen
       children: [{ kind: 'spacer', height: 1 }],
     })
   }
-  if (data.branding) {
-    below.push({
-      kind: 'row',
-      id: 'header.branding',
-      gap: 3,
-      justify: align === 'center' ? 'center' : align === 'left' ? 'start' : 'end',
-      align: 'center',
-      children: [
-        {
-          node: {
-            kind: 'text',
-            text: label(data, 'poweredBy', 'Powered by'),
-            style: { color: mutedOnBand, fontSize: scale(size, MARK.label) },
-          },
-        },
-        {
-          node: {
-            kind: 'image',
-            src: data.branding.logoDataUri,
-            maxWidth: MARK.icon,
-            maxHeight: MARK.icon,
-          },
-        },
-        {
-          node: {
-            kind: 'text',
-            text: 'Ryztor LLC',
-            style: { color: mutedOnBand, fontSize: scale(size, MARK.word), bold: true },
-          },
-        },
-      ],
-    })
-  }
 
   return {
     kind: 'stack',
@@ -1400,38 +1368,6 @@ function totals(section: InvoiceSection, theme: DocumentTheme, data: DocumentDat
           children: [{ width, node: box }],
         },
   ]
-
-  if (data.branding) {
-    children.push({
-      kind: 'row',
-      gap: 3,
-      align: 'center',
-      children: [
-        {
-          node: {
-            kind: 'text',
-            text: label(data, 'poweredBy', 'Powered by'),
-            style: { color: look.muted, fontSize: scale(size, MARK.label) },
-          },
-        },
-        {
-          node: {
-            kind: 'image',
-            src: data.branding.logoDataUri,
-            maxWidth: MARK.icon,
-            maxHeight: MARK.icon,
-          },
-        },
-        {
-          node: {
-            kind: 'text',
-            text: 'Ryztor LLC',
-            style: { color: theme.primary, fontSize: scale(size, MARK.word), bold: true },
-          },
-        },
-      ],
-    })
-  }
 
   return { kind: 'stack', id: section.id, gap: 6, children }
 }
@@ -2078,7 +2014,7 @@ function footer(section: InvoiceSection, theme: DocumentTheme, data: DocumentDat
             style: { color: look.muted, fontSize: scale(size, 0.9) },
           },
         },
-        { node: { kind: 'image', src: data.branding.logoDataUri, maxWidth: 22, maxHeight: 22 } },
+        { node: { kind: 'image', src: RYZTOR_LOGO_DATA_URI, maxWidth: 22, maxHeight: 22 } },
         {
           node: {
             kind: 'text',

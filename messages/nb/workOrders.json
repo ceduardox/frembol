@@ -86,7 +86,10 @@
     "partsSaleDescription": "Opprett en faktura uten kjøretøy, for salg av deler over disk.",
     "partsSaleDescriptionMarine": "Opprett en faktura uten fartøy, for salg av deler over disk.",
     "createSale": "Opprett salg",
-    "none": "Ingen"
+    "none": "Ingen",
+    "receivePartTitle": "Mot del",
+    "receivePartDescription": "Registrer delen kunden har med. Ingen kjøretøy nødvendig.",
+    "receivePartSubmit": "Motta del"
   },
   "notify": {
     "title": "Varsle {name}",

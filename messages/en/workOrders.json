@@ -86,7 +86,10 @@
     "partsSaleDescription": "Create an invoice without a vehicle, for over-the-counter parts sales.",
     "partsSaleDescriptionMarine": "Create an invoice without a vessel, for over-the-counter parts sales.",
     "createSale": "Create Sale",
-    "none": "None"
+    "none": "None",
+    "receivePartTitle": "Receive part",
+    "receivePartDescription": "Log the part the customer brought in. No vehicle needed.",
+    "receivePartSubmit": "Receive part"
   },
   "notify": {
     "title": "Notify {name}",

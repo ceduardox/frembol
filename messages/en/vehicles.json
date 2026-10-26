@@ -376,7 +376,8 @@
     "lookupVin": "Look up VIN",
     "lookupEnterVin": "Type a VIN first",
     "lookupVinNotFound": "No vehicle found for that VIN",
-    "lookupVinFailed": "Could not look up the VIN"
+    "lookupVinFailed": "Could not look up the VIN",
+    "catalogAdd": "Add «{value}»"
   },
   "archiveDialog": {
     "title": "Archive Vehicle",

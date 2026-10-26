@@ -86,7 +86,10 @@
     "partsSaleDescription": "Создайте счёт без автомобиля для продажи запчастей у прилавка.",
     "partsSaleDescriptionMarine": "Создайте счёт без судна для продажи запчастей у прилавка.",
     "createSale": "Создать продажу",
-    "none": "Нет"
+    "none": "Нет",
+    "receivePartTitle": "Принять деталь",
+    "receivePartDescription": "Зарегистрируйте деталь, которую принёс клиент. Автомобиль не нужен.",
+    "receivePartSubmit": "Принять деталь"
   },
   "notify": {
     "title": "Уведомить {name}",

@@ -42,6 +42,10 @@ import type { VehicleDocumentScan } from '../Actions/aiAnalyzeVehicleDocument'
 import { ScanDocumentButton } from './ScanDocumentButton'
 import { VehicleLookupButton } from './VehicleLookupButton'
 import { CatalogCombobox } from './CatalogCombobox'
+import {
+  getVehicleCatalogExtras,
+  rememberVehicleCatalogEntry,
+} from '@/features/vehicles/Actions/vehicleCatalogActions'
 import type { VehicleLookup } from '@/features/integrations/Actions/vehicleLookupActions'
 import { nameSimilarity } from '@/lib/name-similarity'
 import { Camera, Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react'
@@ -172,12 +176,19 @@ export function VehicleForm({
   useEffect(() => {
     if (!open || catalog.length > 0) return
     let cancelled = false
-    fetch('/vehicle-catalog.json')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.makes) setCatalog(data.makes)
+    Promise.all([
+      fetch('/vehicle-catalog.json').then((r) => (r.ok ? r.json() : null)),
+      getVehicleCatalogExtras(),
+    ])
+      .then(([data, extras]) => {
+        if (cancelled) return
+        const base = Array.isArray(data?.makes) ? data.makes : []
+        const saved = extras.success && extras.data ? extras.data : []
+        setCatalog(mergeCatalog(base, saved))
       })
-      .catch(() => {})
+      .catch(() => {
+        /* the catalogue is a suggestion; manual entry still works */
+      })
     return () => {
       cancelled = true
     }
@@ -207,6 +218,27 @@ export function VehicleForm({
     if (model && !list.some((mo) => mo.toLowerCase() === model.toLowerCase())) {
       setModel('')
     }
+    const trimmed = next.trim()
+    if (trimmed && !catalog.some((m) => m.name.toLowerCase() === key)) {
+      setCatalog((prev) => [...prev, { name: trimmed, models: [] }])
+      void rememberVehicleCatalogEntry({ make: trimmed })
+    }
+  }
+
+  const handleModelChange = (next: string) => {
+    setModel(next)
+    const trimmed = next.trim()
+    const currentMake = make.trim()
+    if (!trimmed || !currentMake) return
+    const key = currentMake.toLowerCase()
+    const entry = catalog.find((m) => m.name.toLowerCase() === key)
+    if (entry?.models.some((mo) => mo.toLowerCase() === trimmed.toLowerCase())) return
+    setCatalog((prev) =>
+      prev.map((m) =>
+        m.name.toLowerCase() === key ? { ...m, models: [...m.models, trimmed] } : m
+      )
+    )
+    void rememberVehicleCatalogEntry({ make: currentMake, model: trimmed })
   }
 
   const fileRef = useRef<HTMLInputElement>(null)
@@ -691,7 +723,7 @@ export function VehicleForm({
                         icon="make"
                         logoFor={carLogoUrl}
                         emptyLabel={t('catalogEmpty')}
-                        useLabel={(v) => t('catalogUse', { value: v })}
+                        useLabel={(v) => t('catalogAdd', { value: v })}
                       />
                     </>
                   )}
@@ -712,12 +744,12 @@ export function VehicleForm({
                       <CatalogCombobox
                         id="model"
                         value={model}
-                        onChange={setModel}
+                        onChange={handleModelChange}
                         options={modelOptions}
                         placeholder="Camry"
                         icon="model"
                         emptyLabel={t('catalogEmpty')}
-                        useLabel={(v) => t('catalogUse', { value: v })}
+                        useLabel={(v) => t('catalogAdd', { value: v })}
                       />
                     </>
                   )}
@@ -1087,4 +1119,21 @@ export function VehicleForm({
       />
     </>
   )
+}
+
+function mergeCatalog(
+  base: { name: string; models: string[] }[],
+  extras: { name: string; models: string[] }[]
+): { name: string; models: string[] }[] {
+  const map = new Map(base.map((entry) => [entry.name.toLowerCase(), { name: entry.name, models: [...entry.models] }]))
+  for (const extra of extras) {
+    const key = extra.name.toLowerCase()
+    const existing = map.get(key)
+    if (existing) {
+      existing.models = [...new Set([...existing.models, ...extra.models])]
+    } else {
+      map.set(key, { name: extra.name, models: [...extra.models] })
+    }
+  }
+  return [...map.values()]
 }

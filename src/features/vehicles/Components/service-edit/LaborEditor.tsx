@@ -54,6 +54,8 @@ interface LaborEditorProps {
   onAddFinding?: () => void
   openObservationsCount?: number
   onShowExistingObservations?: () => void
+  /** Overrides the card title, e.g. "Wash services" for a car wash. */
+  title?: string
 }
 
 function SortableLaborRow({
@@ -142,7 +144,14 @@ function SortableLaborRow({
                   ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:border-blue-500/50 dark:text-blue-400'
                   : 'border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:border-amber-500/50 dark:text-amber-400'
               )}
-              onClick={() => updateLabor(index, 'pricingType', isService ? 'hourly' : 'service')}
+              onClick={() => {
+                const next = isService ? 'hourly' : 'service'
+                updateLabor(index, 'pricingType', next)
+                // A service is a count, and one is the useful starting point.
+                if (next === 'service' && (!labor.hours || labor.hours <= 0)) {
+                  updateLabor(index, 'hours', 1)
+                }
+              }}
               title={isService ? t('serviceHint') : t('hourlyHint')}
             >
               {isService ? t('serviceTag') : t('hourlyTag')}
@@ -209,6 +218,7 @@ export function LaborEditor({
   onAddFinding,
   openObservationsCount = 0,
   onShowExistingObservations,
+  title: titleOverride,
 }: LaborEditorProps) {
   const t = useTranslations('service.labor')
   const modern = useModernWorkOrder()
@@ -283,8 +293,13 @@ export function LaborEditor({
       {hasPresets && onOpenPresets && (
         <IconActionButton label={t('fromPresets')} icon={Layers} onClick={onOpenPresets} />
       )}
-      <IconActionButton label={t('addLabor')} icon={Plus} onClick={addLaborAtStart} />
-      <IconActionButton label={t('addService')} icon={Wrench} onClick={addServiceAtStart} />
+      <IconActionButton data-add-row label={t('addLabor')} icon={Plus} onClick={addLaborAtStart} />
+      <IconActionButton
+        data-add-service
+        label={t('addService')}
+        icon={Wrench}
+        onClick={addServiceAtStart}
+      />
       {onAddFinding && openObservationsCount > 0 && onShowExistingObservations ? (
         <DropdownMenu>
           {/* Plain button with a native tooltip: a Radix dropdown trigger
@@ -385,6 +400,7 @@ export function LaborEditor({
           <button
             type="button"
             className="flex w-full items-center justify-center rounded-lg border border-dashed border-amber-500/30 py-2 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-500/5 hover:border-amber-500/50 transition-all active:scale-[0.99]"
+            data-add-row
             onClick={addLaborAtEnd}
           >
             <Plus className="h-4 w-4 mr-1.5" />
@@ -406,6 +422,7 @@ export function LaborEditor({
           <button
             type="button"
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-background/80 py-2.5 text-sm font-medium text-amber-700 dark:text-amber-300 shadow-2xs hover:bg-amber-500/10 transition-all active:scale-[0.98]"
+            data-add-row
             onClick={addLaborAtEnd}
           >
             <Plus className="h-4 w-4" />
@@ -428,7 +445,7 @@ export function LaborEditor({
     return (
       <AppCard
         icon={Wrench}
-        title={t('title')}
+        title={titleOverride ?? t('title')}
         badge={laborItems.length || undefined}
         action={actions}
         className="@container"
@@ -445,7 +462,7 @@ export function LaborEditor({
     // it is on a phone.
     <div className="@container space-y-2 rounded-lg border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">{t('title')}</h3>
+        <h3 className="text-sm font-semibold">{titleOverride ?? t('title')}</h3>
         {actions}
       </div>
       {body}

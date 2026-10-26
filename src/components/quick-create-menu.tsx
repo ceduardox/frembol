@@ -22,6 +22,8 @@ import {
   Package,
   ClipboardCheck,
   UserPlus,
+  Disc3,
+  Droplets,
 } from 'lucide-react'
 import { VehiclePickerDialog } from '@/components/vehicle-picker-dialog'
 import { NewInspectionDialog } from '@/features/inspections/Components/NewInspectionDialog'
@@ -30,6 +32,7 @@ import { getCustomersList } from '@/features/customers/Actions/customerActions'
 import { getTemplates } from '@/features/inspections/Actions/templateActions'
 import { usePermissions } from '@/components/permissions-context'
 import { PermissionSubject } from '@/lib/permissions'
+import type { NewWorkKind } from '@/components/new-work-chooser'
 
 interface VehicleOption {
   id: string
@@ -56,13 +59,15 @@ export function QuickCreateMenu() {
   const t = useTranslations('navigation')
   const router = useRouter()
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false)
+  const [pickerKind, setPickerKind] = useState<NewWorkKind>('mechanics')
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [vehicles, setVehicles] = useState<VehicleOption[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [templates, setTemplates] = useState<TemplateOption[]>([])
 
-  const handleNewWorkOrder = async () => {
+  const handleNewWorkOrder = async (kind: NewWorkKind) => {
+    setPickerKind(kind)
     setLoading(true)
     try {
       const [vehiclesResult, customersResult] = await Promise.all([
@@ -111,7 +116,9 @@ export function QuickCreateMenu() {
   // Each entry is the permission its action asks for on the server. A role
   // that cannot create the thing should not be offered the menu item that
   // opens the form, only to be refused on submit.
-  const canCreateWorkOrder = canCreate(PermissionSubject.SERVICES)
+  const canCreateWorkOrder = canCreate(PermissionSubject.WORK_ORDERS)
+  const canCreateBrakes = canCreate(PermissionSubject.BRAKES)
+  const canCreateWash = canCreate(PermissionSubject.WASH)
   const canCreateCustomer = canCreate(PermissionSubject.CUSTOMERS)
   const canCreateVehicle = canCreate(PermissionSubject.VEHICLES)
   const canCreateQuote = canCreate(PermissionSubject.QUOTES)
@@ -119,6 +126,8 @@ export function QuickCreateMenu() {
   const canCreateInspection = canCreate(PermissionSubject.INSPECTIONS)
   const hasAnyAction =
     canCreateWorkOrder ||
+    canCreateBrakes ||
+    canCreateWash ||
     canCreateCustomer ||
     canCreateVehicle ||
     canCreateQuote ||
@@ -145,9 +154,21 @@ export function QuickCreateMenu() {
           <DropdownMenuLabel>{t('quickCreate.title')}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {canCreateWorkOrder && (
-            <DropdownMenuItem onSelect={handleNewWorkOrder}>
+            <DropdownMenuItem onSelect={() => handleNewWorkOrder('mechanics')}>
               <Wrench className="h-4 w-4" />
-              {t('quickCreate.workOrder')}
+              {t('quickCreate.mechanics')}
+            </DropdownMenuItem>
+          )}
+          {canCreateBrakes && (
+            <DropdownMenuItem onSelect={() => handleNewWorkOrder('brakes')}>
+              <Disc3 className="h-4 w-4" />
+              {t('quickCreate.brakes')}
+            </DropdownMenuItem>
+          )}
+          {canCreateWash && (
+            <DropdownMenuItem onSelect={() => handleNewWorkOrder('wash')}>
+              <Droplets className="h-4 w-4" />
+              {t('quickCreate.wash')}
             </DropdownMenuItem>
           )}
           {canCreateCustomer && (
@@ -201,6 +222,9 @@ export function QuickCreateMenu() {
         onOpenChange={setVehicleDialogOpen}
         vehicles={vehicles}
         customers={customers}
+        initialStep={pickerKind === 'brakes' ? 'sale' : 'select'}
+        mode={pickerKind === 'brakes' ? 'brakes' : 'default'}
+        jobKind={pickerKind}
       />
       <NewInspectionDialog
         open={inspectionDialogOpen}

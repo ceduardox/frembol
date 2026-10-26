@@ -7,8 +7,10 @@ import { withAuth } from '@/lib/with-auth'
 import {
   ensureMemberRole,
   ensureTechnicianRole,
+  ensureWashManagerRole,
   MEMBER_ROLE_NAME,
   TECHNICIAN_ROLE_NAME,
+  WASH_MANAGER_ROLE_NAME,
 } from '../Lib/technicianRole'
 
 /**
@@ -28,15 +30,21 @@ export async function createDefaultRoles() {
   return withAuth(
     async ({ organizationId }) => {
       const before = await db.role.findMany({
-        where: { organizationId, name: { in: [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME] } },
+        where: {
+          organizationId,
+          name: { in: [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME, WASH_MANAGER_ROLE_NAME] },
+        },
         select: { name: true },
       })
       const had = new Set(before.map((r) => r.name))
 
       await ensureMemberRole(db, organizationId)
       await ensureTechnicianRole(db, organizationId)
+      await ensureWashManagerRole(db, organizationId)
 
-      const created = [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME].filter((n) => !had.has(n))
+      const created = [MEMBER_ROLE_NAME, TECHNICIAN_ROLE_NAME, WASH_MANAGER_ROLE_NAME].filter(
+        (n) => !had.has(n)
+      )
       revalidatePath('/settings/team')
       return { created }
     },

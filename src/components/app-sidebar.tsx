@@ -50,6 +50,7 @@ import {
   ClipboardList,
   Columns3,
   Disc3,
+  Droplets,
   FileText,
   History,
   Globe,
@@ -231,6 +232,12 @@ export function AppSidebar({
       url: '/work-board',
       icon: Columns3,
       subject: 'work_board',
+    },
+    {
+      titleKey: 'sidebar.wash' as const,
+      url: '/wash',
+      icon: Droplets,
+      subject: 'wash',
     },
     // Opt-in module: hidden entirely until the workshop turns it on in
     // settings, and pointed out once when it appears, since a link that shows

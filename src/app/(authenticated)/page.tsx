@@ -1,5 +1,6 @@
 import { resolveCurrencyCode } from '@/lib/currencies'
 import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
 import {
   getDashboardStats,
   getUpcomingReminders,
@@ -15,6 +16,7 @@ import { getQuoteRequests } from '@/features/inspections/Actions/quoteRequestAct
 import { getPendingServiceRequests } from '@/features/customers/Actions/customerActions'
 import { getQuoteResponses } from '@/features/quotes/Actions/quoteResponseActions'
 import { getAuthContext } from '@/lib/get-auth-context'
+import { getCachedMembership } from '@/lib/cached-session'
 import { PermissionSubject } from '@/lib/permissions'
 import { getViewerAccess, readIfAllowed } from '@/lib/viewer-access'
 import { getFeatures } from '@/lib/features'
@@ -35,6 +37,10 @@ import { getInspectionsDueSummary } from '@/features/vehicles/Actions/inspection
 
 export default async function DashboardPage() {
   const auth = await getAuthContext()
+  if (auth && !auth.isAdmin) {
+    const membership = await getCachedMembership(auth.userId)
+    if (membership?.customRole?.homePanel === 'wash') redirect('/wash')
+  }
   const features = auth ? await getFeatures(auth.organizationId) : null
   const smsEnabled = features?.sms ?? false
   // The plan decides whether the portal exists at all; the setting decides

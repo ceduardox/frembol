@@ -10,6 +10,7 @@ import { FieldRow } from '@/components/line-item-field'
 import { cn } from '@/lib/utils'
 import { AppCard } from '@/components/app-card'
 import { useModernWorkOrder } from '@/components/work-order-layout-context'
+import mobileStyles from '../service-page/modern/mobile-work-order.module.css'
 import { useFormatCurrency } from '@/components/currency-settings-context'
 import { useTranslations } from 'next-intl'
 import type { ServicePartInput } from '@/features/vehicles/Schema/serviceSchema'
@@ -100,6 +101,9 @@ function SortablePartRow({
   t: (key: string) => string
   dragEnabled: boolean
 }) {
+  const modern = useModernWorkOrder()
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const tMobile = useTranslations('service.mobileWork')
   const formatCurrency = useFormatCurrency()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -118,10 +122,12 @@ function SortablePartRow({
     <div
       ref={dragEnabled ? setNodeRef : undefined}
       style={style}
+      data-details-open={detailsOpen}
       className={cn(
         'grid grid-cols-[auto_1fr] gap-2 rounded-xl border border-border/80 bg-card/60 p-3 shadow-2xs hover:border-sky-500/30 transition-all',
         '@2xl:grid-cols-[auto_1fr_2fr_0.6fr_0.9fr_0.7fr_0.9fr_0.9fr_auto] @2xl:rounded-none @2xl:border-0 @2xl:bg-transparent @2xl:p-0 @2xl:shadow-none',
-        isDragging && dragEnabled && 'z-10 opacity-75'
+        isDragging && dragEnabled && 'z-10 opacity-75',
+        modern && mobileStyles.partRow
       )}
     >
       <button
@@ -134,7 +140,10 @@ function SortablePartRow({
 
       <div className="grid min-w-0 grid-cols-2 gap-2.5 @2xl:contents">
         {/* Name: spans full width on mobile, 2nd column on desktop */}
-        <FieldRow label={t('name')} className="col-span-2 order-first @2xl:order-none @2xl:col-span-1">
+        <FieldRow
+          label={t('name')}
+          className="col-span-2 order-first @2xl:order-none @2xl:col-span-1"
+        >
           <div className="relative w-full">
             <Textarea
               placeholder={t('namePlaceholder')}
@@ -160,7 +169,10 @@ function SortablePartRow({
         </FieldRow>
 
         {/* Part Number & Category: spans full width on mobile, 1st column on desktop */}
-        <FieldRow label={t('partNumber')} className="col-span-2 @2xl:col-span-1">
+        <FieldRow
+          label={t('partNumber')}
+          className={cn('col-span-2 @2xl:col-span-1', modern && mobileStyles.partDetail)}
+        >
           <div className="flex w-full flex-col gap-1">
             <Input
               placeholder={t('partNumber')}
@@ -200,7 +212,11 @@ function SortablePartRow({
         </FieldRow>
 
         {/* Unit Price on mobile (paired with Quantity), in table order on desktop */}
-        <FieldRow label={t('unitCost')} hint={t('unitCostHint')} className="col-span-1">
+        <FieldRow
+          label={t('unitCost')}
+          hint={t('unitCostHint')}
+          className={cn('col-span-1', modern && mobileStyles.partDetail)}
+        >
           <Input
             type="number"
             inputMode="decimal"
@@ -216,7 +232,11 @@ function SortablePartRow({
         </FieldRow>
 
         {/* Markup Percent */}
-        <FieldRow label={t('markupPercent')} hint={t('markupPercentHint')} className="col-span-1">
+        <FieldRow
+          label={t('markupPercent')}
+          hint={t('markupPercentHint')}
+          className={cn('col-span-1', modern && mobileStyles.partDetail)}
+        >
           <div className="relative w-full">
             <Input
               type="number"
@@ -234,7 +254,10 @@ function SortablePartRow({
         </FieldRow>
 
         {/* Unit Price */}
-        <FieldRow label={t('unitPrice')} className="col-span-1">
+        <FieldRow
+          label={t('unitPrice')}
+          className={cn('col-span-1', modern && mobileStyles.partDetail)}
+        >
           <Input
             type="number"
             inputMode="decimal"
@@ -246,9 +269,21 @@ function SortablePartRow({
           />
         </FieldRow>
 
+        {modern && (
+          <button
+            type="button"
+            aria-expanded={detailsOpen}
+            className={mobileStyles.partToggle}
+            onClick={() => setDetailsOpen(!detailsOpen)}
+          >
+            {tMobile('priceDetails')} {detailsOpen ? '−' : '+'}
+          </button>
+        )}
         {/* Total & Delete Action */}
         <div className="col-span-2 flex items-center justify-between border-t border-border/50 pt-2 @2xl:contents">
-          <span className="text-xs text-muted-foreground font-medium @2xl:hidden">{t('total')}:</span>
+          <span className="text-xs text-muted-foreground font-medium @2xl:hidden">
+            {t('total')}:
+          </span>
           <div className="flex h-8 @2xl:h-9 items-center rounded-md bg-sky-500/10 @2xl:bg-muted/50 px-2.5 @2xl:px-3 text-xs @2xl:text-sm font-semibold text-sky-700 dark:text-sky-300 @2xl:text-foreground">
             {formatCurrency(part.total, currencyCode)}
           </div>
@@ -402,7 +437,7 @@ export function PartsEditor({
       {onScanBarcode && (
         <IconActionButton label={t('scanBarcode')} icon={ScanBarcode} onClick={onScanBarcode} />
       )}
-      <IconActionButton label={t('addPart')} icon={Plus} onClick={addPartAtStart} />
+      <IconActionButton data-add-row label={t('addPart')} icon={Plus} onClick={addPartAtStart} />
     </div>
   )
 
@@ -480,6 +515,7 @@ export function PartsEditor({
           <button
             type="button"
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-sky-500/30 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-sky-500/60 hover:bg-sky-500/5 hover:text-sky-600 active:scale-[0.99]"
+            data-add-row
             onClick={addPartAtEnd}
           >
             <Plus className="h-3.5 w-3.5" />
@@ -492,7 +528,9 @@ export function PartsEditor({
           )}
           <div className="flex items-center justify-end border-t border-border/50 pt-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground uppercase font-medium">Subtotal Repuestos:</span>
+              <span className="text-xs text-muted-foreground uppercase font-medium">
+                Subtotal Repuestos:
+              </span>
               <span className="font-semibold text-sky-600 dark:text-sky-400">
                 {formatCurrency(partsSubtotal, currencyCode)}
               </span>
@@ -505,6 +543,7 @@ export function PartsEditor({
         <button
           type="button"
           className="flex w-full items-center justify-center rounded-lg border border-dashed border-sky-500/30 py-3 text-muted-foreground transition-all hover:border-sky-500/60 hover:bg-sky-500/5 hover:text-sky-600 active:scale-95"
+          data-add-row
           onClick={addPartAtEnd}
         >
           <Plus className="mr-1 h-4 w-4 text-sky-500" />

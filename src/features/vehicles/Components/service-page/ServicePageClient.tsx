@@ -70,6 +70,7 @@ import { useLiveRecord } from '@/features/realtime/hooks'
 import { PresenceChips } from '@/features/realtime/Components/PresenceChips'
 import { ModernDetails } from './modern/ModernDetails'
 import { ModernHero } from './modern/ModernHero'
+import mobileStyles from './modern/mobile-work-order.module.css'
 import { lineTotal, resolvePartPrice } from '@/features/inventory/Lib/partPricing'
 
 export type { ServicePageClientProps, BoardTechnicianOption } from './service-page-types'
@@ -615,7 +616,13 @@ export function ServicePageClient({
 
   return (
     <ShopFeeProvider value={shopFee}>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-16 lg:pb-0">
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col overflow-hidden pb-16 lg:pb-0',
+          modern && 'pb-0 md:pb-16 lg:pb-0',
+          modern && mobileStyles.page
+        )}
+      >
         {modern ? (
           <ModernHero
             record={record}
@@ -720,6 +727,10 @@ export function ServicePageClient({
                   initialTab: isFileTab || storedTab === 'statusReports' ? storedTab : undefined,
                   statusReports: { count: statusReports.length, list: statusReportList },
                 }}
+                mobileHeaderActions={
+                  <ServiceHeaderActions showSave={false} {...headerActionProps} />
+                }
+                saving={formState.loading}
                 onPreviewInvoice={previewInvoice}
                 onSendToCustomer={shareInvoice}
                 onBackToClassic={() => void switchLayout('classic', 'footer')}

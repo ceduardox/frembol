@@ -80,7 +80,15 @@
     "part": "Pièce",
     "inspection": "Inspection",
     "shopActions": "Atelier",
-    "person": "Ajouter une personne"
+    "person": "Ajouter une personne",
+    "mechanics": "Mécanique",
+    "mechanicsHint": "Véhicule complet",
+    "brakes": "Freins et embrayage",
+    "brakesHint": "Pièce ou véhicule",
+    "wash": "Lavage auto",
+    "washHint": "Voiture, moto ou camion",
+    "chooseTitle": "Que créez-vous ?",
+    "chooseDescription": "Choisissez le type. Vous ne verrez que ce que votre rôle autorise."
   },
   "purchaseWhiteLabel": "Acheter la marque blanche",
   "licenseExpired": "Votre licence a expiré. Les fonctionnalités peuvent être limitées.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} ordres de travail ouverts",
       "inspections": "{count} inspections en cours",
       "reminders": "{count} rappels à échéance"
-    }
+    },
+    "wash": "Car wash"
   }
 }

@@ -105,6 +105,8 @@ interface ScheduleTimesSectionProps {
   initialWorkBayId?: string | null
   /** When the customer was told the vehicle would be ready, ISO. */
   initialPromisedAt?: string | null
+  /** A customer-supplied part: keep the technician and the promise only. */
+  partMode?: boolean
   onSaved?: () => void
 }
 
@@ -118,6 +120,7 @@ export function ScheduleTimesSection({
   initialTechnicianId,
   initialWorkBayId,
   initialPromisedAt,
+  partMode = false,
   onSaved,
 }: ScheduleTimesSectionProps) {
   const t = useTranslations('service.schedule')
@@ -522,12 +525,14 @@ export function ScheduleTimesSection({
       icon={Clock}
       title={t('assignedTitle')}
       action={
-        <Link
-          href="/work-board"
-          className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {t('boardLink')}
-        </Link>
+        partMode ? undefined : (
+          <Link
+            href="/work-board"
+            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {t('boardLink')}
+          </Link>
+        )
       }
       contentClassName="space-y-3"
       header={
@@ -680,7 +685,7 @@ export function ScheduleTimesSection({
         onChanged={() => router.refresh()}
       />
 
-      {workBays.length > 0 && (
+      {!partMode && workBays.length > 0 && (
         <div className="space-y-1">
           <Label className="text-xs">{t('workBay')}</Label>
           <Select value={selectedBayId} onValueChange={handleBaySelect}>
@@ -703,6 +708,7 @@ export function ScheduleTimesSection({
           them, and what that slot clashes with. The slot finder writes these
           two fields, so it belongs with them rather than under the promise,
           where it read as a way of promising a time. */}
+      {!partMode && (
       <div className="space-y-3">
         <div className="space-y-1.5">
           <Label className="text-xs">{t('startTime')}</Label>
@@ -828,6 +834,7 @@ export function ScheduleTimesSection({
           {finding ? t('findingSlot') : t('pickNextAvailable')}
         </Button>
       </div>
+      )}
 
       {/* Not when the work is booked, but what the customer was told, so
           it stands on its own below the booking. */}

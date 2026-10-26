@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { issueInvoice } from '@/features/invoices/Lib/issueInvoice'
 import { withAuth } from '@/lib/with-auth'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
-import { createPaymentSchema } from '../Schema/paymentSchema'
+import { createPaymentSchema, updatePaymentSchema } from '../Schema/paymentSchema'
 import { revalidatePath } from 'next/cache'
 import { getDocumentLockSettings } from '@/lib/document-lock.server'
 import { DocumentLockedError, invoiceLockState } from '@/lib/document-lock'
@@ -60,6 +60,84 @@ export async function createPayment(input: unknown) {
           key: 'payment_create',
           params: { amount: result.amount, serviceRecordId: result.serviceRecordId },
         },
+        metadata: {
+          paymentId: result.id,
+          serviceRecordId: result.serviceRecordId,
+          amount: result.amount,
+          method: result.method,
+        },
+      }),
+    }
+  )
+}
+
+export async function updatePayment(input: unknown) {
+  return withAuth(
+    async ({ organizationId }) => {
+      const data = updatePaymentSchema.parse(input)
+
+      const payment = await db.payment.findFirst({
+        where: { id: data.id, serviceRecord: { organizationId } },
+        include: {
+          serviceRecord: {
+            select: {
+              vehicleId: true,
+              id: true,
+              sentAt: true,
+              manuallyPaid: true,
+              totalAmount: true,
+              cost: true,
+              editUnlockedAt: true,
+              payments: { select: { id: true, amount: true } },
+            },
+          },
+        },
+      })
+      if (!payment) throw new Error('Payment not found')
+
+      // Lowering the payment that settled a locked invoice would release the
+      // lock, which is the admin-only unlock in disguise. Editing a partial
+      // payment, or raising one, stays open to everyone.
+      const settings = await getDocumentLockSettings(organizationId)
+      const before = invoiceLockState(payment.serviceRecord, settings)
+      const after = invoiceLockState(
+        {
+          ...payment.serviceRecord,
+          payments: payment.serviceRecord.payments.map((row) =>
+            row.id === data.id ? { ...row, amount: data.amount } : row
+          ),
+        },
+        settings
+      )
+      if (before.locked && !after.locked && before.reason) {
+        throw new DocumentLockedError(before.reason)
+      }
+
+      const updated = await db.payment.update({
+        where: { id: data.id },
+        data: {
+          amount: data.amount,
+          date: toSafeWorkshopDate(data.date, await workshopTimeZone(organizationId)) ?? new Date(),
+          method: data.method,
+          note: data.note || null,
+        },
+      })
+
+      const { vehicleId, id: serviceId } = payment.serviceRecord
+      revalidatePath(
+        vehicleId ? `/vehicles/${vehicleId}/service/${serviceId}` : `/sales/${serviceId}`
+      )
+      return updated
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.BILLING },
+      ],
+      audit: ({ result }) => ({
+        action: 'payment.update',
+        entity: 'Payment',
+        entityId: result.id,
+        details: { key: 'payment_update', params: { id: result.id, amount: result.amount } },
         metadata: {
           paymentId: result.id,
           serviceRecordId: result.serviceRecordId,

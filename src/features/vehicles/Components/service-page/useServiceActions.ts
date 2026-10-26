@@ -10,7 +10,7 @@ import {
   deleteServiceAttachment,
   toggleManuallyPaid,
 } from '@/features/vehicles/Actions/serviceActions'
-import { createPayment, deletePayment } from '@/features/payments/Actions/paymentActions'
+import { createPayment, deletePayment, updatePayment } from '@/features/payments/Actions/paymentActions'
 import { getSmsTemplates } from '@/features/sms/Actions/smsActions'
 import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
 import { SMS_TEMPLATE_DEFAULTS, interpolateSmsTemplate } from '@/lib/sms-templates'
@@ -339,6 +339,21 @@ export function useServiceActions({
     }
   }
 
+  const handleUpdatePayment = async (
+    id: string,
+    data: { amount: number; date: string; method: string; note?: string }
+  ) => {
+    setPaymentLoading(true)
+    const result = await updatePayment({ id, ...data })
+    setPaymentLoading(false)
+    if (result.success) {
+      toast.success(t('payments.updated'))
+      router.refresh()
+      return true
+    }
+    modal.open('error', tc('errors.error'), result.error || t('payments.failedUpdate'))
+    return false
+  }
   const handleDeletePayment = async (id: string) => {
     const ok = await confirm({
       title: t('payments.deleteTitle'),
@@ -365,6 +380,7 @@ export function useServiceActions({
     handleDownloadPDF,
     handleDeleteAttachment,
     handleCreatePayment,
+    handleUpdatePayment,
     handleTogglePaid,
     handleDeletePayment,
     // Dialog/UI state

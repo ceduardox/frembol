@@ -80,7 +80,15 @@
     "part": "Parça",
     "inspection": "Muayene",
     "shopActions": "Servis",
-    "person": "Kişi ekle"
+    "person": "Kişi ekle",
+    "mechanics": "Mekanik",
+    "mechanicsHint": "Tam araç",
+    "brakes": "Fren ve debriyaj",
+    "brakesHint": "Parça veya araç",
+    "wash": "Oto yıkama",
+    "washHint": "Araba, motosiklet veya kamyon",
+    "chooseTitle": "Ne oluşturacaksınız?",
+    "chooseDescription": "Tür seçin. Yalnızca rolünüzün izin verdiğini görürsünüz."
   },
   "purchaseWhiteLabel": "Beyaz Etiket Satın Al",
   "licenseExpired": "Lisansınız sona erdi. Özellikler sınırlı olabilir.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} açık iş emri",
       "inspections": "{count} devam eden muayene",
       "reminders": "{count} vadesi gelen hatırlatma"
-    }
+    },
+    "wash": "Car wash"
   }
 }

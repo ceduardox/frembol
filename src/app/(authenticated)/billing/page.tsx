@@ -6,8 +6,18 @@ import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
 import { PageHeader } from '@/components/page-header'
 import { ListPage } from '@/components/list-page'
 import { cookies } from 'next/headers'
+import { getAuthContext } from '@/lib/get-auth-context'
+import { getCachedMembership } from '@/lib/cached-session'
 import { COMPLETED_ONLY_COOKIE, parseCompletedOnlyCookie } from '@/lib/completed-only-preference'
 import BillingClient from './billing-client'
+
+/** The wash desk sees its own invoices by default; the admin sees everything. */
+async function defaultWashFilter() {
+  const auth = await getAuthContext()
+  if (!auth || auth.isAdmin) return ''
+  const membership = await getCachedMembership(auth.userId)
+  return membership?.customRole?.homePanel === 'wash' ? 'wash' : ''
+}
 
 export default async function BillingPage({
   searchParams,
@@ -19,6 +29,7 @@ export default async function BillingPage({
     status?: string
     delivery?: string
     completed?: string
+    kind?: string
     sortBy?: string
     sortOrder?: string
   }>
@@ -29,6 +40,11 @@ export default async function BillingPage({
   const search = params.search || ''
   const statusFilter = params.status || 'all'
   const deliveryFilter = params.delivery === 'unviewed' ? 'unviewed' : ''
+  const kindFilter = ['vehicle', 'brakes', 'wash', 'parts'].includes(params.kind ?? '')
+    ? (params.kind as string)
+    : params.kind === undefined
+      ? await defaultWashFilter()
+      : ''
   // The URL wins, as with sorting; otherwise the switch as this browser left it.
   const completedOnly =
     params.completed !== undefined
@@ -48,6 +64,7 @@ export default async function BillingPage({
       status: statusFilter,
       delivery: deliveryFilter,
       completedOnly,
+      jobKind: kindFilter || undefined,
       sortBy,
       sortOrder,
     }),
@@ -78,6 +95,7 @@ export default async function BillingPage({
           search={search}
           statusFilter={statusFilter}
           deliveryFilter={deliveryFilter}
+          kindFilter={kindFilter}
           completedOnly={completedOnly}
           sortBy={sortBy}
           sortOrder={sortOrder}

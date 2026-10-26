@@ -53,6 +53,8 @@ export async function createDraftRecord(
     technicianId?: string
     /** Bay the job was booked into, when it was created from the work board. */
     workBayId?: string
+    /** Which line of the shop this job is for. Defaults to vehicle work. */
+    jobKind?: 'vehicle' | 'brakes' | 'wash' | 'parts'
     /**
      * The transaction the record is written in, when the caller has more to
      * write that must land with it or not at all. Reads stay on the pool.
@@ -261,17 +263,21 @@ export async function createDraftRecord(
 
   return writer.serviceRecord.create({
     data: {
-      organizationId,
-      createdById: userId,
+      // Relations rather than the scalar foreign keys: this create also writes
+      // nested lines (the shop fee), and Prisma's checked input is the one that
+      // accepts nested writes. Mixing it with `organizationId` is refused.
+      organization: { connect: { id: organizationId } },
+      createdBy: { connect: { id: userId } },
+      ...(opts.vehicleId ? { vehicle: { connect: { id: opts.vehicleId } } } : {}),
+      ...(opts.customerId ? { customer: { connect: { id: opts.customerId } } } : {}),
+      ...(resolvedTechId ? { technician: { connect: { id: resolvedTechId } } } : {}),
+      ...(opts.workBayId ? { workBay: { connect: { id: opts.workBayId } } } : {}),
       title,
       type: 'maintenance',
+      jobKind: opts.jobKind ?? 'vehicle',
       status: 'pending',
-      vehicleId: opts.vehicleId,
-      customerId: opts.customerId,
       shopName,
       techName,
-      technicianId: resolvedTechId || undefined,
-      workBayId: opts.workBayId || undefined,
       invoiceNumber,
       ...taxFields,
       ...(feeTotals ?? {}),

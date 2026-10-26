@@ -15,7 +15,9 @@
     "time_tracking": "Rilevazione tempi",
     "work_board": "Bacheca lavori",
     "ai_assistant": "Assistente IA",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "brakes": "Freni e frizione",
+    "wash": "Autolavaggio"
   },
   "actions": {
     "create": "Creare",

@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Foto",
+    "finding": "Problema",
+    "labor": "Mão de obra",
+    "parts": "Peça",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "O que se vê ou se ouve",
+    "photoHint": "Do veículo ou da peça",
+    "laborHint": "Horas de trabalho",
+    "partsHint": "Peça usada",
+    "washService": "Adicionar serviço",
+    "washServiceHint": "Lavagem, motor, estofamento",
+    "chooseStatus": "Escolha um status"
+  },
   "page": {
     "notFound": "Registro de serviço não encontrado",
     "updated": "Registro de serviço atualizado",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Taxa",
     "shopFeeHintFlat": "A taxa de oficina das Configurações, como valor fixo. Altere o preço para este serviço ou exclua a linha para removê-la.",
     "shopFeeHintPercentLabor": "A taxa de oficina das Configurações: {percent} % da mão de obra deste serviço. Exclua a linha para removê-la.",
-    "shopFeeHintPercentAll": "A taxa de oficina das Configurações: {percent} % da mão de obra e das peças deste serviço. Exclua a linha para removê-la."
+    "shopFeeHintPercentAll": "A taxa de oficina das Configurações: {percent} % da mão de obra e das peças deste serviço. Exclua a linha para removê-la.",
+    "washTitle": "Serviços de lavagem",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Um técnico adicionou mão de obra a esta ordem} other {Um técnico adicionou # linhas de mão de obra a esta ordem}}",
@@ -256,7 +280,8 @@
       "cash": "Dinheiro",
       "card": "Cartão",
       "transfer": "Transferência",
-      "other": "Outro"
+      "other": "Outro",
+      "qr": "QR"
     },
     "recorded": "Pagamento registrado",
     "markedPaid": "Marcado como pago",
@@ -270,7 +295,12 @@
     "failedPdf": "Falha ao gerar PDF da fatura",
     "received": "Pagamentos recebidos",
     "noneYet": "Nada pago ainda.",
-    "balanceDue": "Saldo devedor"
+    "balanceDue": "Saldo devedor",
+    "updatePayment": "Atualizar pagamento",
+    "updated": "Pagamento atualizado",
+    "paidInFull": "Pago integralmente",
+    "failedUpdate": "Falha ao atualizar o pagamento",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Deletar Anexo",
@@ -483,12 +513,12 @@
     "notAnswered": "Nada encontrado sobre isso ainda",
     "answered": "{count} constatação(ões) sobre isso",
     "storyTitle": "Descrição do serviço",
-    "storyHint": "Condição, causa, correção, confirmação. Clique em uma etapa para abri-la; uma linha para cada coisa que o cliente relatou ou que você observou.",
+    "storyHint": "Escreva o que está errado, por quê, o que foi feito e se ficou bom.",
     "steps": {
-      "condition": "Condição",
-      "cause": "Causa",
-      "correction": "Correção",
-      "confirm": "Confirmação"
+      "condition": "O que está errado?",
+      "cause": "Por quê?",
+      "correction": "O que foi feito?",
+      "confirm": "Ficou bom?"
     },
     "conditionPlaceholder": "O que o cliente relatou, ou o que você observou",
     "causePlaceholder": "O que os testes mostraram ser a causa raiz",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Marcado com o seu nome ao salvar",
     "confirmedCount": "{confirmed} de {total} confirmados",
     "findingsCount": "{count, plural, one {# observação} other {# observações}}",
-    "addFinding": "Adicionar observação",
+    "addFinding": "Adicionar nota",
     "unconfirmedTitle": "Concluir com relatos não confirmados?",
     "unconfirmedBody": "{count, plural, one {Um relato ainda não foi confirmado como resolvido:} other {# relatos ainda não foram confirmados como resolvidos:}}",
     "unconfirmedProceed": "Concluir mesmo assim",
@@ -529,7 +559,7 @@
       "engineBrowser": "Navegador (escreve enquanto você fala)",
       "liveFellBack": "Escrevendo em blocos de alguns segundos em vez de palavra por palavra."
     },
-    "stepEmpty": "Ainda não preenchido",
+    "stepEmpty": "Toque para escrever",
     "removeTitle": "Remover este relato?",
     "removeBody": "A condição, a causa, a correção e a confirmação dele são removidas junto quando você salvar a ordem de serviço.",
     "removeAttached": "As observações e mídias dele continuam no serviço, mas deixam de ficar vinculadas a um relato.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Olá {customer_name}, uma atualização sobre o seu {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Recepção de lavagem",
+    "description": "O que o veículo traz e como chega.",
+    "vehicleClass": "Tipo de veículo",
+    "vehicleClassOptions": {
+      "auto": "Carro",
+      "suv": "SUV",
+      "pickup": "Caminhonete",
+      "motorcycle": "Moto",
+      "lightTruck": "Caminhão leve",
+      "heavyTruck": "Caminhão pesado",
+      "other": "Outro"
+    },
+    "otherPlaceholder": "Especifique",
+    "fuel": "Nível de combustível",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Acessórios / objetos pessoais",
+    "accessoryOptions": {
+      "spareTire": "Pneu de estepe",
+      "jack": "Macaco",
+      "tools": "Ferramentas",
+      "radio": "Rádio / tela"
+    },
+    "conditions": "Condições especiais",
+    "conditionOptions": {
+      "upholstery": "Estofamento danificado",
+      "paint": "Pintura danificada",
+      "looseParts": "Peças soltas",
+      "glass": "Vidros danificados"
+    },
+    "arrivalState": "Estado do veículo na entrada",
+    "arrivalOptions": {
+      "clean": "Limpo",
+      "regular": "Regular",
+      "dirty": "Sujo",
+      "veryDirty": "Muito sujo"
+    },
+    "scratches": "Riscos / detalhes a observar",
+    "scratchesPlaceholder": "Descreva amassados, riscos ou itens faltantes",
+    "authorizedExtra": "Trabalho adicional autorizado",
+    "authorizedExtraPlaceholder": "Serviço e preço adicional",
+    "authorizedBy": "Autorizado por",
+    "authorizedByPlaceholder": "Nome de quem autoriza",
+    "delivery": "Entrega prometida",
+    "deliveryPlaceholder": "Data e hora",
+    "save": "Salvar recepção",
+    "saved": "Salvo",
+    "saveFailed": "Não foi possível salvar a recepção",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Assinaturas",
+    "signaturesDescription": "Assinatura do cliente e do responsável.",
+    "saveSignatures": "Salvar assinaturas",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "A peça que o cliente trouxe e o estado dela.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notas e assinatura do cliente",
+    "saveNotes": "Salvar notas"
   }
 }

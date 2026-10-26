@@ -80,7 +80,15 @@
     "part": "Запчасть",
     "inspection": "Осмотр",
     "shopActions": "Мастерская",
-    "person": "Добавить человека"
+    "person": "Добавить человека",
+    "mechanics": "Механика",
+    "mechanicsHint": "Автомобиль целиком",
+    "brakes": "Тормоза и сцепление",
+    "brakesHint": "Деталь или автомобиль",
+    "wash": "Автомойка",
+    "washHint": "Авто, мото или грузовик",
+    "chooseTitle": "Что вы создаёте?",
+    "chooseDescription": "Выберите тип. Вы увидите только то, что разрешает ваша роль."
   },
   "purchaseWhiteLabel": "Купить White-Label",
   "licenseExpired": "Ваша лицензия истекла. Функции могут быть ограничены.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} открытых заказ-нарядов",
       "inspections": "{count} проверок в работе",
       "reminders": "{count} напоминаний просрочено"
-    }
+    },
+    "wash": "Car wash"
   }
 }

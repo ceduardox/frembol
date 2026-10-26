@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Columns3,
   Disc3,
+  Droplets,
   FileText,
   History,
   Layers,
@@ -50,56 +51,89 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-const vehiclesItem = { href: '/vehicles', icon: Car, labelKey: 'vehicles' } as const
+const vehiclesItem = {
+  href: '/vehicles',
+  icon: Car,
+  labelKey: 'vehicles',
+  subject: 'vehicles',
+} as const
 /** A marine workshop services vessels, as the sidebar already says. */
-const vesselsItem = { href: '/vehicles', icon: Ship, labelKey: 'vessels' } as const
+const vesselsItem = {
+  href: '/vehicles',
+  icon: Ship,
+  labelKey: 'vessels',
+  subject: 'vehicles',
+} as const
 
 const primaryItems = [
-  { href: '/work-orders', icon: ClipboardList, labelKey: 'workOrdersShort' },
-  { href: '/customers', icon: Users, labelKey: 'customers' },
-  { href: '/inventory', icon: Package, labelKey: 'inventory' },
+  { href: '/work-orders', icon: ClipboardList, labelKey: 'workOrdersShort', subject: 'work_orders' },
+  { href: '/customers', icon: Users, labelKey: 'customers', subject: 'customers' },
+  { href: '/inventory', icon: Package, labelKey: 'inventory', subject: 'inventory' },
 ] as const
 
+const washItem = { href: '/wash', icon: Droplets, labelKey: 'wash', subject: 'wash' } as const
+
 const workshopItems = [
-  { href: '/calendar', icon: CalendarDays, labelKey: 'calendar' },
-  { href: '/work-board', icon: Columns3, labelKey: 'workBoard' },
-  { href: '/inspections', icon: ClipboardCheck, labelKey: 'inspections' },
-  { href: '/reminders', icon: Bell, labelKey: 'reminders' },
+  { href: '/calendar', icon: CalendarDays, labelKey: 'calendar', subject: 'work_orders' },
+  { href: '/work-board', icon: Columns3, labelKey: 'workBoard', subject: 'work_board' },
+  { href: '/inspections', icon: ClipboardCheck, labelKey: 'inspections', subject: 'inspections' },
+  { href: '/reminders', icon: Bell, labelKey: 'reminders', subject: 'vehicles' },
 ] as const
 
 /** Opt-in module, appended to the workshop group only when it is switched on. */
-const tireHotelItem = { href: '/tire-hotel', icon: Disc3, labelKey: 'tireHotel' } as const
+const tireHotelItem = {
+  href: '/tire-hotel',
+  icon: Disc3,
+  labelKey: 'tireHotel',
+  subject: 'tire_hotel',
+} as const
 
 const businessItems = [
-  { href: '/quotes', icon: FileText, labelKey: 'quotes' },
-  { href: '/billing', icon: Receipt, labelKey: 'billing' },
-  { href: '/labor-presets', icon: Layers, labelKey: 'laborPresets' },
-  { href: '/reports', icon: BarChart3, labelKey: 'reports' },
-  { href: '/timesheets', icon: Timer, labelKey: 'timesheets' },
-  { href: '/audit-log', icon: History, labelKey: 'auditLog' },
+  { href: '/quotes', icon: FileText, labelKey: 'quotes', subject: 'quotes' },
+  { href: '/billing', icon: Receipt, labelKey: 'billing', subject: 'billing' },
+  { href: '/labor-presets', icon: Layers, labelKey: 'laborPresets', subject: 'labor_presets' },
+  { href: '/reports', icon: BarChart3, labelKey: 'reports', subject: 'reports' },
+  { href: '/timesheets', icon: Timer, labelKey: 'timesheets', subject: 'time_tracking' },
+  { href: '/audit-log', icon: History, labelKey: 'auditLog', subject: 'settings' },
 ] as const
 
-const allDrawerItems = [
-  ...workshopItems,
-  tireHotelItem,
-  ...businessItems,
-  { href: '/settings', icon: Settings, labelKey: 'settings' },
-  { href: '/admin', icon: ShieldCheck, labelKey: 'adminPanel' },
-] as const
+const settingsItem = {
+  href: '/settings',
+  icon: Settings,
+  labelKey: 'settings',
+  subject: 'settings',
+} as const
 
 export function MobileBottomNav({
   isSuperAdmin,
   tireHotelEnabled,
+  visibleSubjects,
 }: {
   isSuperAdmin?: boolean
   tireHotelEnabled?: boolean
+  visibleSubjects?: string[]
 }) {
   const pathname = usePathname()
   const isMarine = useServiceType() === 'marine'
-  const visiblePrimaryItems = [isMarine ? vesselsItem : vehiclesItem, ...primaryItems]
-  const visibleWorkshopItems = tireHotelEnabled
-    ? [...workshopItems, tireHotelItem]
-    : [...workshopItems]
+  const canAccess = (subject: string) => !visibleSubjects || visibleSubjects.includes(subject)
+  const primaryCandidates = [
+    isMarine ? vesselsItem : vehiclesItem,
+    ...primaryItems,
+    washItem,
+  ]
+  const visiblePrimaryItems = primaryCandidates.filter((item) => canAccess(item.subject)).slice(0, 4)
+  const visibleWorkshopItems = [
+    ...workshopItems,
+    ...(tireHotelEnabled ? [tireHotelItem] : []),
+  ].filter((item) => canAccess(item.subject))
+  const visibleBusinessItems = businessItems.filter((item) => canAccess(item.subject))
+  const visibleSettings = canAccess('settings')
+  const allDrawerItems = [
+    ...visibleWorkshopItems,
+    ...visibleBusinessItems,
+    ...(visibleSettings ? [settingsItem] : []),
+    ...(isSuperAdmin ? [{ href: '/admin' }] : []),
+  ]
   const router = useRouter()
   const t = useTranslations('navigation.sidebar')
   const tScan = useTranslations('inventory.barcodeScan')
@@ -206,91 +240,101 @@ export function MobileBottomNav({
           </DrawerHeader>
           <div className="px-4 pb-4 space-y-4">
             {/* Quick action */}
-            <button
-              type="button"
-              onClick={() => {
-                setDrawerOpen(false)
-                setTimeout(() => setScannerOpen(true), 200)
-              }}
-              className="flex w-full items-center gap-3 rounded-lg bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-            >
-              <ScanBarcode className="h-5 w-5" />
-              {tScan('scanParts')}
-            </button>
+            {canAccess('inventory') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false)
+                  setTimeout(() => setScannerOpen(true), 200)
+                }}
+                className="flex w-full items-center gap-3 rounded-lg bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                <ScanBarcode className="h-5 w-5" />
+                {tScan('scanParts')}
+              </button>
+            )}
 
             {/* Workshop */}
-            <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                {t('workshop')}
-              </p>
-              <nav className="grid grid-cols-4 gap-2">
-                {visibleWorkshopItems.map(({ href, icon: Icon, labelKey }) => {
-                  const isActive = pathname === href || pathname.startsWith(`${href}/`)
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setDrawerOpen(false)}
-                      className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-lg py-3 text-xs transition-colors',
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent'
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-center leading-tight">{t(labelKey)}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+            {visibleWorkshopItems.length > 0 && (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  {t('workshop')}
+                </p>
+                <nav className="grid grid-cols-4 gap-2">
+                  {visibleWorkshopItems.map(({ href, icon: Icon, labelKey }) => {
+                    const isActive = pathname === href || pathname.startsWith(`${href}/`)
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setDrawerOpen(false)}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 rounded-lg py-3 text-xs transition-colors',
+                          isActive
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-accent'
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="text-center leading-tight">{t(labelKey)}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            )}
 
             {/* Business */}
-            <div>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                {t('business')}
-              </p>
-              <nav className="grid grid-cols-4 gap-2">
-                {businessItems.map(({ href, icon: Icon, labelKey }) => {
-                  const isActive = pathname === href || pathname.startsWith(`${href}/`)
-                  return (
+            {visibleBusinessItems.length > 0 && (
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  {t('business')}
+                </p>
+                <nav className="grid grid-cols-4 gap-2">
+                  {visibleBusinessItems.map(({ href, icon: Icon, labelKey }) => {
+                    const isActive = pathname === href || pathname.startsWith(`${href}/`)
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setDrawerOpen(false)}
+                        className={cn(
+                          'flex flex-col items-center gap-1.5 rounded-lg py-3 text-xs transition-colors',
+                          isActive
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-accent'
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="text-center leading-tight">{t(labelKey)}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            )}
+
+            {(visibleSettings || isSuperAdmin) && (
+              <>
+                <Separator />
+
+                {/* Settings & Admin */}
+                <nav className="grid grid-cols-4 gap-2">
+                  {visibleSettings && (
                     <Link
-                      key={href}
-                      href={href}
+                      href="/settings"
                       onClick={() => setDrawerOpen(false)}
                       className={cn(
                         'flex flex-col items-center gap-1.5 rounded-lg py-3 text-xs transition-colors',
-                        isActive
+                        pathname.startsWith('/settings')
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:bg-accent'
                       )}
                     >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-center leading-tight">{t(labelKey)}</span>
+                      <Settings className="h-5 w-5" />
+                      <span className="text-center leading-tight">{t('settings')}</span>
                     </Link>
-                  )
-                })}
-              </nav>
-            </div>
-
-            <Separator />
-
-            {/* Settings & Admin */}
-            <nav className="grid grid-cols-4 gap-2">
-              <Link
-                href="/settings"
-                onClick={() => setDrawerOpen(false)}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 rounded-lg py-3 text-xs transition-colors',
-                  pathname.startsWith('/settings')
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent'
-                )}
-              >
-                <Settings className="h-5 w-5" />
-                <span className="text-center leading-tight">{t('settings')}</span>
-              </Link>
+                  )}
               {isSuperAdmin && (
                 <Link
                   href="/admin"
@@ -307,6 +351,8 @@ export function MobileBottomNav({
                 </Link>
               )}
             </nav>
+              </>
+            )}
           </div>
         </DrawerContent>
       </Drawer>

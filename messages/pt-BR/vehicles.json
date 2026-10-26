@@ -376,7 +376,8 @@
     "lookupVin": "Consultar chassi",
     "lookupEnterVin": "Digite um chassi primeiro",
     "lookupVinNotFound": "Nenhum veículo encontrado para esse chassi",
-    "lookupVinFailed": "Não foi possível consultar o chassi"
+    "lookupVinFailed": "Não foi possível consultar o chassi",
+    "catalogAdd": "Adicionar «{value}»"
   },
   "archiveDialog": {
     "title": "Arquivar Veículo",

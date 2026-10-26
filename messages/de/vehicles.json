@@ -376,7 +376,8 @@
     "lookupVin": "FIN nachschlagen",
     "lookupEnterVin": "Geben Sie zuerst eine FIN ein",
     "lookupVinNotFound": "Zu dieser FIN wurde kein Fahrzeug gefunden",
-    "lookupVinFailed": "FIN konnte nicht nachgeschlagen werden"
+    "lookupVinFailed": "FIN konnte nicht nachgeschlagen werden",
+    "catalogAdd": "«{value}» hinzufügen"
   },
   "archiveDialog": {
     "title": "Fahrzeug archivieren",

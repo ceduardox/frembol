@@ -12,6 +12,13 @@ import { useFormatDate } from '@/lib/use-format-date'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
@@ -92,11 +99,20 @@ interface BillingClientProps {
   search: string
   statusFilter: string
   deliveryFilter: string
+  kindFilter: string
   /** Only work orders marked completed. */
   completedOnly?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
+
+const KIND_OPTIONS = [
+  { labelKey: 'history.kindAll', value: 'all' },
+  { labelKey: 'history.kindMechanics', value: 'vehicle' },
+  { labelKey: 'history.kindBrakes', value: 'brakes' },
+  { labelKey: 'history.kindWash', value: 'wash' },
+  { labelKey: 'history.kindParts', value: 'parts' },
+] as const
 
 const STATUS_TABS = [
   { titleKey: 'history.statusAll', value: 'all' },
@@ -111,6 +127,7 @@ export default function BillingClient({
   search,
   statusFilter,
   deliveryFilter,
+  kindFilter,
   completedOnly = false,
   sortBy = '',
   sortOrder = 'desc',
@@ -167,6 +184,17 @@ export default function BillingClient({
       router.push(
         `${pathname}?${createQueryString({
           status: status === 'all' ? '' : status,
+          page: '1',
+        })}`
+      )
+    })
+  }
+
+  const handleKindChange = (kind: string) => {
+    startTransition(() => {
+      router.push(
+        `${pathname}?${createQueryString({
+          kind: kind === 'all' ? '' : kind,
           page: '1',
         })}`
       )
@@ -374,6 +402,21 @@ export default function BillingClient({
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* A single scrollable row on phones, so four filters never wrap. */}
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
+          <Select value={kindFilter || 'all'} onValueChange={handleKindChange}>
+            <SelectTrigger
+              className="h-9 w-[170px] shrink-0 sm:h-8"
+              aria-label={t('history.kindFilter')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {KIND_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {STATUS_TABS.map((tab) => (
             <Button
               key={tab.value}

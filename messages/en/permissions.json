@@ -15,7 +15,9 @@
     "time_tracking": "Time tracking",
     "work_board": "Work board",
     "ai_assistant": "AI assistant",
-    "settings": "Settings"
+    "settings": "Settings",
+    "brakes": "Brakes & Clutch",
+    "wash": "Car Wash"
   },
   "actions": {
     "create": "Create",

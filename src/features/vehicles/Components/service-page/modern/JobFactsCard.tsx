@@ -33,6 +33,10 @@ interface JobFactsCardProps {
   setSelectedVehicleId: (id: string) => void
   techName: string
   unitSystem: 'metric' | 'imperial'
+  /** A part dropped off with no vehicle: hide everything that asks about one. */
+  partMode?: boolean
+  /** A car wash: keep the vehicle, but it is not reassigned mid-wash. */
+  washMode?: boolean
   initialVehicle?: {
     id: string
     make: string
@@ -166,6 +170,8 @@ export function JobFactsCard({
   setSelectedVehicleId,
   techName,
   unitSystem,
+  partMode = false,
+  washMode = false,
   initialVehicle,
 }: JobFactsCardProps) {
   const t = useTranslations('service')
@@ -286,16 +292,16 @@ export function JobFactsCard({
           )}
         </div>
 
-        {/* A counter sale has no vehicle and nothing to pick: the classic page
-            shows the picker regardless, and choosing one there turns the sale
-            into a vehicle job, so the way to do that stays. */}
+        {/* A vehicle job keeps the picker. A part dropped off has nothing to
+            pick, so the whole block is hidden instead. */}
+        {!partMode && (
         <div className="order-3 space-y-2 border-t border-card-edge px-4 py-3 @xl:order-none @xl:border-t-0">
           <div className="flex items-center justify-between gap-2">
             <h3 className="font-display text-sm font-semibold tracking-tight">
               {t('basicInfo.vehicle')}
             </h3>
             <div className="flex items-center gap-3">
-              {selectedVehicleId && (
+              {selectedVehicleId && !washMode && (
                 <Link
                   href={`/vehicles/${selectedVehicleId}`}
                   className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -303,7 +309,7 @@ export function JobFactsCard({
                   {t('modern.serviceHistory')}
                 </Link>
               )}
-              {vehicle && !changingVehicle && (
+              {vehicle && !changingVehicle && !washMode && (
                 <button
                   type="button"
                   disabled={locked}
@@ -384,12 +390,14 @@ export function JobFactsCard({
             )}
           </fieldset>
         </div>
+        )}
 
         {infoOpen && (
           <>
             <div className="order-2 border-t border-card-edge px-4 py-3 @xl:order-none @xl:border-r">
               {customer && <CustomerDetails customer={customer} formatDate={formatDate} />}
             </div>
+            {!partMode && (
             <div className="order-4 border-t border-card-edge px-4 py-3 @xl:order-none">
               {vehicle && (
                 <VehicleDetails
@@ -403,6 +411,7 @@ export function JobFactsCard({
                 />
               )}
             </div>
+            )}
           </>
         )}
       </div>

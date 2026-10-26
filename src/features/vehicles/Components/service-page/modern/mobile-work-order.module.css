@@ -1,0 +1,101 @@
+/* Scoped to the modern service page; desktop and other screens retain their controls. */
+.disclosureToggle {
+  display: none;
+}
+.disclosureContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+@media (max-width: 767px) {
+  .page {
+    font-size: 16px;
+  }
+  .page [data-testid="service-layout-modern"] {
+    background: var(--muted);
+  }
+  .page [data-testid="service-main"] {
+    gap: 1rem;
+  }
+  .page [data-testid="service-main"] h3 {
+    font-size: 1.125rem;
+    line-height: 1.5;
+  }
+  .page [data-testid="service-main"] h3 > span {
+    white-space: normal;
+  }
+  .page [data-testid="service-main"] label {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  .page [data-testid="service-main"] input:not([type="hidden"]):not([type="checkbox"]),
+  .page [data-testid="service-main"] textarea,
+  .page [data-testid="service-main"] select {
+    min-height: 48px;
+    font-size: 16px;
+  }
+  .page [data-testid="service-main"] button:not([role="checkbox"]),
+  .page [data-testid="service-main"] [role="combobox"] {
+    min-height: 48px;
+  }
+  .page [data-testid="service-main"] button[aria-label] {
+    min-width: 44px;
+  }
+  .page [data-testid="service-main"] textarea {
+    line-height: 1.6;
+  }
+  .page [data-testid="service-hero"] {
+    padding: 0.75rem;
+  }
+  .page [data-mobile="hero-desktop"] {
+    display: none;
+  }
+  .disclosure {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+  }
+  .disclosureToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 56px;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+  .disclosureToggle svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .disclosureContent {
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .disclosureContent[data-expanded="false"] {
+    display: none;
+  }
+}
+
+.partToggle {
+  display: none;
+}
+@media (max-width: 767px) {
+  .partRow .partToggle {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-weight: 600;
+  }
+  .partRow[data-details-open="false"] .partDetail {
+    display: none;
+  }
+}

@@ -7,6 +7,7 @@ import {
 } from '@/lib/format'
 import { createStyles, gray, getFontBold } from '../invoice-pdf/styles'
 import type { WorkshopInfo, InvoiceSettingsProps } from '../invoice-pdf/types'
+import { RYZTOR_LOGO_DATA_URI } from '@/features/invoice-designer/Lib/ryztorBrand'
 import { typeKeyLine } from '@/features/vehicles/Lib/typeKey'
 
 interface ServiceHistoryRecord {
@@ -334,7 +335,7 @@ export function ServiceHistoryPDF({
               {shopDisplayName} · {labels.serviceHistoryTitle || 'Service History'}
             </Text>
             <Text style={{ fontSize: 7, color: gray }}> · {labels.poweredBy || 'Powered by'}</Text>
-            <Image src={torqvoiceLogoDataUri} style={{ width: 14, height: 14 }} />
+            <Image src={RYZTOR_LOGO_DATA_URI} style={{ width: 14, height: 14 }} />
             <Text style={{ fontSize: 7, color: gray, fontFamily: fontBold }}>Ryztor LLC</Text>
           </View>
         ) : (

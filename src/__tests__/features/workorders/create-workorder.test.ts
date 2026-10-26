@@ -548,7 +548,7 @@ describe('createDraftServiceRecord — technician resolution', () => {
     expect(vi.mocked(db.serviceRecord.create)).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          technicianId: TECH_ID,
+          technician: { connect: { id: TECH_ID } },
           techName: 'John Mechanic',
         }),
       })
@@ -585,7 +585,7 @@ describe('createDraftServiceRecord — technician resolution', () => {
     expect(vi.mocked(db.serviceRecord.create)).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          technicianId: 'default-tech-id',
+          technician: { connect: { id: 'default-tech-id' } },
         }),
       })
     )
@@ -605,7 +605,7 @@ describe('createDraftServiceRecord — technician resolution', () => {
     expect(vi.mocked(db.serviceRecord.create)).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.not.objectContaining({
-          technicianId: expect.any(String),
+          technician: expect.anything(),
         }),
       })
     )

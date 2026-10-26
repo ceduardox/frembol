@@ -80,7 +80,15 @@
     "part": "Dalis",
     "inspection": "Apžiūra",
     "shopActions": "Servisas",
-    "person": "Pridėti žmogų"
+    "person": "Pridėti žmogų",
+    "mechanics": "Mechanika",
+    "mechanicsHint": "Visas automobilis",
+    "brakes": "Stabdžiai ir sankaba",
+    "brakesHint": "Detalė ar automobilis",
+    "wash": "Automobilių plovykla",
+    "washHint": "Automobilis, motociklas ar sunkvežimis",
+    "chooseTitle": "Ką kursite?",
+    "chooseDescription": "Pasirinkite tipą. Matysite tik tai, ką leidžia jūsų rolė."
   },
   "purchaseWhiteLabel": "Įsigyti \"White-Label\"",
   "licenseExpired": "Jūsų licencija pasibaigė. Funkcijos gali būti ribotos.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} atviri darbo užsakymai",
       "inspections": "{count} vykdomos apžiūros",
       "reminders": "{count} priminimai, kurių terminas suėjo"
-    }
+    },
+    "wash": "Car wash"
   }
 }

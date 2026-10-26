@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Foto",
+    "finding": "Sorun",
+    "labor": "İşçilik",
+    "parts": "Parça",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Görünen veya duyulan",
+    "photoHint": "Araç veya parça",
+    "laborHint": "Çalışma saati",
+    "partsHint": "Kullanılan parça",
+    "washService": "Hizmet ekle",
+    "washServiceHint": "Yıkama, motor, iç mekân",
+    "chooseStatus": "Bir durum seçin"
+  },
   "page": {
     "notFound": "Servis kaydı bulunamadı",
     "updated": "Servis kaydı güncellendi",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Ücret",
     "shopFeeHintFlat": "Ayarlar'daki atölye ücreti, sabit tutar olarak. Bu iş için fiyatı değiştirin veya kaldırmak için satırı silin.",
     "shopFeeHintPercentLabor": "Ayarlar'daki atölye ücreti: bu işteki işçiliğin % {percent} kadarı. Kaldırmak için satırı silin.",
-    "shopFeeHintPercentAll": "Ayarlar'daki atölye ücreti: bu işteki işçilik ve parçaların % {percent} kadarı. Kaldırmak için satırı silin."
+    "shopFeeHintPercentAll": "Ayarlar'daki atölye ücreti: bu işteki işçilik ve parçaların % {percent} kadarı. Kaldırmak için satırı silin.",
+    "washTitle": "Yıkama hizmetleri",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Bir teknisyen bu işe işçilik ekledi} other {Bir teknisyen bu işe # işçilik satırı ekledi}}",
@@ -256,7 +280,8 @@
       "cash": "Nakit",
       "card": "Kart",
       "transfer": "Havale",
-      "other": "Diğer"
+      "other": "Diğer",
+      "qr": "QR"
     },
     "recorded": "Ödeme kaydedildi",
     "markedPaid": "Ödendi olarak işaretlendi",
@@ -270,7 +295,12 @@
     "failedPdf": "PDF fatura oluşturulamadı",
     "received": "Alınan ödemeler",
     "noneYet": "Henüz ödeme yapılmadı.",
-    "balanceDue": "Kalan bakiye"
+    "balanceDue": "Kalan bakiye",
+    "updatePayment": "Ödemeyi güncelle",
+    "updated": "Ödeme güncellendi",
+    "paidInFull": "Tamamen ödendi",
+    "failedUpdate": "Ödeme güncellenemedi",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Eki Sil",
@@ -483,12 +513,12 @@
     "notAnswered": "Bu konuda henüz bir şey bulunmadı",
     "answered": "Bu konuda {count} tespit",
     "storyTitle": "İş tanımı",
-    "storyHint": "Belirti, neden, onarım, doğrulama. Açmak için bir adıma tıklayın; müşterinin bahsettiği veya sizin gözlemlediğiniz her şey için bir satır.",
+    "storyHint": "Sorunu, nedenini, ne yapıldığını ve düzelip düzelmediğini yazın.",
     "steps": {
-      "condition": "Belirti",
-      "cause": "Neden",
-      "correction": "Onarım",
-      "confirm": "Doğrulama"
+      "condition": "Sorun ne?",
+      "cause": "Neden?",
+      "correction": "Ne yapıldı?",
+      "confirm": "Düzeldi mi?"
     },
     "conditionPlaceholder": "Müşterinin bildirdiği veya sizin gözlemlediğiniz",
     "causePlaceholder": "Testlerin ortaya çıkardığı asıl neden",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Kaydettiğinizde adınızla işaretlenir",
     "confirmedCount": "{total} maddeden {confirmed} tanesi doğrulandı",
     "findingsCount": "{count, plural, one {# gözlem} other {# gözlem}}",
-    "addFinding": "Gözlem ekle",
+    "addFinding": "Not ekle",
     "unconfirmedTitle": "Doğrulanmamış maddelerle tamamlansın mı?",
     "unconfirmedBody": "{count, plural, one {Bir maddenin giderildiği doğrulanmadı:} other {# maddenin giderildiği doğrulanmadı:}}",
     "unconfirmedProceed": "Yine de tamamla",
@@ -529,7 +559,7 @@
       "engineBrowser": "Tarayıcı (siz konuşurken yazar)",
       "liveFellBack": "Kelime kelime yerine birkaç saniyelik parçalar halinde yazılıyor."
     },
-    "stepEmpty": "Henüz yazılmadı",
+    "stepEmpty": "Yazmak için dokun",
     "removeTitle": "Bu madde kaldırılsın mı?",
     "removeBody": "İş emrini kaydettiğinizde belirtisi, nedeni, onarımı ve doğrulaması da onunla birlikte kaldırılır.",
     "removeAttached": "Gözlemleri ve medyası işte kalır, ancak artık bir maddeye bağlı olmaz.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Merhaba {customer_name}, {vehicle} aracınızla ilgili bir güncelleme: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Yıkama kabulü",
+    "description": "Aracın getirdikleri ve geliş durumu.",
+    "vehicleClass": "Araç tipi",
+    "vehicleClassOptions": {
+      "auto": "Araba",
+      "suv": "SUV",
+      "pickup": "Kamyonet",
+      "motorcycle": "Motosiklet",
+      "lightTruck": "Hafif kamyon",
+      "heavyTruck": "Ağır kamyon",
+      "other": "Diğer"
+    },
+    "otherPlaceholder": "Belirtin",
+    "fuel": "Yakıt seviyesi",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Aksesuarlar / kişisel eşyalar",
+    "accessoryOptions": {
+      "spareTire": "Yedek lastik",
+      "jack": "Kriko",
+      "tools": "Aletler",
+      "radio": "Radyo / ekran"
+    },
+    "conditions": "Özel durumlar",
+    "conditionOptions": {
+      "upholstery": "Hasarlı döşeme",
+      "paint": "Hasarlı boya",
+      "looseParts": "Gevşek parçalar",
+      "glass": "Hasarlı cam"
+    },
+    "arrivalState": "Araç giriş durumu",
+    "arrivalOptions": {
+      "clean": "Temiz",
+      "regular": "Orta",
+      "dirty": "Kirli",
+      "veryDirty": "Çok kirli"
+    },
+    "scratches": "Çizikler / dikkat edilecek detaylar",
+    "scratchesPlaceholder": "Göçük, çizik veya eksikleri açıklayın",
+    "authorizedExtra": "Onaylı ek iş",
+    "authorizedExtraPlaceholder": "Hizmet ve ek ücret",
+    "authorizedBy": "Onaylayan",
+    "authorizedByPlaceholder": "Onaylayan kişinin adı",
+    "delivery": "Söz verilen teslim",
+    "deliveryPlaceholder": "Tarih ve saat",
+    "save": "Kabulü kaydet",
+    "saved": "Kaydedildi",
+    "saveFailed": "Kabul kaydedilemedi",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "İmzalar",
+    "signaturesDescription": "Müşteri ve sorumlu imzası.",
+    "saveSignatures": "İmzaları kaydet",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Müşterinin getirdiği parça ve durumu.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notlar ve müşteri imzası",
+    "saveNotes": "Notları kaydet"
   }
 }

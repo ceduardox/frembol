@@ -15,7 +15,11 @@ interface BillingSummary {
   partialCount: number
 }
 
-async function getBillingSummary(organizationId: string): Promise<BillingSummary> {
+async function getBillingSummary(
+  organizationId: string,
+  jobKind?: string
+): Promise<BillingSummary> {
+  const kindCondition = jobKind ? Prisma.sql`AND sr."jobKind" = ${jobKind}` : Prisma.empty
   const rows = await db.$queryRaw<
     {
       total_revenue: number
@@ -42,6 +46,7 @@ async function getBillingSummary(organizationId: string): Promise<BillingSummary
         END AS paid
       FROM "public"."service_records" sr
       WHERE sr."organizationId" = ${organizationId}
+      ${kindCondition}
     ) sub
   `)
 
@@ -68,6 +73,8 @@ export async function getBillingHistory(params: {
   delivery?: string
   /** Only work orders marked completed. */
   completedOnly?: boolean
+  /** vehicle | brakes | wash | parts */
+  jobKind?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }) {
@@ -77,7 +84,7 @@ export async function getBillingHistory(params: {
       const pageSize = params.pageSize || 20
       const skip = (page - 1) * pageSize
 
-      const summary = await getBillingSummary(organizationId)
+      const summary = await getBillingSummary(organizationId, params.jobKind)
 
       // Raw SQL for every path: payment status and effective total are computed
       // values, and the displayed date is COALESCE(invoiceDate, startDateTime,
@@ -108,6 +115,11 @@ export async function getBillingHistory(params: {
           ? Prisma.sql`AND sr.status = 'completed'`
           : Prisma.empty
 
+        // The line of the shop: mechanics, a part dropped off, or the wash.
+        const kindCondition = params.jobKind
+          ? Prisma.sql`AND sr."jobKind" = ${params.jobKind}`
+          : Prisma.empty
+
         // Sent but never opened. A draft nobody has sent is not a chase, and
         // neither is one the customer has read, so both fall out here.
         const deliveryCondition =
@@ -132,6 +144,7 @@ export async function getBillingHistory(params: {
           WHERE sr."organizationId" = ${organizationId}
           ${searchCondition}
           ${completedCondition}
+          ${kindCondition}
         ) sub
         WHERE 1=1 ${statusCondition} ${deliveryCondition}
       `)
@@ -211,6 +224,7 @@ export async function getBillingHistory(params: {
           WHERE sr."organizationId" = ${organizationId}
           ${searchCondition}
           ${completedCondition}
+          ${kindCondition}
         ) sub
         WHERE 1=1 ${statusCondition} ${deliveryCondition}
         ORDER BY ${(() => {

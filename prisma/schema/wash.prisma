@@ -1,0 +1,59 @@
+/// What the wash desk records when the vehicle arrives: the paper intake
+/// sheet, kept with the job rather than as loose notes. One per work order.
+model WashIntake {
+  id              String        @id @default(cuid())
+  serviceRecordId String        @unique
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  /// auto | suv | pickup | motorcycle | lightTruck | heavyTruck | other
+  vehicleClass      String?
+  vehicleClassOther String?
+
+  /// empty | quarter | half | threeQuarters | full
+  fuelLevel String?
+
+  /// Codes of the accessories handed over with the vehicle.
+  accessories      Json?
+  accessoriesOther String?
+
+  /// Codes of the damage noticed at intake.
+  conditions      Json?
+  conditionsOther String?
+
+  /// clean | regular | dirty | veryDirty
+  arrivalState String?
+
+  scratches       String?
+  authorizedExtra String?
+  authorizedBy    String?
+
+  /// queued | washing | drying | ready | delivered
+  queueStage String @default("queued")
+
+  /// Data URLs of the signatures drawn on the intake sheet.
+  clientSignature String?
+  staffSignature  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wash_intakes")
+}
+
+/// A wash service the desk can tick on an intake. Prices are per vehicle
+/// class, so "Lavado completo" can cost one thing for a car and another for
+/// a truck without duplicating the service.
+model WashService {
+  id             String       @id @default(cuid())
+  name           String
+  /// { auto: 80, suv: 100, pickup: 110, motorcycle: 50, lightTruck: 130,
+  ///   heavyTruck: 160, other: 0 }
+  prices         Json?
+  sortOrder      Int          @default(0)
+  isActive       Boolean      @default(true)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("wash_services")
+}

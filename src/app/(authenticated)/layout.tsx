@@ -171,6 +171,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       // A role that grants nothing readable. Every page behind the nav would
       // answer "Your role does not allow this", so say it once instead.
       hasAnyAccess = visibleSubjects.length > 0
+
+      // The wash desk has customers and vehicles in its own order form, not as
+      // separate directories: those directories carry the whole workshop's
+      // history and would show mechanics and brakes work.
+      if (membership?.customRole?.homePanel === 'wash') {
+        visibleSubjects = visibleSubjects.filter(
+          (subject) => subject !== PermissionSubject.CUSTOMERS && subject !== PermissionSubject.VEHICLES
+        )
+      }
     }
   }
 
@@ -390,7 +399,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </CurrencySettingsProvider>
               </DateSettingsProvider>
             </SidebarProvider>
-            <MobileBottomNav isSuperAdmin={data.isSuperAdmin} tireHotelEnabled={tireHotelEnabled} />
+            <MobileBottomNav
+              isSuperAdmin={data.isSuperAdmin}
+              tireHotelEnabled={tireHotelEnabled}
+              visibleSubjects={visibleSubjects}
+            />
             {supportEnabled && <SupportBubble />}
           </WhiteLabelCtaProvider>
         </LicenseExpiryProvider>

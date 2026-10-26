@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Nuotrauka",
+    "finding": "Problema",
+    "labor": "Darbas",
+    "parts": "Detalė",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Ką matote ar girdite",
+    "photoHint": "Automobilio ar detalės",
+    "laborHint": "Darbo valandos",
+    "partsHint": "Naudota detalė",
+    "washService": "Pridėti paslaugą",
+    "washServiceHint": "Plovimas, variklis, salonas",
+    "chooseStatus": "Pasirinkite būseną"
+  },
   "page": {
     "notFound": "Paslaugos įrašas nerastas",
     "updated": "Paslaugos įrašas atnaujintas",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Mokestis",
     "shopFeeHintFlat": "Dirbtuvių mokestis iš nustatymų, fiksuota suma. Pakeiskite kainą šiam darbui arba ištrinkite eilutę, kad jo neliktų.",
     "shopFeeHintPercentLabor": "Dirbtuvių mokestis iš nustatymų: {percent} % šio darbo darbų sumos. Ištrinkite eilutę, kad jo neliktų.",
-    "shopFeeHintPercentAll": "Dirbtuvių mokestis iš nustatymų: {percent} % šio darbo darbų ir dalių sumos. Ištrinkite eilutę, kad jo neliktų."
+    "shopFeeHintPercentAll": "Dirbtuvių mokestis iš nustatymų: {percent} % šio darbo darbų ir dalių sumos. Ištrinkite eilutę, kad jo neliktų.",
+    "washTitle": "Plovimo paslaugos",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Mechanikas pridėjo # darbo eilutę prie šio užsakymo} few {Mechanikas pridėjo # darbo eilutes prie šio užsakymo} many {Mechanikas pridėjo # darbo eilutės prie šio užsakymo} other {Mechanikas pridėjo # darbo eilučių prie šio užsakymo}}",
@@ -256,7 +280,8 @@
       "cash": "Grynaisiais",
       "card": "Kortele",
       "transfer": "Pavedimu",
-      "other": "Kita"
+      "other": "Kita",
+      "qr": "QR"
     },
     "recorded": "Mokėjimas užregistruotas",
     "markedPaid": "Pažymėta kaip apmokėta",
@@ -270,7 +295,12 @@
     "failedPdf": "Nepavyko sugeneruoti PDF sąskaitos",
     "received": "Gauti mokėjimai",
     "noneYet": "Dar nieko nesumokėta.",
-    "balanceDue": "Mokėtina suma"
+    "balanceDue": "Mokėtina suma",
+    "updatePayment": "Atnaujinti mokėjimą",
+    "updated": "Mokėjimas atnaujintas",
+    "paidInFull": "Apmokėta visiškai",
+    "failedUpdate": "Nepavyko atnaujinti mokėjimo",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Ištrinti priedą",
@@ -483,12 +513,12 @@
     "notAnswered": "Kol kas nieko nenustatyta",
     "answered": "Nustatymų: {count}",
     "storyTitle": "Darbo aprašymas",
-    "storyHint": "Būklė, priežastis, pataisymas, patikrinimas. Spustelėkite žingsnį, kad jį atidarytumėte; po vieną eilutę kiekvienam dalykui, kurį paminėjo klientas ar pastebėjote jūs.",
+    "storyHint": "Parašykite, kas negerai, kodėl, ką padarėte ir ar sutvarkyta.",
     "steps": {
-      "condition": "Būklė",
-      "cause": "Priežastis",
-      "correction": "Pataisymas",
-      "confirm": "Patikrinimas"
+      "condition": "Kas negerai?",
+      "cause": "Kodėl?",
+      "correction": "Ką padarėte?",
+      "confirm": "Ar sutvarkyta?"
     },
     "conditionPlaceholder": "Ką pranešė klientas arba ką pastebėjote jūs",
     "causePlaceholder": "Kokią pagrindinę priežastį parodė patikra",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Išsaugant pažymima jūsų vardu",
     "confirmedCount": "Patikrinta {confirmed} iš {total}",
     "findingsCount": "{count, plural, one {# pastebėjimas} few {# pastebėjimai} many {# pastebėjimo} other {# pastebėjimų}}",
-    "addFinding": "Pridėti pastebėjimą",
+    "addFinding": "Pridėti pastabą",
     "unconfirmedTitle": "Užbaigti su nepatikrintais punktais?",
     "unconfirmedBody": "{count, plural, one {Nepatikrinta, ar sutvarkytas # punktas:} few {Nepatikrinta, ar sutvarkyti # punktai:} many {Nepatikrinta, ar sutvarkyta # punkto:} other {Nepatikrinta, ar sutvarkyta # punktų:}}",
     "unconfirmedProceed": "Vis tiek užbaigti",
@@ -529,7 +559,7 @@
       "engineBrowser": "Naršyklė (rašo jums kalbant)",
       "liveFellBack": "Rašoma kelių sekundžių dalimis, o ne žodis po žodžio."
     },
-    "stepEmpty": "Dar neparašyta",
+    "stepEmpty": "Palieskite, kad rašytumėte",
     "removeTitle": "Pašalinti šį punktą?",
     "removeBody": "Išsaugojus darbo užsakymą, kartu pašalinami jo būklė, priežastis, pataisymas ir patikrinimas.",
     "removeAttached": "Jo pastebėjimai ir failai lieka prie darbo, tik nebepriskirti jokiam punktui.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Sveiki, {customer_name}, naujiena apie jūsų {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Plovimo priėmimas",
+    "description": "Ką veža automobilis ir kaip atvyksta.",
+    "vehicleClass": "Automobilio tipas",
+    "vehicleClassOptions": {
+      "auto": "Automobilis",
+      "suv": "SUV",
+      "pickup": "Pikapas",
+      "motorcycle": "Motociklas",
+      "lightTruck": "Lengvasis sunkvežimis",
+      "heavyTruck": "Sunkusis sunkvežimis",
+      "other": "Kita"
+    },
+    "otherPlaceholder": "Nurodykite",
+    "fuel": "Degalų lygis",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Priedai / asmeniniai daiktai",
+    "accessoryOptions": {
+      "spareTire": "Atsarginė padanga",
+      "jack": "Domkratas",
+      "tools": "Įrankiai",
+      "radio": "Radijas / ekranas"
+    },
+    "conditions": "Ypatingos sąlygos",
+    "conditionOptions": {
+      "upholstery": "Pažeisti apmušalai",
+      "paint": "Pažeisti dažai",
+      "looseParts": "Atlaisvintos dalys",
+      "glass": "Pažeistas stiklas"
+    },
+    "arrivalState": "Automobilio būklė atvykus",
+    "arrivalOptions": {
+      "clean": "Švarus",
+      "regular": "Vidutinis",
+      "dirty": "Purvinas",
+      "veryDirty": "Labai purvinas"
+    },
+    "scratches": "Įbrėžimai / detalės",
+    "scratchesPlaceholder": "Aprašykite įlenkimus, įbrėžimus ar trūkstamus daiktus",
+    "authorizedExtra": "Autorizuotas papildomas darbas",
+    "authorizedExtraPlaceholder": "Paslauga ir papildoma kaina",
+    "authorizedBy": "Autorizavo",
+    "authorizedByPlaceholder": "Autorizuojančio asmens vardas",
+    "delivery": "Pažadėtas pristatymas",
+    "deliveryPlaceholder": "Data ir laikas",
+    "save": "Išsaugoti priėmimą",
+    "saved": "Išsaugota",
+    "saveFailed": "Nepavyko išsaugoti priėmimo",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Parašai",
+    "signaturesDescription": "Kliento ir atsakingo asmens parašai.",
+    "saveSignatures": "Išsaugoti parašus",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Kliento atnešta dalis ir jos būklė.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Pastabos ir kliento parašas",
+    "saveNotes": "Išsaugoti pastabas"
   }
 }

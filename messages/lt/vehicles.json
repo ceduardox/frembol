@@ -376,7 +376,8 @@
     "lookupVin": "Ieškoti pagal VIN",
     "lookupEnterVin": "Pirmiausia įveskite VIN",
     "lookupVinNotFound": "Pagal šį VIN transporto priemonė nerasta",
-    "lookupVinFailed": "Nepavyko rasti VIN"
+    "lookupVinFailed": "Nepavyko rasti VIN",
+    "catalogAdd": "Pridėti „{value}“"
   },
   "archiveDialog": {
     "title": "Archyvuoti transporto priemonę",

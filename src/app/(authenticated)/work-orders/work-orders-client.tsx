@@ -59,6 +59,11 @@ import {
 } from 'lucide-react'
 import { useFormatCurrency } from '@/components/currency-settings-context'
 import { VehiclePickerDialog } from '@/components/vehicle-picker-dialog'
+import {
+  NewWorkChooser,
+  useNewWorkOptions,
+  type NewWorkKind,
+} from '@/components/new-work-chooser'
 import { NotifyCustomerDialog } from '@/components/notify-customer-dialog'
 import { useTranslations } from 'next-intl'
 import { getSmsTemplates } from '@/features/sms/Actions/smsActions'
@@ -229,6 +234,25 @@ export function WorkOrdersClient({
   const t = useTranslations('workOrders.list')
   const [navigatingId, setNavigatingId] = useState<string | null>(null)
   const [showPicker, setShowPicker] = useState(false)
+  const [pickerStep, setPickerStep] = useState<'select' | 'sale'>('select')
+  const [pickerMode, setPickerMode] = useState<'default' | 'brakes'>('default')
+  const [pickerKind, setPickerKind] = useState<NewWorkKind>('mechanics')
+  const [showNewWorkChooser, setShowNewWorkChooser] = useState(false)
+  const newWorkOptions = useNewWorkOptions()
+  const onlyNewWork = newWorkOptions.length === 1 ? newWorkOptions[0] : null
+
+  const startNewWork = useCallback((kind: NewWorkKind) => {
+    setPickerKind(kind)
+    setPickerStep(kind === 'brakes' ? 'sale' : 'select')
+    setPickerMode(kind === 'brakes' ? 'brakes' : 'default')
+    setShowPicker(true)
+  }, [])
+
+  // KISS: one allowed kind goes straight there; several show the chooser.
+  const openNewWork = useCallback(() => {
+    if (onlyNewWork) startNewWork(onlyNewWork)
+    else if (newWorkOptions.length > 1) setShowNewWorkChooser(true)
+  }, [onlyNewWork, newWorkOptions.length, startNewWork])
   const [showNotifyDialog, setShowNotifyDialog] = useState(false)
   const [notifyCustomer, setNotifyCustomer] = useState<{
     id: string
@@ -265,12 +289,12 @@ export function WorkOrdersClient({
   // open it again.
   useEffect(() => {
     if (searchParams.get('new') !== '1') return
-    setShowPicker(true)
+    openNewWork()
     const rest = new URLSearchParams(searchParams.toString())
     rest.delete('new')
     const query = rest.toString()
     router.replace(query ? `${pathname}?${query}` : pathname)
-  }, [searchParams, pathname, router])
+  }, [searchParams, pathname, router, openNewWork])
 
   const handleSort = useCallback(
     (column: string) => {
@@ -334,10 +358,12 @@ export function WorkOrdersClient({
         icon={ClipboardList}
         title={t('empty')}
         action={
-          <Button onClick={() => setShowPicker(true)} className="w-full sm:w-auto">
-            <Plus className="mr-1 h-4 w-4" />
-            {t('newWorkOrder')}
-          </Button>
+          newWorkOptions.length > 0 ? (
+            <Button onClick={openNewWork} className="w-full sm:w-auto">
+              <Plus className="mr-1 h-4 w-4" />
+              {t('newWorkOrder')}
+            </Button>
+          ) : undefined
         }
       />
     )
@@ -425,16 +451,18 @@ export function WorkOrdersClient({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button
-          size="sm"
-          onClick={() => setShowPicker(true)}
-          aria-label={t('newWorkOrder')}
-          title={t('newWorkOrder')}
-          className="h-9 w-9 shrink-0 p-0 sm:w-auto sm:px-3 md:h-8"
-        >
-          <Plus className="h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
-          <span className="hidden sm:inline">{t('newWorkOrder')}</span>
-        </Button>
+        {newWorkOptions.length > 0 && (
+          <Button
+            size="sm"
+            onClick={openNewWork}
+            aria-label={t('newWorkOrder')}
+            title={t('newWorkOrder')}
+            className="h-9 w-9 shrink-0 p-0 sm:w-auto sm:px-3 md:h-8"
+          >
+            <Plus className="h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden sm:inline">{t('newWorkOrder')}</span>
+          </Button>
+        )}
       </div>
 
       {/* Card list (phones + small tablets) - only this scrolls */}
@@ -787,12 +815,21 @@ export function WorkOrdersClient({
         onNavigate={navigate}
       />
 
+      <NewWorkChooser
+        open={showNewWorkChooser}
+        onOpenChange={setShowNewWorkChooser}
+        onChoose={startNewWork}
+      />
+
       <VehiclePickerDialog
         open={showPicker}
         onOpenChange={setShowPicker}
         vehicles={vehicles}
         customers={customers}
         title={t('selectVehicle')}
+        initialStep={pickerStep}
+        mode={pickerMode}
+        jobKind={pickerKind}
       />
 
       {notifyCustomer && (

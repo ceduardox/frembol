@@ -47,6 +47,8 @@ model Organization {
   quotes                      Quote[]
   inventoryParts              InventoryPart[]
   laborPresets                LaborPreset[]
+  washServices                WashService[]
+  vehicleCatalogEntries       VehicleCatalogEntry[]
   customFieldDefinitions      CustomFieldDefinition[]
   settings                    AppSetting[]
   emailTemplates              EmailTemplate[]
@@ -134,6 +136,9 @@ model Role {
   id        String   @id @default(cuid())
   name      String
   isAdmin   Boolean  @default(false)
+  /// Where this role lands after signing in: wash | brakes | mechanics | null.
+  /// Null keeps the general dashboard; a set panel also narrows the menu.
+  homePanel String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

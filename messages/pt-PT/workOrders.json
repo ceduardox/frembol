@@ -86,7 +86,10 @@
     "partsSaleDescription": "Crie uma fatura sem viatura, para vendas de peças ao balcão.",
     "partsSaleDescriptionMarine": "Crie uma fatura sem embarcação, para vendas de peças ao balcão.",
     "createSale": "Criar venda",
-    "none": "Nenhuma"
+    "none": "Nenhuma",
+    "receivePartTitle": "Receber peça",
+    "receivePartDescription": "Registe a peça que o cliente trouxe. Não é preciso veículo.",
+    "receivePartSubmit": "Receber peça"
   },
   "notify": {
     "title": "Notificar {name}",

@@ -376,7 +376,8 @@
     "lookupVin": "Consultar VIN",
     "lookupEnterVin": "Introduza primeiro um VIN",
     "lookupVinNotFound": "Nenhuma viatura encontrada para esse VIN",
-    "lookupVinFailed": "Não foi possível consultar o VIN"
+    "lookupVinFailed": "Não foi possível consultar o VIN",
+    "catalogAdd": "Adicionar «{value}»"
   },
   "archiveDialog": {
     "title": "Arquivar Viatura",

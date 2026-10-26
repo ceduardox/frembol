@@ -86,7 +86,10 @@
     "partsSaleDescription": "Tezgahtan parça satışları için araçsız bir fatura oluşturun.",
     "partsSaleDescriptionMarine": "Tezgahtan parça satışları için teknesiz bir fatura oluşturun.",
     "createSale": "Satış oluştur",
-    "none": "Yok"
+    "none": "Yok",
+    "receivePartTitle": "Parça al",
+    "receivePartDescription": "Müşterinin getirdiği parçayı kaydedin. Araç gerekmez.",
+    "receivePartSubmit": "Parçayı al"
   },
   "notify": {
     "title": "{name} Bilgilendir",

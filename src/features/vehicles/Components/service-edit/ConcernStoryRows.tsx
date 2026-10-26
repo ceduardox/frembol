@@ -148,7 +148,7 @@ export function ConcernStoryRows({
             className={cn('space-y-2.5', index > 0 && 'border-t border-card-edge/60 pt-5')}
           >
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              <span className="font-mono text-sm tabular-nums text-muted-foreground">
                 {String(index + 1).padStart(2, '0')}
               </span>
               {!unwritten && (
@@ -158,14 +158,14 @@ export function ConcernStoryRows({
                   size="icon"
                   onClick={() => void remove(index, concern, linked.length + files.length)}
                   aria-label={t('remove')}
-                  className="ml-auto h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+                  className="ml-auto h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
 
-            <div role="tablist" className="grid grid-cols-2 gap-1.5 @xl:grid-cols-4">
+            <div role="tablist" className="grid grid-cols-1 gap-2 @xl:grid-cols-4">
               {STEPS.map((step, i) => {
                 const preview = textOf(concern, step).trim()
                 const counts =
@@ -179,42 +179,44 @@ export function ConcernStoryRows({
                     data-testid={`concern-step-${step}`}
                     onClick={() => setChosen((prev) => ({ ...prev, [index]: step }))}
                     className={cn(
-                      'min-w-0 cursor-pointer rounded-lg border px-2.5 py-1.5 text-left transition-colors disabled:cursor-default',
+                      'flex min-h-14 min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors disabled:cursor-default',
                       open === step
                         ? 'border-primary bg-primary/10'
                         : 'border-card-edge hover:border-primary/40 hover:bg-muted/40'
                     )}
                   >
-                    <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                        <span
+                          className={cn(
+                            'h-2 w-2 shrink-0 rounded-full',
+                            done[step]
+                              ? step === 'confirm'
+                                ? 'bg-emerald-500'
+                                : 'bg-primary'
+                              : 'bg-muted ring-1 ring-inset ring-border'
+                          )}
+                        />
+                        <span className="truncate">
+                          {i + 1} · {t(`steps.${step}`)}
+                        </span>
+                        {counts > 0 && (
+                          <span className="ml-auto rounded bg-muted px-1.5 text-xs tabular-nums text-foreground">
+                            {counts}
+                          </span>
+                        )}
+                      </span>
                       <span
                         className={cn(
-                          'h-1.5 w-1.5 shrink-0 rounded-full',
-                          done[step]
-                            ? step === 'confirm'
-                              ? 'bg-emerald-500'
-                              : 'bg-primary'
-                            : 'bg-muted ring-1 ring-inset ring-border'
+                          'mt-0.5 block truncate text-sm',
+                          preview ? 'text-foreground' : 'text-muted-foreground'
                         )}
-                      />
-                      <span className="truncate">
-                        {i + 1} · {t(`steps.${step}`)}
+                      >
+                        {preview ||
+                          (step === 'confirm' && concern.confirmed
+                            ? t('markConfirmed')
+                            : t('stepEmpty'))}
                       </span>
-                      {counts > 0 && (
-                        <span className="ml-auto rounded bg-muted px-1 text-[10px] tabular-nums text-foreground">
-                          {counts}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        'mt-0.5 block truncate text-xs',
-                        preview ? 'text-foreground' : 'text-muted-foreground'
-                      )}
-                    >
-                      {preview ||
-                        (step === 'confirm' && concern.confirmed
-                          ? t('markConfirmed')
-                          : t('stepEmpty'))}
                     </span>
                   </button>
                 )
@@ -238,7 +240,7 @@ export function ConcernStoryRows({
                 // becomes the next one, and the box changes under the typing.
                 onFocus={() => setChosen((prev) => ({ ...prev, [index]: open }))}
                 onChange={(e) => onPatch(index, patchFor(open, e.target.value))}
-                className="field-sizing-content min-h-28 w-full resize-y text-sm"
+                className="field-sizing-content min-h-32 w-full resize-y text-base"
               />
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -292,9 +294,9 @@ export function ConcernStoryRows({
                     title={concern.id ? undefined : t('saveFirst')}
                     onClick={() => concern.id && onAddFinding(concern.id)}
                     data-testid="concern-add-observation"
-                    className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
+                    className="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-4 w-4" />
                     {t('addFinding')}
                   </button>
                 )}
@@ -304,7 +306,7 @@ export function ConcernStoryRows({
 
                 {open === 'confirm' && (
                   <>
-                    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium">
+                    <label className="flex min-h-12 cursor-pointer items-center gap-2 text-sm font-medium">
                       <Checkbox
                         checked={Boolean(concern.confirmed)}
                         onCheckedChange={(checked) =>
@@ -340,9 +342,9 @@ export function ConcernStoryRows({
         size="sm"
         onClick={onAdd}
         disabled={hasBlankRow}
-        className="h-7 px-2 text-xs text-muted-foreground"
+        className="h-10 px-3 text-sm text-muted-foreground"
       >
-        <Plus className="mr-1 h-3.5 w-3.5" />
+        <Plus className="mr-1 h-4 w-4" />
         {t('add')}
       </Button>
     </div>

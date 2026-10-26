@@ -80,7 +80,15 @@
     "part": "Część",
     "inspection": "Przegląd",
     "shopActions": "Warsztat",
-    "person": "Dodaj osobę"
+    "person": "Dodaj osobę",
+    "mechanics": "Mechanika",
+    "mechanicsHint": "Cały pojazd",
+    "brakes": "Hamulce i sprzęgło",
+    "brakesHint": "Część lub pojazd",
+    "wash": "Myjnia",
+    "washHint": "Samochód, motocykl lub ciężarówka",
+    "chooseTitle": "Co chcesz utworzyć?",
+    "chooseDescription": "Wybierz typ. Zobaczysz tylko to, na co pozwala Twoja rola."
   },
   "purchaseWhiteLabel": "Kup White-Label",
   "licenseExpired": "Twoja licencja wygasła. Funkcje mogą być ograniczone.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} otwarte zlecenia",
       "inspections": "{count} przeglądy w toku",
       "reminders": "{count} zaległe przypomnienia"
-    }
+    },
+    "wash": "Car wash"
   }
 }

@@ -42,6 +42,8 @@ export interface ServiceDetail {
   title: string
   description: string | null
   type: string
+  /** Which line of the shop: vehicle | brakes | wash | parts. */
+  jobKind?: string
   status: string
   /** One of the workshop's own statuses, under the stage `status` names. */
   customStatus?: { id: string; name: string; color: string; stage: string } | null
@@ -55,6 +57,33 @@ export interface ServiceDetail {
   createdBy?: { name: string | null } | null
   /** The inspection the job was raised from, when it was. */
   inspection?: { id: string; createdAt: Date | string; template: { name: string } } | null
+  /** The wash desk's intake sheet, when this is a car wash. */
+  washIntake?: {
+    vehicleClass: string | null
+    vehicleClassOther: string | null
+    fuelLevel: string | null
+    accessories: unknown
+    accessoriesOther: string | null
+    conditions: unknown
+    conditionsOther: string | null
+    arrivalState: string | null
+    scratches: string | null
+    authorizedExtra: string | null
+    authorizedBy: string | null
+    clientSignature?: string | null
+    staffSignature?: string | null
+    queueStage?: string
+  } | null
+  /** The brake/clutch intake: the part dropped off and its condition. */
+  partIntake?: {
+    description: string | null
+    brand: string | null
+    serial: string | null
+    condition: string | null
+    accessories: string | null
+    notes: string | null
+    clientSignature?: string | null
+  } | null
   /** The quotes that became the job: the one it was raised from and any added to it. */
   quotes?: { id: string; quoteNumber: string | null; title: string }[]
   /** When the customer was told the vehicle would be ready. */

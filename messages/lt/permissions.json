@@ -15,7 +15,9 @@
     "time_tracking": "Laiko apskaita",
     "work_board": "Darbų lenta",
     "ai_assistant": "DI asistentas",
-    "settings": "Nustatymai"
+    "settings": "Nustatymai",
+    "brakes": "Stabdžiai ir sankaba",
+    "wash": "Automobilių plovykla"
   },
   "actions": {
     "create": "Kurti",

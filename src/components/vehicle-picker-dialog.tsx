@@ -24,6 +24,11 @@ import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { handleGated } from '@/components/upgrade-gate'
 import { useServiceType } from '@/components/service-type-context'
+import {
+  getVehicleCatalogExtras,
+  rememberVehicleCatalogEntry,
+} from '@/features/vehicles/Actions/vehicleCatalogActions'
+import type { JobKind } from '@/lib/job-kind'
 
 interface Vehicle {
   id: string
@@ -47,6 +52,10 @@ interface VehiclePickerDialogProps {
   customers: Customer[]
   title?: string
   redirectQuery?: Record<string, string>
+  /** Open straight on the vehicle-less form, for a part dropped off. */
+  initialStep?: 'select' | 'sale'
+  mode?: 'default' | 'brakes'
+  jobKind?: JobKind
 }
 
 export function VehiclePickerDialog({
@@ -56,6 +65,9 @@ export function VehiclePickerDialog({
   customers,
   title,
   redirectQuery,
+  initialStep = 'select',
+  mode = 'default',
+  jobKind = 'mechanics',
 }: VehiclePickerDialogProps) {
   const router = useRouter()
   const t = useTranslations('workOrders.vehiclePicker')
@@ -67,7 +79,14 @@ export function VehiclePickerDialog({
   const displayTitle = isMarine ? t('titleMarine') : title || t('title')
 
   const [vehicleSearch, setVehicleSearch] = useState('')
-  const [pickerStep, setPickerStep] = useState<'select' | 'create' | 'sale'>('select')
+  const isPartIntake = jobKind === 'brakes'
+  const [pickerStep, setPickerStep] = useState<'select' | 'create' | 'sale'>(
+    isPartIntake ? 'sale' : initialStep
+  )
+
+  useEffect(() => {
+    if (open) setPickerStep(isPartIntake ? 'sale' : initialStep)
+  }, [open, initialStep, isPartIntake])
 
   const [newMake, setNewMake] = useState('')
   const [newModel, setNewModel] = useState('')
@@ -85,12 +104,19 @@ export function VehiclePickerDialog({
   useEffect(() => {
     if (!open || catalog.length > 0) return
     let cancelled = false
-    fetch('/vehicle-catalog.json')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!cancelled && data?.makes) setCatalog(data.makes)
+    Promise.all([
+      fetch('/vehicle-catalog.json').then((r) => (r.ok ? r.json() : null)),
+      getVehicleCatalogExtras(),
+    ])
+      .then(([data, extras]) => {
+        if (cancelled) return
+        const base = Array.isArray(data?.makes) ? data.makes : []
+        const saved = extras.success && extras.data ? extras.data : []
+        setCatalog(mergeCatalog(base, saved))
       })
-      .catch(() => {})
+      .catch(() => {
+        /* the catalogue is a suggestion; manual entry still works */
+      })
     return () => {
       cancelled = true
     }
@@ -112,11 +138,32 @@ export function VehiclePickerDialog({
   })()
   const handleMakeChange = (next: string) => {
     setNewMake(next)
-    const key = next.trim().toLowerCase()
+    const trimmed = next.trim()
+    const key = trimmed.toLowerCase()
     const list = catalog.find((m) => m.name.toLowerCase() === key)?.models ?? []
     if (newModel && !list.some((mo) => mo.toLowerCase() === newModel.toLowerCase())) {
       setNewModel('')
     }
+    if (trimmed && !catalog.some((m) => m.name.toLowerCase() === key)) {
+      setCatalog((prev) => [...prev, { name: trimmed, models: [] }])
+      void rememberVehicleCatalogEntry({ make: trimmed })
+    }
+  }
+
+  const handleModelChange = (next: string) => {
+    setNewModel(next)
+    const trimmed = next.trim()
+    const currentMake = newMake.trim()
+    if (!trimmed || !currentMake) return
+    const key = currentMake.toLowerCase()
+    const entry = catalog.find((m) => m.name.toLowerCase() === key)
+    if (entry?.models.some((mo) => mo.toLowerCase() === trimmed.toLowerCase())) return
+    setCatalog((prev) =>
+      prev.map((m) =>
+        m.name.toLowerCase() === key ? { ...m, models: [...m.models, trimmed] } : m
+      )
+    )
+    void rememberVehicleCatalogEntry({ make: currentMake, model: trimmed })
   }
 
   const filteredVehicles = useMemo(() => {
@@ -170,7 +217,11 @@ export function VehiclePickerDialog({
         customerId = customerResult.data.id
       }
 
-      const result = await createDraftCounterSale(customerId)
+      const result = await createDraftCounterSale(
+        customerId,
+        jobKind,
+        isPartIntake ? t('receivePartTitle') : undefined
+      )
       if (!result.success || !result.data) {
         toast.error(result.error || t('somethingWentWrong'))
         setCreating(false)
@@ -189,7 +240,9 @@ export function VehiclePickerDialog({
   const handleSelect = (vehicleId: string) => {
     onOpenChange(false)
     resetState()
-    const qs = redirectQuery ? '?' + new URLSearchParams(redirectQuery).toString() : ''
+    const query = new URLSearchParams(redirectQuery)
+    if (jobKind !== 'mechanics') query.set('kind', jobKind)
+    const qs = query.toString() ? '?' + query.toString() : ''
     router.push(`/vehicles/${vehicleId}/service/new${qs}`)
   }
 
@@ -325,14 +378,19 @@ export function VehiclePickerDialog({
                   <Plus className="h-4 w-4 mr-1" />
                   {isMarine ? t('addNewVehicleMarine') : t('addNewVehicle')}
                 </Button>
-                <Button
-                  variant="ghost"
-                  className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 sm:flex-1"
-                  onClick={() => setPickerStep('sale')}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  {t('partsSale')}
-                </Button>
+                {/* A wash or a part intake is its own flow already; offering a
+                    parts sale here would only be a second way into the same
+                    place. */}
+                {jobKind === 'mechanics' && (
+                  <Button
+                    variant="ghost"
+                    className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 sm:flex-1"
+                    onClick={() => setPickerStep('sale')}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    {t('partsSale')}
+                  </Button>
+                )}
               </div>
             </div>
           </>
@@ -340,20 +398,28 @@ export function VehiclePickerDialog({
           <>
             <DialogHeader>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0"
-                  onClick={() => setPickerStep('select')}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <DialogTitle>{t('partsSale')}</DialogTitle>
+                {!isPartIntake && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => setPickerStep('select')}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <DialogTitle>
+                  {mode === 'brakes' ? t('receivePartTitle') : t('partsSale')}
+                </DialogTitle>
               </div>
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {isMarine ? t('partsSaleDescriptionMarine') : t('partsSaleDescription')}
+                {mode === 'brakes'
+                  ? t('receivePartDescription')
+                  : isMarine
+                    ? t('partsSaleDescriptionMarine')
+                    : t('partsSaleDescription')}
               </p>
               <div className="space-y-1.5">
                 <Label>{t('customer')}</Label>
@@ -434,7 +500,7 @@ export function VehiclePickerDialog({
                     {t('creating')}
                   </>
                 ) : (
-                  t('createSale')
+                  mode === 'brakes' ? t('receivePartSubmit') : t('createSale')
                 )}
               </Button>
             </div>
@@ -478,7 +544,7 @@ export function VehiclePickerDialog({
                       icon="make"
                       logoFor={carLogoUrl}
                       emptyLabel={tf('catalogEmpty')}
-                      useLabel={(v) => tf('catalogUse', { value: v })}
+                      useLabel={(v) => tf('catalogAdd', { value: v })}
                     />
                   )}
                 </div>
@@ -495,12 +561,12 @@ export function VehiclePickerDialog({
                     <CatalogCombobox
                       id="new-model"
                       value={newModel}
-                      onChange={setNewModel}
+                      onChange={handleModelChange}
                       options={modelOptions}
                       placeholder="Camry"
                       icon="model"
                       emptyLabel={tf('catalogEmpty')}
-                      useLabel={(v) => tf('catalogUse', { value: v })}
+                      useLabel={(v) => tf('catalogAdd', { value: v })}
                     />
                   )}
                 </div>
@@ -646,4 +712,21 @@ export function VehiclePickerDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+function mergeCatalog(
+  base: { name: string; models: string[] }[],
+  extras: { name: string; models: string[] }[]
+): { name: string; models: string[] }[] {
+  const map = new Map(base.map((entry) => [entry.name.toLowerCase(), { name: entry.name, models: [...entry.models] }]))
+  for (const extra of extras) {
+    const key = extra.name.toLowerCase()
+    const existing = map.get(key)
+    if (existing) {
+      existing.models = [...new Set([...existing.models, ...extra.models])]
+    } else {
+      map.set(key, { name: extra.name, models: [...extra.models] })
+    }
+  }
+  return [...map.values()]
 }

@@ -80,7 +80,15 @@
     "part": "Del",
     "inspection": "Inspeksjon",
     "shopActions": "Verkstedet",
-    "person": "Legg til en person"
+    "person": "Legg til en person",
+    "mechanics": "Mekanikk",
+    "mechanicsHint": "Hele kjøretøyet",
+    "brakes": "Bremser og clutch",
+    "brakesHint": "Del eller kjøretøy",
+    "wash": "Bilvask",
+    "washHint": "Bil, mc eller lastebil",
+    "chooseTitle": "Hva skal du opprette?",
+    "chooseDescription": "Velg type. Du ser bare det rollen din tillater."
   },
   "purchaseWhiteLabel": "Kjøp White-Label",
   "licenseExpired": "Lisensen din har utløpt. Funksjoner kan være begrenset.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} åpne arbeidsordrer",
       "inspections": "{count} pågående inspeksjoner",
       "reminders": "{count} forfalte påminnelser"
-    }
+    },
+    "wash": "Car wash"
   }
 }

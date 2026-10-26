@@ -241,7 +241,7 @@ export function ModernHero({
         className="@container shrink-0 border-b bg-background px-4 py-2"
       >
         <div className="mx-auto flex w-full max-w-[calc(1800px-2rem)] flex-wrap items-center justify-between gap-x-6 gap-y-2">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="hidden min-w-0 items-center gap-3 md:flex">
             <Link
               href={vehicle ? `/vehicles/${vehicle.id}` : '/work-orders'}
               aria-label={t('modern.back')}
@@ -427,7 +427,49 @@ export function ModernHero({
             </div>
           </div>
 
-          {actions}
+          <div className="w-full md:hidden">
+            <div className="flex items-start justify-between gap-3">
+              <Link
+                href={vehicle ? '/vehicles/' + vehicle.id : '/work-orders'}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-md border"
+                aria-label={t('modern.back')}
+              >
+                <ArrowLeft className="size-5" />
+              </Link>
+              <div className="min-w-0 flex-1">
+                <p className="break-words font-mono text-2xl font-bold">
+                  {vehicle?.licensePlate || number || title}
+                </p>
+                <p className="text-base">
+                  {vehicle ? [vehicle.make, vehicle.model, vehicle.year].join(' ') : title}
+                </p>
+                <div className="mt-1 text-sm">
+                  {number && <span className="font-semibold">{number} · </span>}
+                  {titleEditor}
+                </div>
+                <p className="mt-1 text-sm font-semibold text-primary">
+                  {status === record.status && record.customStatus
+                    ? record.customStatus.name
+                    : statusMessageKeys[status]
+                      ? t('basicInfo.statusOptions.' + statusMessageKeys[status])
+                      : status}
+                </p>
+                {promisedAt && (
+                  <p
+                    className={cn(
+                      'mt-1 text-sm',
+                      promiseOverdue && 'font-semibold text-amber-700 dark:text-amber-300'
+                    )}
+                  >
+                    {t(promiseOverdue ? 'modern.promisedOverdue' : 'modern.promised', {
+                      date: formatDateTime(promisedAt),
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div data-mobile="hero-desktop">{actions}</div>
         </div>
       </header>
       {vehicle && (

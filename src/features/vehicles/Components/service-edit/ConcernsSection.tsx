@@ -110,7 +110,7 @@ export function ConcernsSection({
                 placeholder={t('placeholder')}
                 onChange={(e) => update(index, e.target.value)}
                 rows={1}
-                className="min-h-9 w-full resize-none"
+                className="min-h-12 w-full resize-none text-base"
                 aria-label={t('title')}
               />
               {/* Whether anybody has answered this one yet. The point of keeping
@@ -148,9 +148,9 @@ export function ConcernsSection({
         size="sm"
         onClick={add}
         disabled={hasBlankRow}
-        className="h-7 px-2 text-muted-foreground text-xs"
+        className="h-10 px-3 text-muted-foreground text-sm"
       >
-        <Plus className="mr-1 h-3.5 w-3.5" />
+        <Plus className="mr-1 h-4 w-4" />
         {t('add')}
       </Button>
     </>

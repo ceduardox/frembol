@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Check, CreditCard, Loader2, Plus, Trash2, X } from 'lucide-react'
+import { Check, CreditCard, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useFormatCurrency } from '@/components/currency-settings-context'
 import { useFormatDate } from '@/lib/use-format-date'
@@ -36,6 +36,10 @@ interface PaymentsSectionProps {
     method: string
     note?: string
   }) => Promise<boolean>
+  onUpdatePayment: (
+    id: string,
+    data: { amount: number; date: string; method: string; note?: string }
+  ) => Promise<boolean>
   onDeletePayment: (id: string) => void
   onTogglePaid: () => void
   paymentLoading: boolean
@@ -48,6 +52,8 @@ interface PaymentsSectionProps {
   openFormSignal?: number
   /** One more way to be paid, drawn beside "Record payment": the pay code. */
   extraAction?: ReactNode
+  /** Wash services: point at the editable price lines before taking payment. */
+  showPriceAdjust?: boolean
 }
 
 export function PaymentsSection({
@@ -59,26 +65,40 @@ export function PaymentsSection({
   balanceDue,
   currencyCode,
   onCreatePayment,
+  onUpdatePayment,
   onDeletePayment,
   onTogglePaid,
   paymentLoading,
   deletingPayment,
   openFormSignal = 0,
   extraAction = null,
+  showPriceAdjust = false,
 }: PaymentsSectionProps) {
   const formatCurrency = useFormatCurrency()
   const t = useTranslations('service.payments')
   const tc = useTranslations('common.buttons')
   const modern = useModernWorkOrder()
   const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<Payment | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('other')
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentNote, setPaymentNote] = useState('')
   const { formatDate } = useFormatDate()
   const formRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
+  const paidInFull = displayTotal > 0 && balanceDue <= 0.005
 
   useEffect(() => {
     if (openFormSignal === 0) return
+    // A settled invoice takes no more money; an existing payment is edited
+    // from its own row instead.
+    if (displayTotal > 0 && balanceDue <= 0) return
+    setEditing(null)
+    setPaymentAmount(balanceDue > 0 ? balanceDue.toFixed(2) : '')
+    setPaymentDate(new Date().toISOString().split('T')[0])
+    setPaymentMethod('other')
+    setPaymentNote('')
     setShowForm(true)
     // After the form has been drawn, so the view lands on it and not above it.
     requestAnimationFrame(() => {
@@ -87,20 +107,46 @@ export function PaymentsSection({
     })
   }, [openFormSignal])
 
+  const openAdd = () => {
+    setEditing(null)
+    setPaymentAmount(balanceDue > 0 ? balanceDue.toFixed(2) : '')
+    setPaymentDate(new Date().toISOString().split('T')[0])
+    setPaymentMethod('other')
+    setPaymentNote('')
+    setShowForm(true)
+  }
+
+  const openEdit = (payment: Payment) => {
+    setEditing(payment)
+    setPaymentAmount(payment.amount.toFixed(2))
+    setPaymentDate(new Date(payment.date).toISOString().slice(0, 10))
+    setPaymentMethod(payment.method)
+    setPaymentNote(payment.note ?? '')
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditing(null)
+  }
+
   const handleSubmit = async () => {
-    if (!formRef.current) return
-    const amount = formRef.current.querySelector<HTMLInputElement>('[name="paymentAmount"]')
-    const date = formRef.current.querySelector<HTMLInputElement>('[name="paymentDate"]')
-    const note = formRef.current.querySelector<HTMLInputElement>('[name="paymentNote"]')
-    if (!amount?.value || Number(amount.value) <= 0) return
-    const success = await onCreatePayment({
-      amount: Number(amount.value),
-      date: date?.value || new Date().toISOString(),
+    const amount = Number(paymentAmount)
+    if (!amount || amount <= 0) return
+    const payload = {
+      amount,
+      date: paymentDate || new Date().toISOString(),
       method: paymentMethod,
-      note: note?.value || undefined,
-    })
+      note: paymentNote || undefined,
+    }
+    const success = editing
+      ? await onUpdatePayment(editing.id, payload)
+      : await onCreatePayment(payload)
     if (success) {
       setShowForm(false)
+      setEditing(null)
+      setPaymentAmount('')
+      setPaymentNote('')
       setPaymentMethod('other')
     }
   }
@@ -129,7 +175,8 @@ export function PaymentsSection({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={balanceDue > 0 ? balanceDue.toFixed(2) : ''}
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(e.target.value)}
             required
           />
         </div>
@@ -154,6 +201,7 @@ export function PaymentsSection({
               <SelectItem value="cash">{t('methodOptions.cash')}</SelectItem>
               <SelectItem value="card">{t('methodOptions.card')}</SelectItem>
               <SelectItem value="transfer">{t('methodOptions.transfer')}</SelectItem>
+              <SelectItem value="qr">{t('methodOptions.qr')}</SelectItem>
               <SelectItem value="other">{t('methodOptions.other')}</SelectItem>
             </SelectContent>
           </Select>
@@ -162,15 +210,21 @@ export function PaymentsSection({
           <Label htmlFor="paymentNote" className="text-xs">
             {t('note')}
           </Label>
-          <Input id="paymentNote" name="paymentNote" placeholder={t('notePlaceholder')} />
+          <Input
+            id="paymentNote"
+            name="paymentNote"
+            placeholder={t('notePlaceholder')}
+            value={paymentNote}
+            onChange={(e) => setPaymentNote(e.target.value)}
+          />
         </div>
       </div>
       <div className="flex gap-2">
         <Button type="button" size="sm" disabled={paymentLoading} onClick={handleSubmit}>
           {paymentLoading && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-          {t('savePayment')}
+          {editing ? t('updatePayment') : t('savePayment')}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={closeForm}>
           {tc('cancel')}
         </Button>
       </div>
@@ -225,6 +279,16 @@ export function PaymentsSection({
                   <span className="font-mono font-medium tabular-nums">
                     {formatCurrency(-payment.amount, currencyCode)}
                   </span>
+                   <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-current opacity-60 hover:bg-transparent hover:text-foreground hover:opacity-100"
+                    onClick={() => openEdit(payment)}
+                    aria-label={tc('edit')}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -260,9 +324,11 @@ export function PaymentsSection({
 
         {showForm ? (
           paymentForm
+        ) : paidInFull ? (
+          <p className="text-center text-sm text-muted-foreground">{t('paidInFull')}</p>
         ) : (
           <div className="flex flex-col gap-2">
-            <Button type="button" className="h-11 w-full" onClick={() => setShowForm(true)}>
+            <Button type="button" className="h-11 w-full" onClick={openAdd}>
               <Plus className="mr-1 h-4 w-4" />
               {t('recordPayment')}
             </Button>
@@ -312,7 +378,8 @@ export function PaymentsSection({
               variant="outline"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => setShowForm(!showForm)}
+              onClick={openAdd}
+              disabled={paidInFull}
             >
               <Plus className="mr-1 h-3 w-3" />
               {t('recordPayment')}
@@ -329,6 +396,21 @@ export function PaymentsSection({
               {formatCurrency(displayTotal, currencyCode)}
             </span>
           </div>
+
+          {showPriceAdjust && !paidInFull && (
+            <button
+              type="button"
+              onClick={() =>
+                document
+                  .getElementById('job-labor')
+                  ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+              }
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+            >
+              <Pencil className="h-3 w-3" />
+              {t('adjustPrice')}
+            </button>
+          )}
 
           {showForm && paymentForm}
 
@@ -358,6 +440,16 @@ export function PaymentsSection({
                       </td>
                       <td className="py-1.5 text-muted-foreground">{payment.note || '-'}</td>
                       <td className="py-1.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mr-1 h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEdit(payment)}
+                          aria-label={tc('edit')}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

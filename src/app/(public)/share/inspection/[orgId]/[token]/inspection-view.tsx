@@ -713,7 +713,7 @@ export function InspectionView({
           <p className="flex items-center justify-center gap-1.5">
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-4 w-4" />
+            <img src="/ryztor-llc.png" alt="Ryztor LLC" className="h-4 w-4" />
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
               Ryztor LLC
             </span>

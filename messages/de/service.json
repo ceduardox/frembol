@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Foto",
+    "finding": "Problem",
+    "labor": "Arbeitszeit",
+    "parts": "Ersatzteil",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Was man sieht oder hört",
+    "photoHint": "Vom Fahrzeug oder Teil",
+    "laborHint": "Arbeitsstunden",
+    "partsHint": "Verwendetes Teil",
+    "washService": "Leistung hinzufügen",
+    "washServiceHint": "Wäsche, Motor, Innenraum",
+    "chooseStatus": "Status auswählen"
+  },
   "page": {
     "notFound": "Serviceeintrag nicht gefunden",
     "updated": "Serviceeintrag aktualisiert",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Pauschale",
     "shopFeeHintFlat": "Die Werkstattpauschale aus den Einstellungen als fester Betrag. Ändern Sie den Preis für diesen Auftrag oder löschen Sie die Position.",
     "shopFeeHintPercentLabor": "Die Werkstattpauschale aus den Einstellungen: {percent} % der Arbeit dieses Auftrags. Löschen Sie die Position, um sie wegzulassen.",
-    "shopFeeHintPercentAll": "Die Werkstattpauschale aus den Einstellungen: {percent} % von Arbeit und Teilen dieses Auftrags. Löschen Sie die Position, um sie wegzulassen."
+    "shopFeeHintPercentAll": "Die Werkstattpauschale aus den Einstellungen: {percent} % von Arbeit und Teilen dieses Auftrags. Löschen Sie die Position, um sie wegzulassen.",
+    "washTitle": "Waschleistungen",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Ein Techniker hat Arbeit zu diesem Auftrag hinzugefügt} other {Ein Techniker hat # Arbeitspositionen zu diesem Auftrag hinzugefügt}}",
@@ -256,7 +280,8 @@
       "cash": "Bargeld",
       "card": "Karte",
       "transfer": "Überweisung",
-      "other": "Sonstige"
+      "other": "Sonstige",
+      "qr": "QR"
     },
     "recorded": "Zahlung aufgezeichnet",
     "markedPaid": "Als bezahlt gekennzeichnet",
@@ -270,7 +295,12 @@
     "failedPdf": "PDF-Rechnung konnte nicht erstellt werden",
     "received": "Erhaltene Zahlungen",
     "noneYet": "Noch nichts bezahlt.",
-    "balanceDue": "Ausstehend"
+    "balanceDue": "Ausstehend",
+    "updatePayment": "Zahlung aktualisieren",
+    "updated": "Zahlung aktualisiert",
+    "paidInFull": "Vollständig bezahlt",
+    "failedUpdate": "Zahlung konnte nicht aktualisiert werden",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Anlage löschen",
@@ -483,12 +513,12 @@
     "notAnswered": "Dazu wurde noch nichts festgestellt",
     "answered": "{count} Feststellung(en) dazu",
     "storyTitle": "Auftragsbeschreibung",
-    "storyHint": "Beanstandung, Ursache, Behebung, Kontrolle. Klicken Sie auf einen Schritt, um ihn zu öffnen; eine Zeile für jeden Punkt, den der Kunde genannt oder Sie festgestellt haben.",
+    "storyHint": "Schreiben Sie, was los ist, warum, was getan wurde und ob es behoben ist.",
     "steps": {
-      "condition": "Beanstandung",
-      "cause": "Ursache",
-      "correction": "Behebung",
-      "confirm": "Kontrolle"
+      "condition": "Was ist los?",
+      "cause": "Warum?",
+      "correction": "Was wurde getan?",
+      "confirm": "Ist es behoben?"
     },
     "conditionPlaceholder": "Was der Kunde gemeldet hat oder was Sie festgestellt haben",
     "causePlaceholder": "Was die Prüfung als eigentliche Ursache ergeben hat",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Wird beim Speichern mit Ihrem Namen versehen",
     "confirmedCount": "{confirmed} von {total} bestätigt",
     "findingsCount": "{count, plural, one {# Beobachtung} other {# Beobachtungen}}",
-    "addFinding": "Beobachtung hinzufügen",
+    "addFinding": "Notiz hinzufügen",
     "unconfirmedTitle": "Mit unbestätigten Anliegen abschließen?",
     "unconfirmedBody": "{count, plural, one {Bei einem Anliegen ist die Behebung nicht bestätigt:} other {Bei # Anliegen ist die Behebung nicht bestätigt:}}",
     "unconfirmedProceed": "Trotzdem abschließen",
@@ -529,7 +559,7 @@
       "engineBrowser": "Browser (schreibt beim Sprechen mit)",
       "liveFellBack": "Schreibt in Schritten von wenigen Sekunden statt Wort für Wort."
     },
-    "stepEmpty": "Noch nicht ausgefüllt",
+    "stepEmpty": "Zum Schreiben tippen",
     "removeTitle": "Dieses Anliegen entfernen?",
     "removeBody": "Beanstandung, Ursache, Behebung und Kontrolle werden beim Speichern des Arbeitsauftrags mit entfernt.",
     "removeAttached": "Die zugehörigen Beobachtungen und Medien bleiben am Auftrag, nur nicht mehr unter einem Anliegen abgelegt.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Hallo {customer_name}, ein Update zu Ihrem {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Wäscheannahme",
+    "description": "Was das Fahrzeug mitbringt und wie es ankommt.",
+    "vehicleClass": "Fahrzeugtyp",
+    "vehicleClassOptions": {
+      "auto": "Auto",
+      "suv": "SUV",
+      "pickup": "Pick-up",
+      "motorcycle": "Motorrad",
+      "lightTruck": "Leichter LKW",
+      "heavyTruck": "Schwerer LKW",
+      "other": "Andere"
+    },
+    "otherPlaceholder": "Angeben",
+    "fuel": "Kraftstoffstand",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Zubehör / persönliche Gegenstände",
+    "accessoryOptions": {
+      "spareTire": "Ersatzreifen",
+      "jack": "Wagenheber",
+      "tools": "Werkzeuge",
+      "radio": "Radio / Bildschirm"
+    },
+    "conditions": "Besondere Bedingungen",
+    "conditionOptions": {
+      "upholstery": "Beschädigte Polster",
+      "paint": "Beschädigter Lack",
+      "looseParts": "Lose Teile",
+      "glass": "Beschädigte Scheiben"
+    },
+    "arrivalState": "Fahrzeugzustand bei Ankunft",
+    "arrivalOptions": {
+      "clean": "Sauber",
+      "regular": "Regelmäßig",
+      "dirty": "Schmutzig",
+      "veryDirty": "Sehr schmutzig"
+    },
+    "scratches": "Kratzer / zu beachtende Details",
+    "scratchesPlaceholder": "Beulen, Kratzer oder fehlende Teile beschreiben",
+    "authorizedExtra": "Autorisierte Zusatzarbeit",
+    "authorizedExtraPlaceholder": "Leistung und Aufpreis",
+    "authorizedBy": "Autorisiert von",
+    "authorizedByPlaceholder": "Name der autorisierenden Person",
+    "delivery": "Versprochene Lieferung",
+    "deliveryPlaceholder": "Datum und Uhrzeit",
+    "save": "Annahme speichern",
+    "saved": "Gespeichert",
+    "saveFailed": "Die Annahme konnte nicht gespeichert werden",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Unterschriften",
+    "signaturesDescription": "Unterschrift des Kunden und des Mitarbeiters.",
+    "saveSignatures": "Unterschriften speichern",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Das vom Kunden gebrachte Teil und sein Zustand.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notizen und Kundenunterschrift",
+    "saveNotes": "Notizen speichern"
   }
 }

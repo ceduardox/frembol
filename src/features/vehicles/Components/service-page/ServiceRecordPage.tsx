@@ -60,9 +60,11 @@ import { resolveWorkOrderLayout } from '@/lib/work-order-layout.server'
 export async function ServiceRecordPage({
   serviceId,
   initialTab,
+  previewModern = false,
 }: {
   serviceId: string
   initialTab?: string
+  previewModern?: boolean
 }) {
   const [
     result,
@@ -480,7 +482,9 @@ export async function ServiceRecordPage({
             : { entries: [], viewerTechnicianIds: [], canEdit: false, timeZone: 'UTC' }
         }
         designPinnedAt={designPinnedAt}
-        initialLayout={initialLayout}
+        initialLayout={
+          process.env.NODE_ENV === 'development' && previewModern ? 'modern' : initialLayout
+        }
       />
     </div>
   )

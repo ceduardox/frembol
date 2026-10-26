@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Photo",
+    "finding": "Problem",
+    "labor": "Labor",
+    "parts": "Part",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "What you see or hear",
+    "photoHint": "Of the vehicle or part",
+    "laborHint": "Hours of work",
+    "partsHint": "Part used",
+    "washService": "Add service",
+    "washServiceHint": "Wash, engine, interior",
+    "chooseStatus": "Choose a status"
+  },
   "page": {
     "notFound": "Service record not found",
     "updated": "Service record updated",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Fee",
     "shopFeeHintFlat": "The shop fee from Settings, as a flat amount. Change the price for this job, or delete the line to leave it off.",
     "shopFeeHintPercentLabor": "The shop fee from Settings: {percent} % of the labor on this job. Delete the line to leave it off.",
-    "shopFeeHintPercentAll": "The shop fee from Settings: {percent} % of the labor and parts on this job. Delete the line to leave it off."
+    "shopFeeHintPercentAll": "The shop fee from Settings: {percent} % of the labor and parts on this job. Delete the line to leave it off.",
+    "washTitle": "Wash services",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {A technician added labor to this job} other {A technician added # labor lines to this job}}",
@@ -256,7 +280,8 @@
       "cash": "Cash",
       "card": "Card",
       "transfer": "Transfer",
-      "other": "Other"
+      "other": "Other",
+      "qr": "QR"
     },
     "recorded": "Payment recorded",
     "markedPaid": "Marked as paid",
@@ -270,7 +295,12 @@
     "failedPdf": "Failed to generate PDF invoice",
     "received": "Payments received",
     "noneYet": "Nothing paid yet.",
-    "balanceDue": "Balance due"
+    "balanceDue": "Balance due",
+    "updatePayment": "Update payment",
+    "updated": "Payment updated",
+    "paidInFull": "Paid in full",
+    "failedUpdate": "Failed to update payment",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Delete Attachment",
@@ -483,12 +513,12 @@
     "notAnswered": "Nothing found against this yet",
     "answered": "{count, plural, one {# observation against this} other {# observations against this}}",
     "storyTitle": "Job description",
-    "storyHint": "Condition, cause, correction, confirm. Click a step to open it; one row for each thing the customer mentioned or you observed.",
+    "storyHint": "Write what's wrong, why, what was done and whether it's fixed.",
     "steps": {
-      "condition": "Condition",
-      "cause": "Cause",
-      "correction": "Correction",
-      "confirm": "Confirm"
+      "condition": "What's wrong?",
+      "cause": "Why?",
+      "correction": "What was done?",
+      "confirm": "Is it fixed?"
     },
     "conditionPlaceholder": "What the customer reported, or what you observed",
     "causePlaceholder": "What testing showed the root cause to be",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Stamped with your name when you save",
     "confirmedCount": "{confirmed} of {total} confirmed",
     "findingsCount": "{count, plural, one {# observation} other {# observations}}",
-    "addFinding": "Add observation",
+    "addFinding": "Add note",
     "unconfirmedTitle": "Complete with unconfirmed concerns?",
     "unconfirmedBody": "{count, plural, one {One concern has not been confirmed as fixed:} other {# concerns have not been confirmed as fixed:}}",
     "unconfirmedProceed": "Complete anyway",
@@ -529,7 +559,7 @@
       "engineBrowser": "Browser (writes as you speak)",
       "liveFellBack": "Writing in steps of a few seconds instead of word by word."
     },
-    "stepEmpty": "Not written yet",
+    "stepEmpty": "Tap to write",
     "removeTitle": "Remove this concern?",
     "removeBody": "Its condition, cause, correction and confirmation are removed with it when you save the work order.",
     "removeAttached": "Its observations and media stay on the job, no longer filed under a concern.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Hi {customer_name}, an update on your {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Wash intake",
+    "description": "What the vehicle carries and how it arrives.",
+    "vehicleClass": "Vehicle type",
+    "vehicleClassOptions": {
+      "auto": "Car",
+      "suv": "SUV",
+      "pickup": "Pickup",
+      "motorcycle": "Motorcycle",
+      "lightTruck": "Light truck",
+      "heavyTruck": "Heavy truck",
+      "other": "Other"
+    },
+    "otherPlaceholder": "Specify",
+    "fuel": "Fuel level",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Accessories / personal items",
+    "accessoryOptions": {
+      "spareTire": "Spare tire",
+      "jack": "Jack",
+      "tools": "Tools",
+      "radio": "Radio / screen"
+    },
+    "conditions": "Special conditions",
+    "conditionOptions": {
+      "upholstery": "Damaged upholstery",
+      "paint": "Damaged paint",
+      "looseParts": "Loose parts",
+      "glass": "Damaged glass"
+    },
+    "arrivalState": "Vehicle condition on arrival",
+    "arrivalOptions": {
+      "clean": "Clean",
+      "regular": "Regular",
+      "dirty": "Dirty",
+      "veryDirty": "Very dirty"
+    },
+    "scratches": "Scratches / details to note",
+    "scratchesPlaceholder": "Describe dents, scratches or missing items",
+    "authorizedExtra": "Authorized extra work",
+    "authorizedExtraPlaceholder": "Service and extra price",
+    "authorizedBy": "Authorized by",
+    "authorizedByPlaceholder": "Name of the person authorizing",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "save": "Save intake",
+    "saved": "Saved",
+    "saveFailed": "Could not save the intake",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Signatures",
+    "signaturesDescription": "Customer and staff signature.",
+    "saveSignatures": "Save signatures",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "The part the customer brought in and its condition.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notes and customer signature",
+    "saveNotes": "Save notes"
   }
 }

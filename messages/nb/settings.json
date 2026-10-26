@@ -146,6 +146,10 @@
       "workOrderStatuses": {
         "title": "Statuser for arbeidsordre",
         "description": "Dine egne steg, og hvem som får beskjed"
+      },
+      "wash": {
+        "title": "Car wash",
+        "description": "Vasketjenester og priser"
       }
     },
     "pro": "PRO",
@@ -574,7 +578,18 @@
     "revokeTechnicianDone": "{name} er logget ut av appen",
     "noAccessTitle": "Ingen tilgang ennå",
     "noAccessBody": "Kontoen din tilhører {workshop}, men den har ikke fått en rolle ennå, så det er ingenting her du kan åpne. Be en eier eller administrator på verkstedet om å gi deg en.",
-    "setupPageInstall": "Last ned fra Google Play"
+    "setupPageInstall": "Last ned fra Google Play",
+    "choiceWashManager": "A wash manager",
+    "choiceWashManagerHint": "Runs the wash: queue, invoices and reports. Signs in with a phone, not an email.",
+    "addWashManagerHint": "A phone account for the wash manager, with no technician row.",
+    "washManagerDetailsTitle": "Wash manager details",
+    "washManagerDetailsBlurb": "Created with a phone and password; no email and no place on the work board.",
+    "addWashManagerSubmit": "Create manager",
+    "addWashManagerFailed": "The wash manager could not be created",
+    "washManagerNote": "They sign in on the access page with this number and password.",
+    "stepWashManagerTitle": "Manager created: {name}",
+    "stepWashManagerBody": "They can now sign in by phone, see only the wash and manage its invoices and reports.",
+    "washManagerAccessHint": "Share these details; they sign in on the access page by phone."
   },
   "invoice": {
     "title": "Faktura og tilbud",

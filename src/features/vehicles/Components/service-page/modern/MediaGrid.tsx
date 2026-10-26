@@ -135,6 +135,7 @@ interface MediaGridProps {
   /** The caps by kind, for the grid of everything, where one number cannot say it. */
   caps?: Partial<Record<MediaKind, number>>
   /** Photos can be sent to the customer over WhatsApp when there is one. */
+  mobileCapture?: boolean
   customerId?: string
 }
 
@@ -156,12 +157,14 @@ export function MediaGrid({
   max,
   caps,
   customerId,
+  mobileCapture = false,
 }: MediaGridProps) {
   const store = customStore ?? serviceStore(serviceRecordId)
   const t = useTranslations('service')
   const router = useRouter()
   const { formatDate, formatDateTime } = useFormatDate()
   const inputRef = useRef<HTMLInputElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [items, setItems] = useState<Attachment[]>(files)
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -309,6 +312,28 @@ export function MediaGrid({
 
   return (
     <div className="grid grid-cols-2 gap-3 p-5 pt-4 @xl:grid-cols-3 @3xl:grid-cols-4">
+      {mobileCapture && (kind === 'all' || kind === 'image') && (
+        <div className="col-span-full grid grid-cols-2 gap-2 md:hidden">
+          <button
+            type="button"
+            data-testid="mobile-add-photo"
+            disabled={uploading}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary p-3 text-base font-semibold text-primary-foreground"
+            onClick={() => photoInputRef.current?.click()}
+          >
+            <Camera className="size-5" />
+            {t('mobileWork.photo')}
+          </button>
+          <button
+            type="button"
+            disabled={uploading}
+            className="min-h-12 rounded-md border p-3 text-base font-medium"
+            onClick={() => inputRef.current?.click()}
+          >
+            {t('mobileWork.gallery')}
+          </button>
+        </div>
+      )}
       {items.map((file) => {
         const config = KINDS[kindOf(file)]
         const Icon = config.icon
@@ -493,6 +518,20 @@ export function MediaGrid({
         </button>
       )}
 
+      {mobileCapture && (kind === 'all' || kind === 'image') && (
+        <input
+          data-photo-input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) void upload(e.target.files)
+            e.target.value = ''
+          }}
+        />
+      )}
       <input
         ref={inputRef}
         type="file"

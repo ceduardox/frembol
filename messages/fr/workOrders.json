@@ -86,7 +86,10 @@
     "partsSaleDescription": "Créez une facture sans véhicule, pour la vente de pièces au comptoir.",
     "partsSaleDescriptionMarine": "Créez une facture sans navire, pour la vente de pièces au comptoir.",
     "createSale": "Créer la vente",
-    "none": "Aucun"
+    "none": "Aucun",
+    "receivePartTitle": "Réception de pièce",
+    "receivePartDescription": "Enregistrez la pièce apportée par le client. Aucun véhicule requis.",
+    "receivePartSubmit": "Recevoir la pièce"
   },
   "notify": {
     "title": "Notifier {name}",

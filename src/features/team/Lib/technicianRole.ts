@@ -71,6 +71,32 @@ export const MEMBER_ROLE_NAME = 'Member'
 
 export const TECHNICIAN_ROLE_NAME = 'Technician'
 
+/**
+ * The desk role for the wash line: it runs the wash panel, invoices and its
+ * reports, without opening mechanics, brakes or the general dashboard.
+ */
+export const WASH_MANAGER_ROLE_NAME = 'Encargado de lavadero'
+
+export const WASH_MANAGER_PERMISSIONS = [
+  { action: PermissionAction.READ, subject: PermissionSubject.WASH },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.WASH },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.WASH },
+  // Opening and saving the wash work order itself.
+  { action: PermissionAction.READ, subject: PermissionSubject.SERVICES },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.SERVICES },
+  // The order carries a customer and, when there is one, a vehicle.
+  { action: PermissionAction.READ, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.CUSTOMERS },
+  { action: PermissionAction.READ, subject: PermissionSubject.VEHICLES },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.VEHICLES },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.VEHICLES },
+  // Invoices, payments and the wash reports live on the billing figures.
+  { action: PermissionAction.READ, subject: PermissionSubject.BILLING },
+  { action: PermissionAction.CREATE, subject: PermissionSubject.BILLING },
+  { action: PermissionAction.UPDATE, subject: PermissionSubject.BILLING },
+] as const
+
 /** The value the role dropdown uses for it, alongside `admin` and `member`. */
 export const TECHNICIAN_ROLE_VALUE = 'technician'
 
@@ -132,6 +158,28 @@ export async function ensureTechnicianRole(tx: Tx, organizationId: string): Prom
       isAdmin: false,
       permissions: {
         create: TECHNICIAN_PERMISSIONS.map((p) => ({ action: p.action, subject: p.subject })),
+      },
+    },
+    select: { id: true },
+  })
+  return created.id
+}
+
+export async function ensureWashManagerRole(tx: Tx, organizationId: string): Promise<string> {
+  const existing = await tx.role.findFirst({
+    where: { organizationId, name: WASH_MANAGER_ROLE_NAME },
+    select: { id: true },
+  })
+  if (existing) return existing.id
+
+  const created = await tx.role.create({
+    data: {
+      name: WASH_MANAGER_ROLE_NAME,
+      organizationId,
+      isAdmin: false,
+      homePanel: 'wash',
+      permissions: {
+        create: WASH_MANAGER_PERMISSIONS.map((p) => ({ action: p.action, subject: p.subject })),
       },
     },
     select: { id: true },

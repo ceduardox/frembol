@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Фото",
+    "finding": "Проблема",
+    "labor": "Работа",
+    "parts": "Запчасть",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Что видно или слышно",
+    "photoHint": "Автомобиля или детали",
+    "laborHint": "Часы работы",
+    "partsHint": "Использованная деталь",
+    "washService": "Добавить услугу",
+    "washServiceHint": "Мойка, двигатель, салон",
+    "chooseStatus": "Выберите статус"
+  },
   "page": {
     "notFound": "Запись обслуживания не найдена",
     "updated": "Запись обслуживания обновлена",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Сбор",
     "shopFeeHintFlat": "Сбор мастерской из настроек, фиксированной суммой. Измените цену для этой работы или удалите строку, чтобы убрать его.",
     "shopFeeHintPercentLabor": "Сбор мастерской из настроек: {percent} % от работ по этому заказу. Удалите строку, чтобы убрать его.",
-    "shopFeeHintPercentAll": "Сбор мастерской из настроек: {percent} % от работ и запчастей по этому заказу. Удалите строку, чтобы убрать его."
+    "shopFeeHintPercentAll": "Сбор мастерской из настроек: {percent} % от работ и запчастей по этому заказу. Удалите строку, чтобы убрать его.",
+    "washTitle": "Услуги мойки",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Механик добавил # строку работ в этот заказ} few {Механик добавил # строки работ в этот заказ} many {Механик добавил # строк работ в этот заказ} other {Механик добавил # строк работ в этот заказ}}",
@@ -256,7 +280,8 @@
       "cash": "Наличные",
       "card": "Карта",
       "transfer": "Перевод",
-      "other": "Другое"
+      "other": "Другое",
+      "qr": "QR"
     },
     "recorded": "Платёж записан",
     "markedPaid": "Отмечено как оплаченный",
@@ -270,7 +295,12 @@
     "failedPdf": "Не удалось сгенерировать PDF-счёт",
     "received": "Полученные платежи",
     "noneYet": "Оплат пока нет.",
-    "balanceDue": "К оплате"
+    "balanceDue": "К оплате",
+    "updatePayment": "Обновить платёж",
+    "updated": "Платёж обновлён",
+    "paidInFull": "Оплачено полностью",
+    "failedUpdate": "Не удалось обновить платёж",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Удалить вложение",
@@ -483,12 +513,12 @@
     "notAnswered": "По этому пункту пока ничего не найдено",
     "answered": "Найдено по этому пункту: {count}",
     "storyTitle": "Описание работ",
-    "storyHint": "Симптом, причина, устранение, проверка. Нажмите на шаг, чтобы открыть его; по одной строке на каждый пункт, названный клиентом или замеченный вами.",
+    "storyHint": "Напишите, что не так, почему, что сделали и всё ли исправлено.",
     "steps": {
-      "condition": "Симптом",
-      "cause": "Причина",
-      "correction": "Устранение",
-      "confirm": "Проверка"
+      "condition": "Что не так?",
+      "cause": "Почему?",
+      "correction": "Что сделали?",
+      "confirm": "Всё исправлено?"
     },
     "conditionPlaceholder": "Что сообщил клиент или что заметили вы",
     "causePlaceholder": "Что показала диагностика: в чём первопричина",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "При сохранении будет отмечено вашим именем",
     "confirmedCount": "Проверено {confirmed} из {total}",
     "findingsCount": "{count, plural, one {# наблюдение} few {# наблюдения} many {# наблюдений} other {# наблюдения}}",
-    "addFinding": "Добавить наблюдение",
+    "addFinding": "Добавить заметку",
     "unconfirmedTitle": "Завершить с непроверенными пунктами?",
     "unconfirmedBody": "{count, plural, =1 {Один пункт не проверен после ремонта:} one {# пункт не проверен после ремонта:} few {# пункта не проверены после ремонта:} many {# пунктов не проверены после ремонта:} other {# пункта не проверены после ремонта:}}",
     "unconfirmedProceed": "Всё равно завершить",
@@ -529,7 +559,7 @@
       "engineBrowser": "Браузер (пишет по ходу речи)",
       "liveFellBack": "Текст появляется частями раз в несколько секунд, а не по словам."
     },
-    "stepEmpty": "Ещё не заполнено",
+    "stepEmpty": "Нажмите, чтобы написать",
     "removeTitle": "Удалить этот пункт?",
     "removeBody": "Его симптом, причина, устранение и проверка удалятся вместе с ним при сохранении заказ-наряда.",
     "removeAttached": "Его наблюдения и медиа останутся в заказ-наряде, но уже не будут привязаны к пункту.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Здравствуйте, {customer_name}! Новости о вашем {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Приёмка мойки",
+    "description": "Что везёт автомобиль и в каком состоянии приезжает.",
+    "vehicleClass": "Тип автомобиля",
+    "vehicleClassOptions": {
+      "auto": "Авто",
+      "suv": "SUV",
+      "pickup": "Пикап",
+      "motorcycle": "Мото",
+      "lightTruck": "Лёгкий грузовик",
+      "heavyTruck": "Тяжёлый грузовик",
+      "other": "Другое"
+    },
+    "otherPlaceholder": "Укажите",
+    "fuel": "Уровень топлива",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Аксессуары / личные вещи",
+    "accessoryOptions": {
+      "spareTire": "Запасное колесо",
+      "jack": "Домкрат",
+      "tools": "Инструменты",
+      "radio": "Радио / экран"
+    },
+    "conditions": "Особые условия",
+    "conditionOptions": {
+      "upholstery": "Повреждённая обивка",
+      "paint": "Повреждённая краска",
+      "looseParts": "Незакреплённые детали",
+      "glass": "Повреждённые стёкла"
+    },
+    "arrivalState": "Состояние автомобиля при приёме",
+    "arrivalOptions": {
+      "clean": "Чистый",
+      "regular": "Средний",
+      "dirty": "Грязный",
+      "veryDirty": "Очень грязный"
+    },
+    "scratches": "Царапины / детали",
+    "scratchesPlaceholder": "Опишите вмятины, царапины или недостающие вещи",
+    "authorizedExtra": "Авторизованная дополнительная работа",
+    "authorizedExtraPlaceholder": "Услуга и дополнительная цена",
+    "authorizedBy": "Авторизовал",
+    "authorizedByPlaceholder": "Имя авторизующего лица",
+    "delivery": "Обещанная выдача",
+    "deliveryPlaceholder": "Дата и время",
+    "save": "Сохранить приёмку",
+    "saved": "Сохранено",
+    "saveFailed": "Не удалось сохранить приёмку",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Подписи",
+    "signaturesDescription": "Подпись клиента и сотрудника.",
+    "saveSignatures": "Сохранить подписи",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Деталь, которую принёс клиент, и её состояние.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Заметки и подпись клиента",
+    "saveNotes": "Сохранить заметки"
   }
 }

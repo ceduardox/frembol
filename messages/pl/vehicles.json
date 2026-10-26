@@ -376,7 +376,8 @@
     "lookupVin": "Sprawdź VIN",
     "lookupEnterVin": "Najpierw wpisz numer VIN",
     "lookupVinNotFound": "Nie znaleziono pojazdu o tym numerze VIN",
-    "lookupVinFailed": "Nie udało się sprawdzić numeru VIN"
+    "lookupVinFailed": "Nie udało się sprawdzić numeru VIN",
+    "catalogAdd": "Dodaj „{value}“"
   },
   "archiveDialog": {
     "title": "Archiwizuj pojazd",

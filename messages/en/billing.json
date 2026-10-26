@@ -27,7 +27,13 @@
     "filterUnviewed": "Not viewed",
     "filterUnviewedHint": "Invoices that were sent but have never been opened",
     "filterCompleted": "Completed only",
-    "filterCompletedHint": "Show only work orders marked completed. Remembered for next time."
+    "filterCompletedHint": "Show only work orders marked completed. Remembered for next time.",
+    "kindAll": "All",
+    "kindMechanics": "Mechanics",
+    "kindBrakes": "Brakes & Clutch",
+    "kindWash": "Car wash",
+    "kindParts": "Sales",
+    "kindFilter": "Job type"
   },
   "recurring": {
     "title": "Recurring",

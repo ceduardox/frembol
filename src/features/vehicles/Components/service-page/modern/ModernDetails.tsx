@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Receipt } from 'lucide-react'
+import { Receipt, Camera, ClipboardPlus, Wrench, PackagePlus } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { MobileDisclosure } from './MobileDisclosure'
+import { MobileWorkActions } from './MobileWorkActions'
 import { AppCard } from '@/components/app-card'
 import { useConfirm } from '@/components/confirm-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +25,10 @@ import { PaymentsSection } from '../../service-detail/PaymentsSection'
 import { ServiceFindingsSection } from '../../service-detail/ServiceFindingsSection'
 import { paymentStatusColors, paymentStatusLabels } from '../../service-detail/types'
 import { ConcernsSection } from '../../service-edit/ConcernsSection'
+import { WashIntakeCard } from '../../service-edit/WashIntakeCard'
+import { PartIntakeCard } from '../../service-edit/PartIntakeCard'
+import { PartIntakeSignaturesCard } from '../../service-edit/PartIntakeSignaturesCard'
+import { WashSignaturesCard } from '../../service-edit/WashSignaturesCard'
 import { InvoiceDetailsSection } from '../../service-edit/InvoiceDetailsSection'
 import { LaborEditor } from '../../service-edit/LaborEditor'
 import { NotesSection } from '../../service-edit/NotesSection'
@@ -75,6 +82,8 @@ export interface ModernDetailsProps extends LeftProps, Omit<RightProps, keyof Le
   /** Opens the finding form already pointed at one concern. */
   onAddFindingForConcern?: (concernId: string) => void
   files: Omit<ComponentProps<typeof FilesMediaCard>, 'serviceRecordId' | 'customerId'>
+  mobileHeaderActions: ReactNode
+  saving: boolean
   onPreviewInvoice: () => void
   onSendToCustomer: () => void
 }
@@ -111,6 +120,51 @@ function Lockable({
  * where things sit: who and what first, then the work in the order it is
  * done, with everything about money and the booking in the column beside it.
  */
+/** A large, colour-coded action for the phone. The mechanic is at the car,
+ * not reading a manual: one glance should say what each one does. */
+function MobileActionTile({
+  icon,
+  title,
+  hint,
+  className,
+  iconClassName,
+  disabled,
+  onClick,
+}: {
+  icon: ReactNode
+  title: string
+  hint: string
+  className: string
+  iconClassName: string
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        'flex min-h-20 cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50',
+        className
+      )}
+    >
+      <span
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-lg',
+          iconClassName
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold leading-tight">{title}</span>
+        <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">{hint}</span>
+      </span>
+    </button>
+  )
+}
+
 export function ModernDetails(props: ModernDetailsProps) {
   const {
     formState,
@@ -137,6 +191,12 @@ export function ModernDetails(props: ModernDetailsProps) {
   const router = useRouter()
 
   const customer = record.customer ?? record.vehicle?.customer ?? null
+  // A record with no vehicle is a part dropped off (brakes, clutch, counter
+  // sale). Everything that asks about the car has no answer here.
+  const washMode = record.jobKind === 'wash'
+  const brakesMode = record.jobKind === 'brakes'
+  const partsSaleMode = record.jobKind === 'parts'
+  const partMode = brakesMode || partsSaleMode || !vehicleId
 
   // Closing a job with a concern nobody has confirmed as fixed is how a car
   // comes back. It is asked about, not refused: a routine service has nothing
@@ -274,7 +334,7 @@ export function ModernDetails(props: ModernDetailsProps) {
         {/* Below `md` the app's navigation is fixed over the bottom of the
             screen; the money bar used to hold the page clear of it, and with
             the bar gone below `lg` the padding does. */}
-        <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 p-4 pb-[calc(2.5rem+58px+env(safe-area-inset-bottom))] md:pb-10">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-4 p-3 pb-6 md:p-4 md:pb-10">
           {/* noValidate, and the rules checked in handleSubmit instead; see the
             classic form in ServicePageClient. display:contents, so the form's
             children are laid out by this column as if it were not there. */}
@@ -290,13 +350,17 @@ export function ModernDetails(props: ModernDetailsProps) {
               value={formState.initialData.serviceDate || new Date().toISOString().split('T')[0]}
             />
             {/* Outside the lock: a locked invoice still moves along. */}
-            <StatusStepper
-              status={formState.status}
-              customStatus={customStatus}
-              options={props.workOrderStatuses}
-              canAddStatus={props.canAddStatus}
-              onChange={(next, custom) => void changeStatus(next, custom)}
-            />
+            {!(partMode || washMode) && (
+            <div className="hidden md:block">
+              <StatusStepper
+                status={formState.status}
+                customStatus={customStatus}
+                options={props.workOrderStatuses}
+                canAddStatus={props.canAddStatus}
+                onChange={(next, custom) => void changeStatus(next, custom)}
+              />
+            </div>
+            )}
 
             {/* The side column gives way before the job does: the parts and labour
             editors turn into a table at 672px of their own, so two columns
@@ -307,35 +371,116 @@ export function ModernDetails(props: ModernDetailsProps) {
               <div data-testid="service-main" className="@container flex min-w-0 flex-col gap-3">
                 {/* Outside the lock: "More info" and copying the VIN work on a
                     locked invoice; the card disables its own fields. */}
-                <JobFactsCard
-                  record={record}
-                  currencyCode={currencyCode}
-                  locked={locked}
-                  initialData={formState.initialData}
-                  vehicleName={formState.vehicleName}
-                  selectedVehicleId={formState.selectedVehicleId}
-                  setSelectedVehicleId={formState.dirtySetSelectedVehicleId}
-                  techName={formState.techName}
-                  unitSystem={unitSystem}
-                  initialVehicle={props.initialVehicle}
-                />
 
+                <nav aria-label={t('mobileWork.work')} className="grid grid-cols-2 gap-2.5 md:hidden">
+                  {!partMode && !washMode && (
+                    <MobileActionTile
+                      icon={<ClipboardPlus className="size-5" />}
+                      title={t('mobileWork.finding')}
+                      hint={t('mobileWork.findingHint')}
+                      className="border-amber-500/30 bg-amber-500/5"
+                      iconClassName="bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      disabled={locked || !vehicleId}
+                      onClick={() => props.onAddFinding?.()}
+                    />
+                  )}
+                  <MobileActionTile
+                    icon={<Camera className="size-5" />}
+                    title={t('mobileWork.photo')}
+                    hint={t('mobileWork.photoHint')}
+                    className="border-sky-500/30 bg-sky-500/5"
+                    iconClassName="bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                    onClick={() => {
+                      document
+                        .getElementById('files-media')
+                        ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                      const photo = document.querySelector<HTMLInputElement>(
+                        '#files-media [data-photo-input]'
+                      )
+                      if (photo) photo.click()
+                      else
+                        document
+                          .querySelector<HTMLButtonElement>(
+                            '#files-media [data-media-tab="images"]'
+                          )
+                          ?.click()
+                    }}
+                  />
+                  <MobileActionTile
+                    icon={<Wrench className="size-5" />}
+                    title={washMode ? t('mobileWork.washService') : t('mobileWork.labor')}
+                    hint={washMode ? t('mobileWork.washServiceHint') : t('mobileWork.laborHint')}
+                    className="border-emerald-500/30 bg-emerald-500/5"
+                    iconClassName="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    disabled={locked}
+                    onClick={() => {
+                      document
+                        .getElementById('job-labor')
+                        ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                      const selector = washMode
+                        ? '#job-labor [data-add-service]'
+                        : '#job-labor [data-add-row]'
+                      document.querySelector<HTMLButtonElement>(selector)?.click()
+                    }}
+                  />
+                  {!brakesMode && !washMode && (
+                    <MobileActionTile
+                      icon={<PackagePlus className="size-5" />}
+                      title={t('mobileWork.parts')}
+                      hint={t('mobileWork.partsHint')}
+                      className="border-violet-500/30 bg-violet-500/5"
+                      iconClassName="bg-violet-500/15 text-violet-600 dark:text-violet-400"
+                      disabled={locked}
+                      onClick={() => {
+                        document
+                          .getElementById('job-parts')
+                          ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                        document
+                          .querySelector<HTMLButtonElement>('#job-parts [data-add-row]')
+                          ?.click()
+                      }}
+                    />
+                  )}
+                </nav>
+                {washMode && (
+                  <WashIntakeCard
+                    serviceRecordId={record.id}
+                    initial={record.washIntake ?? null}
+                    promisedAt={
+                      record.promisedAt ? new Date(record.promisedAt).toISOString() : null
+                    }
+                    locked={locked}
+                    currencyCode={currencyCode}
+                    laborItems={formState.laborItems}
+                    setLaborItems={formState.dirtySetLaborItems}
+                  />
+                )}
+                {brakesMode && (
+                  <PartIntakeCard
+                    serviceRecordId={record.id}
+                    jobKind="brakes"
+                    initial={record.partIntake ?? null}
+                    locked={locked}
+                  />
+                )}
                 <Lockable locked={locked}>
+                  {!washMode && !partsSaleMode && (
                   <ConcernsSection
                     concerns={formState.concerns}
                     setConcerns={formState.setConcerns}
                     onChange={formState.markDirty}
                     answeredCounts={answeredCounts}
-                    findings={findings}
-                    onAddFinding={props.onAddFindingForConcern}
-                    onEditFinding={props.onEditFinding}
+                    findings={partMode ? [] : findings}
+                    onAddFinding={partMode ? undefined : props.onAddFindingForConcern}
+                    onEditFinding={partMode ? undefined : props.onEditFinding}
                     serviceRecordId={record.id}
                     media={record.attachments}
                     serverTranscription={props.aiTranscription}
                     dictationMode={props.dictationMode}
                   />
+                  )}
 
-                  {vehicleId && (
+                  {!washMode && vehicleId && (
                     <ServiceFindingsSection
                       vehicleId={vehicleId}
                       serviceRecordId={record.id}
@@ -345,8 +490,8 @@ export function ModernDetails(props: ModernDetailsProps) {
                     />
                   )}
 
-                  {storeTires}
-                  {tireSet && (
+                  {!washMode && storeTires}
+                  {!washMode && tireSet && (
                     <TireSetBanner
                       set={tireSet}
                       serviceRecordId={record.id}
@@ -354,33 +499,43 @@ export function ModernDetails(props: ModernDetailsProps) {
                     />
                   )}
 
-                  <LaborEditor
-                    laborItems={formState.laborItems}
-                    setLaborItems={formState.dirtySetLaborItems}
-                    updateLabor={formState.updateLabor}
-                    laborSubtotal={formState.laborSubtotal}
-                    currencyCode={currencyCode}
-                    defaultLaborRate={props.defaultLaborRate}
-                    hasPresets={props.hasPresets}
-                    onOpenPresets={props.onOpenPresets}
-                    onAddFinding={props.onAddFinding}
-                    openObservationsCount={props.openObservationsCount}
-                    onShowExistingObservations={props.onShowExistingObservations}
-                  />
-
-                  <PartsEditor
-                    partItems={formState.partItems}
-                    setPartItems={formState.dirtySetPartItems}
-                    updatePart={formState.updatePart}
-                    partsSubtotal={formState.partsSubtotal}
-                    currencyCode={currencyCode}
-                    hasInventory={props.inventoryParts.length > 0}
-                    inventoryParts={props.inventoryParts}
-                    onOpenInventory={() => formState.setShowInventoryPicker(true)}
-                    onScanBarcode={props.onScanBarcode}
-                    defaultMarkupPercent={props.defaultMarkupPercent}
-                    markupAppliesToInventory={props.markupAppliesToInventory}
-                  />
+                  <div id="job-labor" className="min-w-0">
+                    <LaborEditor
+                      laborItems={formState.laborItems}
+                      setLaborItems={formState.dirtySetLaborItems}
+                      updateLabor={formState.updateLabor}
+                      laborSubtotal={formState.laborSubtotal}
+                      currencyCode={currencyCode}
+                      defaultLaborRate={props.defaultLaborRate}
+                      hasPresets={props.hasPresets}
+                      onOpenPresets={props.onOpenPresets}
+                      title={washMode ? t('labor.washTitle') : brakesMode ? t('labor.partTitle') : undefined}
+                      onAddFinding={partMode || washMode ? undefined : props.onAddFinding}
+                      openObservationsCount={
+                        partMode || washMode ? 0 : props.openObservationsCount
+                      }
+                      onShowExistingObservations={
+                        partMode || washMode ? undefined : props.onShowExistingObservations
+                      }
+                    />
+                  </div>
+                  {!brakesMode && !washMode && (
+                    <div id="job-parts" className="min-w-0">
+                      <PartsEditor
+                        partItems={formState.partItems}
+                        setPartItems={formState.dirtySetPartItems}
+                        updatePart={formState.updatePart}
+                        partsSubtotal={formState.partsSubtotal}
+                        currencyCode={currencyCode}
+                        hasInventory={props.inventoryParts.length > 0}
+                        inventoryParts={props.inventoryParts}
+                        onOpenInventory={() => formState.setShowInventoryPicker(true)}
+                        onScanBarcode={props.onScanBarcode}
+                        defaultMarkupPercent={props.defaultMarkupPercent}
+                        markupAppliesToInventory={props.markupAppliesToInventory}
+                      />
+                    </div>
+                  )}
                 </Lockable>
 
                 {/* Below `lg` only, where there is no money bar. */}
@@ -401,7 +556,43 @@ export function ModernDetails(props: ModernDetailsProps) {
                   serviceRecordId={record.id}
                   aiEnabled={props.aiEnabled}
                   publicLocked={locked}
+                  collapsedByDefault={partMode || washMode}
                 />
+                <MobileDisclosure
+                  title={partMode ? t('basicInfo.customerInfo') : t('mobileWork.vehicleDetails')}
+                  className="md:-order-1"
+                >
+                  <JobFactsCard
+                    record={record}
+                    currencyCode={currencyCode}
+                    locked={locked}
+                    initialData={formState.initialData}
+                    vehicleName={formState.vehicleName}
+                    selectedVehicleId={formState.selectedVehicleId}
+                    setSelectedVehicleId={formState.dirtySetSelectedVehicleId}
+                    techName={formState.techName}
+                    unitSystem={unitSystem}
+                    partMode={partMode}
+                    washMode={washMode}
+                    initialVehicle={props.initialVehicle}
+                  />
+                </MobileDisclosure>
+                {brakesMode && (
+                  <PartIntakeSignaturesCard
+                    serviceRecordId={record.id}
+                    initialNotes={record.partIntake?.notes ?? null}
+                    initialClient={record.partIntake?.clientSignature ?? null}
+                    locked={locked}
+                  />
+                )}
+                {washMode && (
+                  <WashSignaturesCard
+                    serviceRecordId={record.id}
+                    initialClient={record.washIntake?.clientSignature ?? null}
+                    initialStaff={record.washIntake?.staffSignature ?? null}
+                    locked={locked}
+                  />
+                )}
               </div>
 
               {/* A locked invoice freezes what it says is owed: its lines, totals,
@@ -409,6 +600,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                 payments and the sharing save through their own actions and stay
                 usable, as src/lib/document-lock.ts intends. */}
               <aside data-testid="service-sidebar" className="flex min-w-0 flex-col gap-3">
+                {!washMode && (brakesMode || !partMode) && (
                 <ScheduleTimesSection
                   serviceRecordId={record.id}
                   technicians={props.boardTechnicians}
@@ -421,13 +613,16 @@ export function ModernDetails(props: ModernDetailsProps) {
                   initialPromisedAt={
                     record.promisedAt ? new Date(record.promisedAt).toISOString() : null
                   }
+                  partMode={partMode}
                   onSaved={formState.flashSaved}
                 />
+                )}
 
                 {/* Beside who is on the job and when, not between the labour
                     and the parts: it says how the work is going, and the two
                     cards it sat between are the invoice being built. "Add as
                     labour" still puts its line in the labour card. */}
+                {!washMode && (
                 <JobClockSection
                   serviceRecordId={record.id}
                   initial={props.jobClock}
@@ -447,134 +642,143 @@ export function ModernDetails(props: ModernDetailsProps) {
                           ])
                   }
                 />
+                )}
 
-                <AppCard
-                  icon={Receipt}
-                  title={t('modern.invoiceTitle')}
-                  action={
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${paymentStatusColors[formState.paymentStatus] || ''}`}
-                      data-testid="payment-status"
-                    >
-                      {paymentStatusLabels[formState.paymentStatus] || t('header.unpaid')}
-                    </Badge>
-                  }
-                  contentClassName="p-0"
-                >
-                  <Lockable locked={locked}>
-                    <div className="border-b border-card-edge/60 p-5 pt-4">
-                      <InvoiceDetailsSection
-                        part="invoice"
-                        initialData={formState.initialData}
-                        type={formState.type}
-                        setType={formState.dirtySetType}
-                        status={formState.status}
-                        setStatus={formState.dirtySetStatus}
-                        onDirty={formState.markDirty}
+                <MobileDisclosure title={t('mobileWork.administration')}>
+                  <div className="md:hidden">{props.mobileHeaderActions}</div>
+                  <AppCard
+                    icon={Receipt}
+                    title={t('modern.invoiceTitle')}
+                    action={
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${paymentStatusColors[formState.paymentStatus] || ''}`}
+                        data-testid="payment-status"
+                      >
+                        {paymentStatusLabels[formState.paymentStatus] || t('header.unpaid')}
+                      </Badge>
+                    }
+                    contentClassName="p-0"
+                  >
+                    <Lockable locked={locked}>
+                      <div className="border-b border-card-edge/60 p-5 pt-4">
+                        <InvoiceDetailsSection
+                          part="invoice"
+                          initialData={formState.initialData}
+                          type={formState.type}
+                          setType={formState.dirtySetType}
+                          status={formState.status}
+                          setStatus={formState.dirtySetStatus}
+                          onDirty={formState.markDirty}
+                          paymentStatus={formState.paymentStatus}
+                          onTogglePaid={actions.handleTogglePaid}
+                          designOptions={props.designOptions}
+                          designId={record.designId ?? null}
+                          designFollowsName={props.designFollowsName}
+                          designFollowsRule={props.designFollowsRule}
+                        />
+                      </div>
+                      <div className="border-b border-card-edge/60 p-5">
+                        <TotalsSection
+                          partsSubtotal={formState.partsSubtotal}
+                          partsCostSubtotal={formState.partsCostSubtotal}
+                          laborSubtotal={formState.laborSubtotal}
+                          subtotal={formState.subtotal}
+                          discountType={formState.discountType}
+                          setDiscountType={formState.dirtySetDiscountType}
+                          discountValue={formState.discountValue}
+                          setDiscountValue={formState.dirtySetDiscountValue}
+                          discountAmount={formState.discountAmount}
+                          taxEnabled={props.taxEnabled}
+                          taxRate={formState.taxRate}
+                          setTaxRate={formState.dirtySetTaxRate}
+                          taxAmount={formState.taxAmount}
+                          taxInclusive={formState.taxInclusive}
+                          taxComponents={formState.taxComponents}
+                          totalAmount={formState.totalAmount}
+                          currencyCode={currencyCode}
+                        />
+                      </div>
+                    </Lockable>
+                    <div className="space-y-3 p-5">
+                      <PaymentsSection
+                        payments={record.payments || []}
                         paymentStatus={formState.paymentStatus}
-                        onTogglePaid={actions.handleTogglePaid}
-                        designOptions={props.designOptions}
-                        designId={record.designId ?? null}
-                        designFollowsName={props.designFollowsName}
-                        designFollowsRule={props.designFollowsRule}
-                      />
-                    </div>
-                    <div className="border-b border-card-edge/60 p-5">
-                      <TotalsSection
-                        partsSubtotal={formState.partsSubtotal}
-                        partsCostSubtotal={formState.partsCostSubtotal}
-                        laborSubtotal={formState.laborSubtotal}
-                        subtotal={formState.subtotal}
-                        discountType={formState.discountType}
-                        setDiscountType={formState.dirtySetDiscountType}
-                        discountValue={formState.discountValue}
-                        setDiscountValue={formState.dirtySetDiscountValue}
-                        discountAmount={formState.discountAmount}
-                        taxEnabled={props.taxEnabled}
-                        taxRate={formState.taxRate}
-                        setTaxRate={formState.dirtySetTaxRate}
-                        taxAmount={formState.taxAmount}
-                        taxInclusive={formState.taxInclusive}
-                        taxComponents={formState.taxComponents}
-                        totalAmount={formState.totalAmount}
+                        manuallyPaid={record.manuallyPaid}
+                        totalPaid={formState.totalPaid}
+                        displayTotal={formState.displayTotal}
+                        balanceDue={formState.balanceDue}
                         currencyCode={currencyCode}
+                        onCreatePayment={actions.handleCreatePayment}
+                        onUpdatePayment={actions.handleUpdatePayment}
+                        onDeletePayment={actions.handleDeletePayment}
+                        onTogglePaid={actions.handleTogglePaid}
+                        paymentLoading={actions.paymentLoading}
+                        deletingPayment={actions.deletingPayment}
+                        openFormSignal={paymentSignal}
+                        extraAction={props.payCode}
+                        showPriceAdjust={washMode}
                       />
                     </div>
-                  </Lockable>
-                  <div className="space-y-3 p-5">
-                    <PaymentsSection
-                      payments={record.payments || []}
-                      paymentStatus={formState.paymentStatus}
-                      manuallyPaid={record.manuallyPaid}
-                      totalPaid={formState.totalPaid}
-                      displayTotal={formState.displayTotal}
-                      balanceDue={formState.balanceDue}
-                      currencyCode={currencyCode}
-                      onCreatePayment={actions.handleCreatePayment}
-                      onDeletePayment={actions.handleDeletePayment}
-                      onTogglePaid={actions.handleTogglePaid}
-                      paymentLoading={actions.paymentLoading}
-                      deletingPayment={actions.deletingPayment}
-                      openFormSignal={paymentSignal}
-                      extraAction={props.payCode}
-                    />
-                  </div>
-                </AppCard>
+                  </AppCard>
 
-                {/* Under the invoice, not over it: the warranty is set once, the
+                  {/* Under the invoice, not over it: the warranty is set once, the
                     invoice card is used on every job. */}
-                <Lockable locked={locked} label={lockedLabel}>
-                  <WarrantySection
-                    value={formState.warranty}
-                    onChange={formState.dirtySetWarranty}
-                    texts={props.warrantyTexts}
-                    distanceUnit={unitSystem === 'metric' ? 'km' : 'mi'}
-                    serviceDate={formState.initialData.serviceDate}
-                  />
-                </Lockable>
+                  {!washMode && (
+                  <Lockable locked={locked} label={lockedLabel}>
+                    <WarrantySection
+                      value={formState.warranty}
+                      onChange={formState.dirtySetWarranty}
+                      texts={props.warrantyTexts}
+                      distanceUnit={unitSystem === 'metric' ? 'km' : 'mi'}
+                      serviceDate={formState.initialData.serviceDate}
+                      partMode={partMode}
+                    />
+                  </Lockable>
+                  )}
 
-                {record.publicToken && (
-                  <SharedLinkCard
-                    publicToken={record.publicToken}
-                    organizationId={props.organizationId}
-                    type="invoice"
-                    sharedAt={record.sharedAt}
-                    viewCount={record.viewCount}
-                    lastViewedAt={record.lastViewedAt}
-                    onRevoke={async () => {
-                      await revokePublicLink(record.id)
-                      router.refresh()
-                    }}
-                  />
-                )}
+                  {record.publicToken && (
+                    <SharedLinkCard
+                      publicToken={record.publicToken}
+                      organizationId={props.organizationId}
+                      type="invoice"
+                      sharedAt={record.sharedAt}
+                      viewCount={record.viewCount}
+                      lastViewedAt={record.lastViewedAt}
+                      onRevoke={async () => {
+                        await revokePublicLink(record.id)
+                        router.refresh()
+                      }}
+                    />
+                  )}
 
-                {props.videoCall && (
-                  <VideoCallSection
-                    serviceRecordId={record.id}
-                    videoCall={props.videoCall}
-                    scheduled={Boolean(formState.initialData.startDateTime)}
-                    customer={customer}
-                    smsEnabled={props.smsEnabled}
-                    emailEnabled={props.emailEnabled}
-                    telegramEnabled={props.telegramEnabled}
-                  />
-                )}
+                  {props.videoCall && (
+                    <VideoCallSection
+                      serviceRecordId={record.id}
+                      videoCall={props.videoCall}
+                      scheduled={Boolean(formState.initialData.startDateTime)}
+                      customer={customer}
+                      smsEnabled={props.smsEnabled}
+                      emailEnabled={props.emailEnabled}
+                      telegramEnabled={props.telegramEnabled}
+                    />
+                  )}
 
-                <Lockable locked={locked}>
-                  <CustomFieldsForm
-                    entityId={record.id}
-                    entityType="service_record"
-                    onValuesReady={formState.onCustomFieldsReady}
-                    onChange={formState.markDirty}
-                  />
-                </Lockable>
+                  <Lockable locked={locked}>
+                    <CustomFieldsForm
+                      entityId={record.id}
+                      entityType="service_record"
+                      onValuesReady={formState.onCustomFieldsReady}
+                      onChange={formState.markDirty}
+                    />
+                  </Lockable>
 
-                <ActivityCard
-                  record={record}
-                  currencyCode={currencyCode}
-                  notificationHistory={notificationHistory}
-                />
+                  <ActivityCard
+                    record={record}
+                    currencyCode={currencyCode}
+                    notificationHistory={notificationHistory}
+                  />
+                </MobileDisclosure>
               </aside>
             </div>
           </form>
@@ -593,6 +797,16 @@ export function ModernDetails(props: ModernDetailsProps) {
         </div>
       </div>
 
+      <MobileWorkActions
+        status={formState.status}
+        customStatus={customStatus}
+        options={props.workOrderStatuses}
+        onChange={changeStatus}
+        saving={props.saving}
+        dirty={formState.hasUnsavedChanges}
+        locked={locked}
+        hideSystemStatuses={partMode || washMode}
+      />
       <MoneyBar
         total={formState.displayTotal}
         paid={formState.totalPaid}

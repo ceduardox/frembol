@@ -146,6 +146,10 @@
       "workOrderStatuses": {
         "title": "Estados de la orden",
         "description": "Sus propios pasos, y a quién se avisa"
+      },
+      "wash": {
+        "title": "Lavadero",
+        "description": "Servicios y precios de lavado"
       }
     },
     "pro": "PRO",
@@ -574,7 +578,18 @@
     "revokeTechnicianDone": "{name} ha salido de la aplicación",
     "noAccessTitle": "Sin acceso todavía",
     "noAccessBody": "Su cuenta pertenece a {workshop}, pero no tiene un rol asignado, así que aquí no hay nada que pueda abrir. Pida un rol a un propietario o administrador de su taller.",
-    "setupPageInstall": "Consíguelo en Google Play"
+    "setupPageInstall": "Consíguelo en Google Play",
+    "choiceWashManager": "Un encargado de lavadero",
+    "choiceWashManagerHint": "Gestiona el lavadero: cola, facturas e informes. Entra por teléfono, no por correo.",
+    "addWashManagerHint": "Cuenta de encargado por teléfono, sin ficha de técnico.",
+    "washManagerDetailsTitle": "Datos del encargado de lavadero",
+    "washManagerDetailsBlurb": "Se crea con teléfono y contraseña; no necesita correo ni aparecer en el tablero.",
+    "addWashManagerSubmit": "Crear encargado",
+    "addWashManagerFailed": "No se pudo crear el encargado",
+    "washManagerNote": "Entrará por la página de acceso con este número y contraseña.",
+    "stepWashManagerTitle": "Encargado creado: {name}",
+    "stepWashManagerBody": "Ya puede entrar por teléfono, ver solo el lavadero y gestionar sus facturas e informes.",
+    "washManagerAccessHint": "Comparte estos datos; entra por la página de acceso con teléfono."
   },
   "invoice": {
     "title": "Diseño de factura",

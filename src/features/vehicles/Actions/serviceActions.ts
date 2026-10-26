@@ -230,6 +230,8 @@ export async function getServiceRecord(recordId: string) {
             orderBy: { sortOrder: 'asc' },
             include: { confirmedBy: { select: { name: true } } },
           },
+          washIntake: true,
+          partIntake: true,
           partItems: true,
           laborItems: true,
           attachments: true,

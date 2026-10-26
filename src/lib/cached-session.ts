@@ -40,7 +40,11 @@ const MEMBERSHIP_SELECT = {
   role: true,
   roleId: true,
   customRole: {
-    select: { isAdmin: true, permissions: { select: { action: true, subject: true } } },
+    select: {
+      isAdmin: true,
+      homePanel: true,
+      permissions: { select: { action: true, subject: true } },
+    },
   },
 } as const
 

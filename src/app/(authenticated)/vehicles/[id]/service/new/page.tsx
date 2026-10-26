@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { createDraftServiceRecord } from '@/features/vehicles/Actions/createDraftServiceRecord'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
-import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { PermissionAction } from '@/lib/permissions'
+import { type JobKind, jobKindSubject } from '@/lib/job-kind'
 import { workshopTimeZone } from '@/lib/workshop-timezone'
 import { toSafeWorkshopDate } from '@/lib/workshop-datetime'
 
@@ -15,6 +16,9 @@ export default async function NewServicePage({
 }) {
   const { id } = await params
   const query = await searchParams
+  const jobKind: JobKind =
+    query.kind === 'wash' || query.kind === 'brakes' ? query.kind : 'mechanics'
+  const subject = jobKindSubject(jobKind)
 
   // Guard: if an untouched pending draft already exists for this vehicle
   // (created within the last 5 seconds, nothing on it yet), reuse it instead
@@ -41,7 +45,7 @@ export default async function NewServicePage({
     },
     {
       requiredPermissions: [
-        { action: PermissionAction.CREATE, subject: PermissionSubject.SERVICES },
+        { action: PermissionAction.CREATE, subject },
       ],
     }
   )
@@ -74,7 +78,8 @@ export default async function NewServicePage({
     startDateTime,
     endDateTime,
     boardTechId,
-    boardBayId
+    boardBayId,
+    jobKind
   )
 
   if (result.success && result.data?.id) {

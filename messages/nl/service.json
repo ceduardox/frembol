@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Foto",
+    "finding": "Probleem",
+    "labor": "Arbeid",
+    "parts": "Onderdeel",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Wat je ziet of hoort",
+    "photoHint": "Van het voertuig of onderdeel",
+    "laborHint": "Werkuren",
+    "partsHint": "Gebruikt onderdeel",
+    "washService": "Dienst toevoegen",
+    "washServiceHint": "Wassen, motor, interieur",
+    "chooseStatus": "Kies een status"
+  },
   "page": {
     "notFound": "Servicerecord niet gevonden",
     "updated": "Servicerecord bijgewerkt",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Toeslag",
     "shopFeeHintFlat": "De werkplaatstoeslag uit Instellingen, als vast bedrag. Pas de prijs voor deze klus aan of verwijder de regel om hem weg te laten.",
     "shopFeeHintPercentLabor": "De werkplaatstoeslag uit Instellingen: {percent} % van de arbeid op deze klus. Verwijder de regel om hem weg te laten.",
-    "shopFeeHintPercentAll": "De werkplaatstoeslag uit Instellingen: {percent} % van de arbeid en onderdelen op deze klus. Verwijder de regel om hem weg te laten."
+    "shopFeeHintPercentAll": "De werkplaatstoeslag uit Instellingen: {percent} % van de arbeid en onderdelen op deze klus. Verwijder de regel om hem weg te laten.",
+    "washTitle": "Wasdiensten",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {Een monteur heeft arbeid aan deze order toegevoegd} other {Een monteur heeft # arbeidsregels aan deze order toegevoegd}}",
@@ -256,7 +280,8 @@
       "cash": "Contant",
       "card": "Kaart",
       "transfer": "Overboeking",
-      "other": "Overig"
+      "other": "Overig",
+      "qr": "QR"
     },
     "recorded": "Betaling geregistreerd",
     "markedPaid": "Markering als betaald",
@@ -270,7 +295,12 @@
     "failedPdf": "PDF-factuur genereren mislukt",
     "received": "Ontvangen betalingen",
     "noneYet": "Nog niets betaald.",
-    "balanceDue": "Verschuldigd bedrag"
+    "balanceDue": "Verschuldigd bedrag",
+    "updatePayment": "Betaling bijwerken",
+    "updated": "Betaling bijgewerkt",
+    "paidInFull": "Volledig betaald",
+    "failedUpdate": "Betaling kon niet worden bijgewerkt",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Bijlage verwijderen",
@@ -483,12 +513,12 @@
     "notAnswered": "Hier is nog niets op gevonden",
     "answered": "{count} bevinding(en) hierop",
     "storyTitle": "Werkomschrijving",
-    "storyHint": "Klacht, oorzaak, oplossing, controle. Klik op een stap om die te openen; één regel voor elk punt dat de klant noemde of dat u zelf zag.",
+    "storyHint": "Schrijf wat er aan de hand is, waarom, wat er is gedaan en of het is opgelost.",
     "steps": {
-      "condition": "Klacht",
-      "cause": "Oorzaak",
-      "correction": "Oplossing",
-      "confirm": "Controle"
+      "condition": "Wat is er aan de hand?",
+      "cause": "Waarom?",
+      "correction": "Wat is er gedaan?",
+      "confirm": "Is het opgelost?"
     },
     "conditionPlaceholder": "Wat de klant meldde, of wat u zelf zag",
     "causePlaceholder": "Wat uit het testen bleek de werkelijke oorzaak te zijn",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Krijgt uw naam wanneer u opslaat",
     "confirmedCount": "{confirmed} van {total} bevestigd",
     "findingsCount": "{count, plural, one {# observatie} other {# observaties}}",
-    "addFinding": "Observatie toevoegen",
+    "addFinding": "Notitie toevoegen",
     "unconfirmedTitle": "Afronden met onbevestigde meldingen?",
     "unconfirmedBody": "{count, plural, one {Van één melding is niet bevestigd dat die is verholpen:} other {Van # meldingen is niet bevestigd dat ze zijn verholpen:}}",
     "unconfirmedProceed": "Toch afronden",
@@ -529,7 +559,7 @@
       "engineBrowser": "Browser (schrijft mee terwijl u spreekt)",
       "liveFellBack": "Schrijft in stappen van een paar seconden in plaats van woord voor woord."
     },
-    "stepEmpty": "Nog niet ingevuld",
+    "stepEmpty": "Tik om te schrijven",
     "removeTitle": "Deze melding verwijderen?",
     "removeBody": "De klacht, oorzaak, oplossing en controle worden mee verwijderd wanneer u de werkorder opslaat.",
     "removeAttached": "De bijbehorende observaties en media blijven bij de klus, alleen niet meer onder een melding.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Hallo {customer_name}, een update over uw {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Wasintake",
+    "description": "Wat het voertuig meebrengt en hoe het aankomt.",
+    "vehicleClass": "Voertuigtype",
+    "vehicleClassOptions": {
+      "auto": "Auto",
+      "suv": "SUV",
+      "pickup": "Pick-up",
+      "motorcycle": "Motor",
+      "lightTruck": "Lichte vrachtwagen",
+      "heavyTruck": "Zware vrachtwagen",
+      "other": "Anders"
+    },
+    "otherPlaceholder": "Geef aan",
+    "fuel": "Brandstofniveau",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Accessoires / persoonlijke spullen",
+    "accessoryOptions": {
+      "spareTire": "Reservewiel",
+      "jack": "Krik",
+      "tools": "Gereedschap",
+      "radio": "Radio / scherm"
+    },
+    "conditions": "Bijzondere omstandigheden",
+    "conditionOptions": {
+      "upholstery": "Beschadigde bekleding",
+      "paint": "Beschadigde lak",
+      "looseParts": "Losse onderdelen",
+      "glass": "Beschadigde ruiten"
+    },
+    "arrivalState": "Staat van het voertuig bij aankomst",
+    "arrivalOptions": {
+      "clean": "Schoon",
+      "regular": "Normaal",
+      "dirty": "Vuil",
+      "veryDirty": "Erg vuil"
+    },
+    "scratches": "Krassen / details om te noteren",
+    "scratchesPlaceholder": "Beschrijf deuken, krassen of ontbrekende items",
+    "authorizedExtra": "Geautoriseerd extra werk",
+    "authorizedExtraPlaceholder": "Dienst en meerprijs",
+    "authorizedBy": "Geautoriseerd door",
+    "authorizedByPlaceholder": "Naam van de persoon die autoriseert",
+    "delivery": "Beloofde levering",
+    "deliveryPlaceholder": "Datum en tijd",
+    "save": "Intake opslaan",
+    "saved": "Opgeslagen",
+    "saveFailed": "Intake kon niet worden opgeslagen",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Handtekeningen",
+    "signaturesDescription": "Handtekening van klant en medewerker.",
+    "saveSignatures": "Handtekeningen opslaan",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Het onderdeel dat de klant bracht en de staat ervan.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notities en handtekening van de klant",
+    "saveNotes": "Notities opslaan"
   }
 }

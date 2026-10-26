@@ -80,7 +80,15 @@
     "part": "Peça",
     "inspection": "Inspeção",
     "shopActions": "Oficina",
-    "person": "Adicionar uma pessoa"
+    "person": "Adicionar uma pessoa",
+    "mechanics": "Mecânica",
+    "mechanicsHint": "Veículo completo",
+    "brakes": "Travões e embraiagem",
+    "brakesHint": "Peça ou veículo",
+    "wash": "Lavagem auto",
+    "washHint": "Carro, mota ou camião",
+    "chooseTitle": "O que vai criar?",
+    "chooseDescription": "Escolha o tipo. Só verá o que o seu perfil permite."
   },
   "purchaseWhiteLabel": "Adquirir White-Label",
   "licenseExpired": "A sua licença expirou. Algumas funcionalidades podem estar limitadas.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} ordens de serviço abertas",
       "inspections": "{count} inspeções em curso",
       "reminders": "{count} lembretes pendentes"
-    }
+    },
+    "wash": "Car wash"
   }
 }

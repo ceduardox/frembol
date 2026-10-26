@@ -376,7 +376,8 @@
     "lookupVin": "Slå opp VIN",
     "lookupEnterVin": "Skriv inn et VIN først",
     "lookupVinNotFound": "Fant ingen kjøretøy med det VIN-nummeret",
-    "lookupVinFailed": "Kunne ikke slå opp VIN-nummeret"
+    "lookupVinFailed": "Kunne ikke slå opp VIN-nummeret",
+    "catalogAdd": "Legg til «{value}»"
   },
   "archiveDialog": {
     "title": "Arkiver kjøretøy",

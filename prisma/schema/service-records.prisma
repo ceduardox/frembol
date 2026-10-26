@@ -3,6 +3,9 @@ model ServiceRecord {
   title           String
   description     String?
   type            String    @default("maintenance")
+  /// Which line of the shop the job belongs to: vehicle mechanics, a part
+  /// dropped off (brakes/clutch), the car wash, or a parts sale over the counter.
+  jobKind         String    @default("vehicle")
   status          String    @default("completed")
   cost            Float     @default(0)
   mileage         Int?
@@ -166,6 +169,8 @@ model ServiceRecord {
   statusReports  StatusReport[]
   stockMovements StockMovement[]
   timeEntries    TimeEntry[]
+  washIntake     WashIntake?
+  partIntake     PartIntake?
 
   concerns           ServiceConcern[]
   conditionMarks     ConditionMark[]

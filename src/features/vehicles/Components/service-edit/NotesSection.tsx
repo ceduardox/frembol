@@ -13,7 +13,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Eye, FileText, Loader2, Lock, Sparkles } from 'lucide-react'
+import { ChevronDown, Eye, FileText, Loader2, Lock, Sparkles } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { AppCard } from '@/components/app-card'
 import { useModernWorkOrder } from '@/components/work-order-layout-context'
 import { RichTextEditor } from './RichTextEditor'
@@ -31,6 +32,8 @@ interface NotesSectionProps {
   publicLocked?: boolean
   /** Only when the internal notes have no save of their own on a locked invoice. */
   internalLocked?: boolean
+  /** A wash or a part intake: notes stay folded until somebody opens them. */
+  collapsedByDefault?: boolean
 }
 
 function hasContent(html: string): boolean {
@@ -45,9 +48,11 @@ export function NotesSection({
   aiEnabled,
   publicLocked = false,
   internalLocked = false,
+  collapsedByDefault = false,
 }: NotesSectionProps) {
   const t = useTranslations('service.notes')
   const modern = useModernWorkOrder()
+  const [notesOpen, setNotesOpen] = useState(!collapsedByDefault)
   const [noteType, setNoteType] = useState<'public' | 'internal'>('public')
   const [publicNotes, setPublicNotes] = useState(initialData.invoiceNotes || '')
   const [internalNotes, setInternalNotes] = useState(initialData.diagnosticNotes || '')
@@ -192,37 +197,63 @@ export function NotesSection({
   // types a remark about the customer into the box that prints on the invoice.
   if (modern) {
     return (
-      <div className="grid grid-cols-1 gap-3 @2xl:grid-cols-2" data-testid="notes-section">
-        <div data-testid="notes-internal">
-          <AppCard
-            icon={Lock}
-            title={t('internalTitle')}
-            description={t('internalHelper')}
-            action={aiButton('internal')}
-            className="border-amber-500/30 bg-amber-500/5 hover:border-amber-500/40"
+      <div data-testid="notes-section" className="space-y-3">
+        {collapsedByDefault && (
+          <button
+            type="button"
+            onClick={() => setNotesOpen((open) => !open)}
+            aria-expanded={notesOpen}
+            className="flex w-full cursor-pointer items-center justify-between rounded-lg border bg-card px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted/40"
           >
-            <RichTextEditor
-              content={internalNotes}
-              onChange={handleInternalChange}
-              editable={!internalLocked}
-              placeholder={t('internalPlaceholder')}
+            <span className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              {t('title')}
+            </span>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-muted-foreground transition-transform',
+                notesOpen && 'rotate-180'
+              )}
             />
-          </AppCard>
-        </div>
-        <div data-testid="notes-customer">
-          <AppCard
-            icon={Eye}
-            title={t('publicTitle')}
-            description={t('publicHelper')}
-            action={aiButton('public')}
-          >
-            <RichTextEditor
-              content={publicNotes}
-              onChange={handlePublicChange}
-              editable={!publicLocked}
-              placeholder={t('publicPlaceholder')}
-            />
-          </AppCard>
+          </button>
+        )}
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-3 @2xl:grid-cols-2',
+            collapsedByDefault && !notesOpen && 'hidden'
+          )}
+        >
+          <div data-testid="notes-internal">
+            <AppCard
+              icon={Lock}
+              title={t('internalTitle')}
+              description={t('internalHelper')}
+              action={aiButton('internal')}
+              className="border-amber-500/30 bg-amber-500/5 hover:border-amber-500/40"
+            >
+              <RichTextEditor
+                content={internalNotes}
+                onChange={handleInternalChange}
+                editable={!internalLocked}
+                placeholder={t('internalPlaceholder')}
+              />
+            </AppCard>
+          </div>
+          <div data-testid="notes-customer">
+            <AppCard
+              icon={Eye}
+              title={t('publicTitle')}
+              description={t('publicHelper')}
+              action={aiButton('public')}
+            >
+              <RichTextEditor
+                content={publicNotes}
+                onChange={handlePublicChange}
+                editable={!publicLocked}
+                placeholder={t('publicPlaceholder')}
+              />
+            </AppCard>
+          </div>
         </div>
         {aiDialog}
       </div>

@@ -80,7 +80,15 @@
     "part": "Part",
     "inspection": "Inspection",
     "shopActions": "Shop actions",
-    "person": "Add a person"
+    "person": "Add a person",
+    "mechanics": "Mechanics",
+    "mechanicsHint": "Full vehicle",
+    "brakes": "Brakes & Clutch",
+    "brakesHint": "Part or vehicle",
+    "wash": "Car Wash",
+    "washHint": "Car, bike or truck",
+    "chooseTitle": "What are you creating?",
+    "chooseDescription": "Pick a type. You'll only see what your role allows."
   },
   "purchaseWhiteLabel": "Purchase White-Label",
   "licenseExpired": "Your license has expired. Features may be limited.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} open work orders",
       "inspections": "{count} inspections in progress",
       "reminders": "{count} reminders due"
-    }
+    },
+    "wash": "Car wash"
   }
 }

@@ -15,7 +15,9 @@
     "time_tracking": "Tidsregistrering",
     "work_board": "Arbeidstavle",
     "ai_assistant": "AI-assistent",
-    "settings": "Innstillinger"
+    "settings": "Innstillinger",
+    "brakes": "Bremser og clutch",
+    "wash": "Bilvask"
   },
   "actions": {
     "create": "Opprette",

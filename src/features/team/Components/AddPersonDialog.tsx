@@ -8,6 +8,7 @@ import {
   ArrowRightLeft,
   CalendarClock,
   Check,
+  Droplets,
   Loader2,
   Mail,
   UserCheck,
@@ -33,6 +34,7 @@ import {
 } from '@/components/ui/select'
 import { createAppSetupCode, revokeAppSetupCode } from '@/features/team/Actions/createAppSetupCode'
 import { createTechnicianAccount } from '@/features/team/Actions/createTechnicianAccount'
+import { createWashManagerAccount } from '@/features/team/Actions/createWashManagerAccount'
 import { createTechnician } from '@/features/workboard/Actions/technicianActions'
 import { getWorkshopDialCode } from '@/features/team/Actions/createTechnicianAccount'
 import { getRoles } from '@/features/team/Actions/getRoles'
@@ -88,7 +90,7 @@ const BOARD_COLOURS = [
   '#6366f1',
 ]
 
-type Kind = 'member' | 'technician' | 'standalone'
+type Kind = 'member' | 'technician' | 'washManager' | 'standalone'
 type Step = 'who' | 'details' | 'clash' | 'handoff' | 'done'
 
 interface RoleOption {
@@ -230,7 +232,9 @@ export function AddPersonDialog({
     setError(null)
     // A password is pre-filled so web access never lands as an afterthought
     // the desk forgot to configure; it stays editable.
-    if (next === 'technician') setPassword((current) => current || generatePassword())
+    if (next === 'technician' || next === 'washManager') {
+      setPassword((current) => current || generatePassword())
+    }
   }, [])
 
   const addTechnician = useCallback(
@@ -284,6 +288,30 @@ export function AddPersonDialog({
     },
     [busy, name, phone, password, country, onChanged, t]
   )
+
+  const addWashManager = useCallback(async () => {
+    if (busy || !name.trim() || !phone.trim() || password.length < 8) return
+    setBusy(true)
+    setError(null)
+
+    const result = await createWashManagerAccount({
+      name: name.trim(),
+      phone: phone.trim(),
+      dialCode: country || undefined,
+      password,
+    })
+    if (!result.success) {
+      setError(result.error || t('team.addWashManagerFailed'))
+      setBusy(false)
+      return
+    }
+
+    const data = result.data as { userId: string; name: string }
+    setCreated({ userId: data.userId, name: data.name })
+    onChanged()
+    setStep('done')
+    setBusy(false)
+  }, [busy, name, phone, password, country, onChanged, t])
 
   const addMember = useCallback(
     async (e: React.FormEvent) => {
@@ -366,6 +394,8 @@ export function AddPersonDialog({
           <DialogTitle className="flex items-center gap-2">
             {kind === 'technician' ? (
               <Wrench className="h-4 w-4" />
+            ) : kind === 'washManager' ? (
+              <Droplets className="h-4 w-4" />
             ) : kind === 'member' ? (
               <Mail className="h-4 w-4" />
             ) : null}
@@ -376,9 +406,11 @@ export function AddPersonDialog({
               ? t('team.addPersonWho')
               : kind === 'technician'
                 ? t('team.addTechnicianHint')
-                : kind === 'standalone'
-                  ? t('team.choiceStandaloneHint')
-                  : t('team.inviteMemberHint')}
+                : kind === 'washManager'
+                  ? t('team.addWashManagerHint')
+                  : kind === 'standalone'
+                    ? t('team.choiceStandaloneHint')
+                    : t('team.inviteMemberHint')}
           </DialogDescription>
         </DialogHeader>
 
@@ -420,6 +452,12 @@ export function AddPersonDialog({
               onClick={() => choose('technician')}
             />
             <ChoiceButton
+              icon={<Droplets className="h-5 w-5" />}
+              title={t('team.choiceWashManager')}
+              hint={t('team.choiceWashManagerHint')}
+              onClick={() => choose('washManager')}
+            />
+            <ChoiceButton
               icon={<Mail className="h-5 w-5" />}
               title={t('team.choiceMember')}
               hint={t('team.choiceMemberHint')}
@@ -434,15 +472,23 @@ export function AddPersonDialog({
           </div>
         )}
 
-        {step === 'details' && kind === 'technician' && (
+        {step === 'details' && (kind === 'technician' || kind === 'washManager') && (
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              void addTechnician()
+              if (kind === 'washManager') void addWashManager()
+              else void addTechnician()
             }}
             className="space-y-4"
           >
-            <StepIntro title={t('team.techDetailsTitle')} blurb={t('team.techDetailsBlurb')} />
+            <StepIntro
+              title={t(
+                kind === 'washManager' ? 'team.washManagerDetailsTitle' : 'team.techDetailsTitle'
+              )}
+              blurb={t(
+                kind === 'washManager' ? 'team.washManagerDetailsBlurb' : 'team.techDetailsBlurb'
+              )}
+            />
             <div className="space-y-2">
               <Label htmlFor="tech-name">{t('team.technicianName')}</Label>
               <Input
@@ -492,7 +538,11 @@ export function AddPersonDialog({
                   <span className="font-medium tabular-nums">{preview}</span>
                 </p>
               ) : null}
-              <p className="text-muted-foreground text-xs">{t('team.addTechnicianNote')}</p>
+              <p className="text-muted-foreground text-xs">
+                {t(
+                  kind === 'washManager' ? 'team.washManagerNote' : 'team.addTechnicianNote'
+                )}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -527,7 +577,9 @@ export function AddPersonDialog({
                 setKind(null)
                 setStep('who')
               }}
-              submitLabel={t('team.addTechnicianSubmit')}
+              submitLabel={t(
+                kind === 'washManager' ? 'team.addWashManagerSubmit' : 'team.addTechnicianSubmit'
+              )}
               busy={busy}
               disabled={!name.trim() || !phone.trim() || password.length < 8}
             />
@@ -764,20 +816,55 @@ export function AddPersonDialog({
               <p className="font-medium">
                 {kind === 'standalone'
                   ? t('team.stepStandaloneTitle', { name: created?.name ?? '' })
-                  : kind === 'technician'
-                    ? t(scanned ? 'team.stepScannedTitle' : 'team.stepDoneTitle', {
-                        name: created?.name ?? '',
-                      })
-                    : t('team.stepInvitedTitle', { email })}
+                  : kind === 'washManager'
+                    ? t('team.stepWashManagerTitle', { name: created?.name ?? '' })
+                    : kind === 'technician'
+                      ? t(scanned ? 'team.stepScannedTitle' : 'team.stepDoneTitle', {
+                          name: created?.name ?? '',
+                        })
+                      : t('team.stepInvitedTitle', { email })}
               </p>
               <p className="text-muted-foreground text-sm">
                 {kind === 'standalone'
                   ? t('team.stepStandaloneBody')
-                  : kind === 'technician'
-                    ? t('team.stepDoneBody')
-                    : t('team.stepInvitedBody')}
+                  : kind === 'washManager'
+                    ? t('team.stepWashManagerBody')
+                    : kind === 'technician'
+                      ? t('team.stepDoneBody')
+                      : t('team.stepInvitedBody')}
               </p>
             </div>
+
+            {kind === 'washManager' && (
+              <div className="space-y-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3 text-left">
+                <p className="text-xs font-medium">{t('team.webAccessTitle')}</p>
+                <p className="text-[11px] text-muted-foreground">{t('team.washManagerAccessHint')}</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-sm">
+                  <span className="text-muted-foreground">{t('team.technicianPhone')}</span>
+                  <span className="font-medium tabular-nums">{preview}</span>
+                  <span className="text-muted-foreground">{t('team.technicianPassword')}</span>
+                  <span className="font-mono font-medium">{password}</span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    const text = `${t('team.webAccessTitle')}\n${workshopUrl}/auth/phone\n${t('team.technicianPhone')}: ${preview}\n${t('team.technicianPassword')}: ${password}`
+                    try {
+                      await navigator.clipboard.writeText(text)
+                      setCredentialsCopied(true)
+                      setTimeout(() => setCredentialsCopied(false), 1500)
+                    } catch {
+                      // Clipboard may be blocked; the fields can be read by hand.
+                    }
+                  }}
+                >
+                  {credentialsCopied ? t('team.copied') : t('team.copyCredentials')}
+                </Button>
+              </div>
+            )}
 
             {kind === 'member' && inviteLink && (
               <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-left">

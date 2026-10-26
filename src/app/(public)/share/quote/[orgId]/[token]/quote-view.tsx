@@ -536,7 +536,7 @@ export function QuoteView({
         {showTorqvoiceBranding && (
           <div className="mt-3 flex items-center justify-end gap-1.5">
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
-            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-3.5 w-3.5" />
+            <img src="/ryztor-llc.png" alt="Ryztor LLC" className="h-3.5 w-3.5" />
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
               Ryztor LLC
             </span>
@@ -559,7 +559,7 @@ export function QuoteView({
         {showTorqvoiceBranding ? (
           <>
             <span className="text-xs text-gray-400">{tc('poweredBy')}</span>
-            <img src="/torqvoice_app_logo.png" alt="Ryztor LLC" className="h-4 w-4" />
+            <img src="/ryztor-llc.png" alt="Ryztor LLC" className="h-4 w-4" />
             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
               Ryztor LLC
             </span>

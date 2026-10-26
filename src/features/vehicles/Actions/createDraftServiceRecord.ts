@@ -2,7 +2,8 @@
 
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
-import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { PermissionAction } from '@/lib/permissions'
+import { type JobKind, jobKindSubject } from '@/lib/job-kind'
 import { createDraftRecord } from '../Lib/createDraftRecord'
 
 export async function createDraftServiceRecord(
@@ -10,8 +11,11 @@ export async function createDraftServiceRecord(
   startDateTime?: Date,
   endDateTime?: Date,
   technicianId?: string,
-  workBayId?: string
+  workBayId?: string,
+  jobKind?: JobKind
 ) {
+  const subject = jobKindSubject(jobKind)
+  const storedKind = jobKind === 'brakes' ? 'brakes' : jobKind === 'wash' ? 'wash' : 'vehicle'
   return withAuth(
     async ({ organizationId, userId }) => {
       const vehicle = await db.vehicle.findFirst({
@@ -32,6 +36,7 @@ export async function createDraftServiceRecord(
           endDateTime,
           technicianId,
           workBayId,
+          jobKind: storedKind,
         }
       )
     },
@@ -39,7 +44,7 @@ export async function createDraftServiceRecord(
       requiredPermissions: [
         {
           action: PermissionAction.CREATE,
-          subject: PermissionSubject.SERVICES,
+          subject,
         },
       ],
       audit: ({ result }) => ({
@@ -47,13 +52,19 @@ export async function createDraftServiceRecord(
         entity: 'ServiceRecord',
         entityId: result.id,
         details: { key: 'service_createDraft', params: { ref: result.invoiceNumber || result.id } },
-        metadata: { serviceRecordId: result.id, vehicleId: result.vehicleId },
+        metadata: { serviceRecordId: result.id, vehicleId: result.vehicleId, jobKind },
       }),
     }
   )
 }
 
-export async function createDraftCounterSale(customerId: string) {
+export async function createDraftCounterSale(
+  customerId: string,
+  jobKind?: JobKind,
+  title?: string
+) {
+  const subject = jobKindSubject(jobKind)
+  const storedKind = jobKind === 'brakes' ? 'brakes' : 'parts'
   return withAuth(
     async ({ organizationId, userId }) => {
       const customer = await db.customer.findFirst({
@@ -68,7 +79,8 @@ export async function createDraftCounterSale(customerId: string) {
           vehicleId: null,
           customerId: customer.id,
           customerExempt: customer.taxExempt,
-          title: 'Parts Sale',
+          title: title || 'Parts Sale',
+          jobKind: storedKind,
         }
       )
     },
@@ -76,7 +88,7 @@ export async function createDraftCounterSale(customerId: string) {
       requiredPermissions: [
         {
           action: PermissionAction.CREATE,
-          subject: PermissionSubject.SERVICES,
+          subject,
         },
       ],
       audit: ({ result }) => ({
@@ -87,7 +99,7 @@ export async function createDraftCounterSale(customerId: string) {
           key: 'service_createCounterSale',
           params: { ref: result.invoiceNumber || result.id },
         },
-        metadata: { serviceRecordId: result.id, customerId: result.customerId },
+        metadata: { serviceRecordId: result.id, customerId: result.customerId, jobKind },
       }),
     }
   )

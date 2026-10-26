@@ -376,7 +376,8 @@
     "lookupVin": "VIN opzoeken",
     "lookupEnterVin": "Voer eerst een VIN in",
     "lookupVinNotFound": "Geen voertuig gevonden voor dit VIN",
-    "lookupVinFailed": "VIN kon niet worden opgezocht"
+    "lookupVinFailed": "VIN kon niet worden opgezocht",
+    "catalogAdd": "«{value}» toevoegen"
   },
   "archiveDialog": {
     "title": "Voertuig archiveren",

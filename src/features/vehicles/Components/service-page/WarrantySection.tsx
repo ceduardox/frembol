@@ -31,6 +31,8 @@ interface WarrantySectionProps {
    * the warranty starts with the work, which has not been booked yet.
    */
   serviceDate?: string | null
+  /** A customer-supplied part has no odometer, so no distance limit. */
+  partMode?: boolean
 }
 
 const PRESETS = [3, 6, 12, 24] as const
@@ -48,6 +50,7 @@ export function WarrantySection({
   texts,
   distanceUnit,
   serviceDate,
+  partMode = false,
 }: WarrantySectionProps) {
   const t = useTranslations('service.warranty')
   const { formatDate } = useFormatDate()
@@ -74,7 +77,7 @@ export function WarrantySection({
       : value.warrantyStatus === 'included'
         ? [
             value.warrantyMonths ? t('summaryMonths', { count: value.warrantyMonths }) : null,
-            value.warrantyMileage
+            value.warrantyMileage && !partMode
               ? `${value.warrantyMileage.toLocaleString()} ${distanceUnit}`
               : null,
           ]
@@ -162,6 +165,7 @@ export function WarrantySection({
           )}
 
           {/* Distance limit */}
+          {!partMode && (
           <div className="space-y-1.5">
             <Label htmlFor="warrantyMileage" className="text-xs">
               {t('mileageWithUnit', { unit: distanceUnit })}
@@ -178,6 +182,7 @@ export function WarrantySection({
               }}
             />
           </div>
+          )}
         </>
       )}
 

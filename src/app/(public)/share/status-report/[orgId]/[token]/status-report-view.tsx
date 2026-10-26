@@ -188,7 +188,11 @@ export function StatusReportView({
 
         {/* Footer */}
         {showBranding && (
-          <p className="text-center text-xs text-gray-400 py-4">{t('poweredBy')} Ryztor LLC</p>
+          <p className="flex items-center justify-center gap-1.5 py-4 text-center text-xs text-gray-400">
+            {t('poweredBy')}
+            <img src="/ryztor-llc.png" alt="Ryztor LLC" className="h-4 w-4" />
+            Ryztor LLC
+          </p>
         )}
       </div>
     </div>

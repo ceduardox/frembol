@@ -27,6 +27,8 @@ import { resolveUploadPath } from '@/lib/resolve-upload-path'
 import { isOwnUploadUrl } from '@/lib/upload-url'
 import { formatDateForPdf } from '@/lib/format'
 import { getCustomFieldsForPrint } from '@/features/custom-fields/Lib/getCustomFieldsForPrint'
+import { getTranslations } from 'next-intl/server'
+import { resolveWorkshopLocale } from '@/i18n/locale-from-request'
 import {
   type InvoiceLayoutConfig,
   mergeWithDefaults,
@@ -111,6 +113,8 @@ const RECORD_INCLUDE = {
   issuedDesignSnapshot: true,
   issuedLogoSnapshot: true,
   issuedSignatureSnapshot: true,
+  washIntake: true,
+  partIntake: true,
   // Whoever opened the job signs it.
   createdBy: { select: { id: true, name: true } },
 }
@@ -400,6 +404,25 @@ async function assembleLive(
   results: NonNullable<AssembleOptions['inspectionResults']>
 ): Promise<InvoicePrintAssembly> {
   const customerRow = record.customer ?? record.vehicle?.customer ?? null
+  const intake = record.jobKind === 'wash' ? record.washIntake : null
+  let washNote = ''
+  if (intake) {
+    const locale = await resolveWorkshopLocale()
+    const t = await getTranslations({ locale, namespace: 'service.wash' })
+    washNote = washNoteHtml(intake, t)
+  }
+  const partIntake =
+    record.jobKind === 'brakes' || record.jobKind === 'parts' ? record.partIntake : null
+  let partNote = ''
+  if (partIntake) {
+    const locale = await resolveWorkshopLocale()
+    const t = await getTranslations({ locale, namespace: 'service.part' })
+    partNote = partNoteHtml(
+      partIntake,
+      t,
+      record.jobKind === 'brakes' ? t('titleBrakes') : t('titlePart')
+    )
+  }
   const [findings, customFields, look, signatureDataUri, conditionMap] = await Promise.all([
     db.vehicleFinding.findMany({
       where: { serviceRecordId: record.id, status: { not: 'resolved' } },
@@ -450,6 +473,9 @@ async function assembleLive(
 
   const data: InvoiceData = {
     ...record,
+    ...(washNote || partNote
+      ? { invoiceNotes: `${record.invoiceNotes ?? ''}${washNote}${partNote}` }
+      : {}),
     customer: partyOf(record.customer),
     vehicle: record.vehicle
       ? {
@@ -516,9 +542,31 @@ async function assembleFrozen(
   const taxLabel = frozen.taxLabel?.trim() || undefined
   const customer = frozen.customer ? partyOf(frozen.customer) : null
   const technicianName = frozen.technicianName ?? null
+  const intake = record.jobKind === 'wash' ? record.washIntake : null
+  let washNote = ''
+  if (intake) {
+    const locale = await resolveWorkshopLocale()
+    const t = await getTranslations({ locale, namespace: 'service.wash' })
+    washNote = washNoteHtml(intake, t)
+  }
+  const partIntake =
+    record.jobKind === 'brakes' || record.jobKind === 'parts' ? record.partIntake : null
+  let partNote = ''
+  if (partIntake) {
+    const locale = await resolveWorkshopLocale()
+    const t = await getTranslations({ locale, namespace: 'service.part' })
+    partNote = partNoteHtml(
+      partIntake,
+      t,
+      record.jobKind === 'brakes' ? t('titleBrakes') : t('titlePart')
+    )
+  }
 
   const data: InvoiceData = {
     ...record,
+    ...(washNote || partNote
+      ? { invoiceNotes: `${record.invoiceNotes ?? ''}${washNote}${partNote}` }
+      : {}),
     techName: technicianName ?? record.techName,
     technician: technicianName ? { name: technicianName } : null,
     customer,
@@ -603,4 +651,105 @@ async function assembleFrozen(
 /** The document's number as the file and the subject line spell it. */
 export function invoiceNumberOf(record: { invoiceNumber: string | null; id: string }): string {
   return record.invoiceNumber || `INV-${record.id.slice(-8).toUpperCase()}`
+}
+
+type WashTranslator = (key: string, values?: Record<string, string | number>) => string
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    switch (character) {
+      case '&':
+        return '&amp;'
+      case '<':
+        return '&lt;'
+      case '>':
+        return '&gt;'
+      case '"':
+        return '&quot;'
+      default:
+        return '&#39;'
+    }
+  })
+}
+
+function listOf(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+/**
+ * The wash intake as notes on the invoice. The paper sheet is a separate
+ * document; the invoice keeps its own design and only gains these details at
+ * the end, where the customer already reads the notes.
+ */
+function washNoteHtml(
+  intake: NonNullable<InvoiceRecordForPrint['washIntake']>,
+  t: WashTranslator
+): string {
+  const option = (prefix: string, code: string | null) => (code ? t(`${prefix}.${code}`) : '—')
+  const options = (prefix: string, codes: string[]) =>
+    codes.length ? codes.map((code) => t(`${prefix}.${code}`)).join(', ') : '—'
+
+  const accessories = listOf(intake.accessories)
+  const conditions = listOf(intake.conditions)
+  const rows: [string, string][] = [
+    [t('vehicleClass'), option('vehicleClassOptions', intake.vehicleClass)],
+    [t('fuel'), option('fuelOptions', intake.fuelLevel)],
+    [
+      t('accessories'),
+      `${options('accessoryOptions', accessories)}${
+        intake.accessoriesOther ? ` — ${intake.accessoriesOther}` : ''
+      }`,
+    ],
+    [
+      t('conditions'),
+      `${options('conditionOptions', conditions)}${
+        intake.conditionsOther ? ` — ${intake.conditionsOther}` : ''
+      }`,
+    ],
+    [t('arrivalState'), option('arrivalOptions', intake.arrivalState)],
+  ]
+  if (intake.scratches) rows.push([t('scratches'), intake.scratches])
+  if (intake.authorizedExtra) rows.push([t('authorizedExtra'), intake.authorizedExtra])
+  if (intake.authorizedBy) rows.push([t('authorizedBy'), intake.authorizedBy])
+
+  const signature = (label: string, dataUrl: string | null | undefined) =>
+    dataUrl
+      ? `<p><strong>${escapeHtml(label)}</strong></p><p><img src="${dataUrl}" style="max-height:110px" alt="" /></p>`
+      : ''
+
+  return `<h3>${escapeHtml(t('title'))}</h3><ul>${rows
+    .map(
+      ([label, value]) =>
+        `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`
+    )
+    .join('')}</ul>${signature(t('clientSignature'), intake.clientSignature)}${signature(
+    t('staffSignature'),
+    intake.staffSignature
+  )}`
+}
+/** The brake/clutch intake as notes on the invoice, in the invoice's own style. */
+function partNoteHtml(
+  intake: NonNullable<InvoiceRecordForPrint['partIntake']>,
+  t: WashTranslator,
+  title: string
+): string {
+  const rows: [string, string][] = []
+  if (intake.description) rows.push([t('descriptionLabel'), intake.description])
+  if (intake.brand) rows.push([t('brand'), intake.brand])
+  if (intake.serial) rows.push([t('serial'), intake.serial])
+  if (intake.condition) rows.push([t('condition'), t(`conditionOptions.${intake.condition}`)])
+  if (intake.accessories) rows.push([t('accessories'), intake.accessories])
+  if (intake.notes) rows.push([t('notes'), intake.notes])
+
+  const signature = intake.clientSignature
+    ? `<p><strong>${escapeHtml(t('clientSignature'))}</strong></p><p><img src="${intake.clientSignature}" style="max-height:110px" alt="" /></p>`
+    : ''
+  if (rows.length === 0 && !signature) return ''
+
+  return `<h3>${escapeHtml(title)}</h3><ul>${rows
+    .map(
+      ([label, value]) =>
+        `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`
+    )
+    .join('')}</ul>${signature}`
 }

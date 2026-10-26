@@ -80,7 +80,15 @@
     "part": "Ersatzteil",
     "inspection": "Inspektion",
     "shopActions": "Werkstatt",
-    "person": "Person hinzufügen"
+    "person": "Person hinzufügen",
+    "mechanics": "Mechanik",
+    "mechanicsHint": "Komplettes Fahrzeug",
+    "brakes": "Bremsen & Kupplung",
+    "brakesHint": "Teil oder Fahrzeug",
+    "wash": "Autowäsche",
+    "washHint": "Auto, Motorrad oder LKW",
+    "chooseTitle": "Was möchten Sie anlegen?",
+    "chooseDescription": "Wählen Sie den Typ. Sie sehen nur, was Ihre Rolle erlaubt."
   },
   "purchaseWhiteLabel": "White-Label erwerben",
   "licenseExpired": "Ihre Lizenz ist abgelaufen. Funktionen können eingeschränkt sein.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} offene Arbeitsaufträge",
       "inspections": "{count} laufende Inspektionen",
       "reminders": "{count} fällige Erinnerungen"
-    }
+    },
+    "wash": "Car wash"
   }
 }

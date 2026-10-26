@@ -1,0 +1,23 @@
+/// What the brake/clutch desk records when a part is dropped off: what it is,
+/// its condition, and who is going to work on it. One per work order.
+model PartIntake {
+  id              String        @id @default(cuid())
+  serviceRecordId String        @unique
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  description String?
+  brand       String?
+  serial      String?
+  /// good | worn | damaged
+  condition   String?
+  accessories String?
+  notes       String?
+
+  /// Data URL of the signature drawn at the counter, when one was taken.
+  clientSignature String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("part_intakes")
+}

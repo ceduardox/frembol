@@ -13,6 +13,8 @@ export enum PermissionSubject {
   WORK_ORDERS = 'work_orders',
   QUOTES = 'quotes',
   SERVICES = 'services',
+  BRAKES = 'brakes',
+  WASH = 'wash',
   BILLING = 'billing',
   INVENTORY = 'inventory',
   LABOR_PRESETS = 'labor_presets',
@@ -88,6 +90,26 @@ export const permissionGroups: PermissionGroup[] = [
   {
     name: 'Services',
     subject: PermissionSubject.SERVICES,
+    permissions: [
+      { action: PermissionAction.CREATE, label: 'Create' },
+      { action: PermissionAction.READ, label: 'View' },
+      { action: PermissionAction.UPDATE, label: 'Edit' },
+      { action: PermissionAction.DELETE, label: 'Delete' },
+    ],
+  },
+  {
+    name: 'Brakes & Clutch',
+    subject: PermissionSubject.BRAKES,
+    permissions: [
+      { action: PermissionAction.CREATE, label: 'Create' },
+      { action: PermissionAction.READ, label: 'View' },
+      { action: PermissionAction.UPDATE, label: 'Edit' },
+      { action: PermissionAction.DELETE, label: 'Delete' },
+    ],
+  },
+  {
+    name: 'Car Wash',
+    subject: PermissionSubject.WASH,
     permissions: [
       { action: PermissionAction.CREATE, label: 'Create' },
       { action: PermissionAction.READ, label: 'View' },

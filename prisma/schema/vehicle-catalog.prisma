@@ -1,0 +1,15 @@
+/// A make or model somebody typed that was not in the public catalogue, kept
+/// per workshop so it is offered next time instead of retyped.
+model VehicleCatalogEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  make           String
+  /// Empty for a make saved without picking a model.
+  model          String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, make, model])
+  @@index([organizationId])
+  @@map("vehicle_catalog_entries")
+}

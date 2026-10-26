@@ -80,7 +80,15 @@
     "part": "Onderdeel",
     "inspection": "Keuring",
     "shopActions": "Werkplaats",
-    "person": "Persoon toevoegen"
+    "person": "Persoon toevoegen",
+    "mechanics": "Mechanica",
+    "mechanicsHint": "Volledig voertuig",
+    "brakes": "Remmen & koppeling",
+    "brakesHint": "Onderdeel of voertuig",
+    "wash": "Autowas",
+    "washHint": "Auto, motor of vrachtwagen",
+    "chooseTitle": "Wat ga je aanmaken?",
+    "chooseDescription": "Kies het type. Je ziet alleen wat je rol toestaat."
   },
   "purchaseWhiteLabel": "White-label aanschaffen",
   "licenseExpired": "Uw licentie is verlopen. Functies kunnen beperkt zijn.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} open werkorders",
       "inspections": "{count} lopende inspecties",
       "reminders": "{count} herinneringen vervallen"
-    }
+    },
+    "wash": "Car wash"
   }
 }

@@ -146,6 +146,10 @@
       "workOrderStatuses": {
         "title": "Status das ordens",
         "description": "Suas próprias etapas, e quem é avisado"
+      },
+      "wash": {
+        "title": "Car wash",
+        "description": "Serviços e preços de lavagem"
       }
     },
     "pro": "PRO",
@@ -574,7 +578,18 @@
     "revokeTechnicianDone": "{name} foi desconectado do aplicativo",
     "noAccessTitle": "Ainda sem acesso",
     "noAccessBody": "Sua conta faz parte da {workshop}, mas ainda não recebeu uma função, então não há nada aqui que você possa abrir. Peça uma função ao proprietário ou a um administrador da sua oficina.",
-    "setupPageInstall": "Baixar no Google Play"
+    "setupPageInstall": "Baixar no Google Play",
+    "choiceWashManager": "A wash manager",
+    "choiceWashManagerHint": "Runs the wash: queue, invoices and reports. Signs in with a phone, not an email.",
+    "addWashManagerHint": "A phone account for the wash manager, with no technician row.",
+    "washManagerDetailsTitle": "Wash manager details",
+    "washManagerDetailsBlurb": "Created with a phone and password; no email and no place on the work board.",
+    "addWashManagerSubmit": "Create manager",
+    "addWashManagerFailed": "The wash manager could not be created",
+    "washManagerNote": "They sign in on the access page with this number and password.",
+    "stepWashManagerTitle": "Manager created: {name}",
+    "stepWashManagerBody": "They can now sign in by phone, see only the wash and manage its invoices and reports.",
+    "washManagerAccessHint": "Share these details; they sign in on the access page by phone."
   },
   "invoice": {
     "title": "Faturas e orçamentos",

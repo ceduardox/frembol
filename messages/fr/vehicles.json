@@ -376,7 +376,8 @@
     "lookupVin": "Rechercher le NIV",
     "lookupEnterVin": "Saisissez d'abord un NIV",
     "lookupVinNotFound": "Aucun véhicule trouvé pour ce NIV",
-    "lookupVinFailed": "Impossible de rechercher le NIV"
+    "lookupVinFailed": "Impossible de rechercher le NIV",
+    "catalogAdd": "Ajouter «{value}»"
   },
   "archiveDialog": {
     "title": "Archiver le véhicule",

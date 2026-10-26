@@ -86,7 +86,10 @@
     "partsSaleDescription": "Maak een factuur zonder voertuig, voor verkoop van onderdelen aan de balie.",
     "partsSaleDescriptionMarine": "Maak een factuur zonder vaartuig, voor verkoop van onderdelen aan de balie.",
     "createSale": "Verkoop aanmaken",
-    "none": "Geen"
+    "none": "Geen",
+    "receivePartTitle": "Onderdeel innemen",
+    "receivePartDescription": "Registreer het onderdeel dat de klant meebracht. Geen voertuig nodig.",
+    "receivePartSubmit": "Onderdeel innemen"
   },
   "notify": {
     "title": "Stuur bericht naar {name}",

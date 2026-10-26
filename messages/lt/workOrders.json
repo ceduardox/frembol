@@ -86,7 +86,10 @@
     "partsSaleDescription": "Sukurkite sąskaitą be transporto priemonės, dalių pardavimui prie prekystalio.",
     "partsSaleDescriptionMarine": "Sukurkite sąskaitą be laivo, dalių pardavimui prie prekystalio.",
     "createSale": "Sukurti pardavimą",
-    "none": "Nėra"
+    "none": "Nėra",
+    "receivePartTitle": "Priimti detalę",
+    "receivePartDescription": "Užregistruokite kliento atneštą detalę. Automobilio nereikia.",
+    "receivePartSubmit": "Priimti detalę"
   },
   "notify": {
     "title": "Pranešti {name}",

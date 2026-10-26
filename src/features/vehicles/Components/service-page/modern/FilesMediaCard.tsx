@@ -217,6 +217,7 @@ export function FilesMediaCard({
           {tabs.map((item) => (
             <button
               key={item.value}
+              data-media-tab={item.value}
               type="button"
               role="tab"
               aria-selected={tab === item.value}
@@ -241,6 +242,7 @@ export function FilesMediaCard({
         <div role="tabpanel" className="@container">
           {tab === 'all' && (
             <MediaGrid
+              mobileCapture
               key="all"
               kind="all"
               serviceRecordId={serviceRecordId}
@@ -251,6 +253,7 @@ export function FilesMediaCard({
           )}
           {tab === 'images' && (
             <MediaGrid
+              mobileCapture
               key="image"
               kind="image"
               serviceRecordId={serviceRecordId}

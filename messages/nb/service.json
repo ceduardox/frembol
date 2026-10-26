@@ -1,4 +1,26 @@
 {
+  "mobileWork": {
+    "gallery": "Choose file",
+    "saving": "Saving…",
+    "vehicleDetails": "Vehicle and customer details",
+    "administration": "Invoice, payments and other details",
+    "changeStatus": "Change status",
+    "statusHelp": "Choose the job status.",
+    "work": "Workshop tasks",
+    "photo": "Bilde",
+    "finding": "Problem",
+    "labor": "Arbeid",
+    "parts": "Del",
+    "priceDetails": "Details and pricing",
+    "saveHelp": "Save your changes before leaving.",
+    "findingHint": "Det du ser eller hører",
+    "photoHint": "Av kjøretøyet eller delen",
+    "laborHint": "Arbeidstimer",
+    "partsHint": "Brukt del",
+    "washService": "Legg til tjeneste",
+    "washServiceHint": "Vask, motor, interiør",
+    "chooseStatus": "Velg en status"
+  },
   "page": {
     "notFound": "Servicepost ikke funnet",
     "updated": "Servicepost oppdatert",
@@ -174,7 +196,9 @@
     "shopFeeTag": "Gebyr",
     "shopFeeHintFlat": "Verkstedgebyret fra Innstillinger, som et fast beløp. Endre prisen for denne jobben, eller slett linjen for å fjerne det.",
     "shopFeeHintPercentLabor": "Verkstedgebyret fra Innstillinger: {percent} % av arbeidet på denne jobben. Slett linjen for å fjerne det.",
-    "shopFeeHintPercentAll": "Verkstedgebyret fra Innstillinger: {percent} % av arbeid og deler på denne jobben. Slett linjen for å fjerne det."
+    "shopFeeHintPercentAll": "Verkstedgebyret fra Innstillinger: {percent} % av arbeid og deler på denne jobben. Slett linjen for å fjerne det.",
+    "washTitle": "Vasketjenester",
+    "partTitle": "Work on the part"
   },
   "liveLabor": {
     "title": "{count, plural, one {En mekaniker la til arbeid på denne jobben} other {En mekaniker la til # arbeidslinjer på denne jobben}}",
@@ -256,7 +280,8 @@
       "cash": "Kontant",
       "card": "Kort",
       "transfer": "Overføring",
-      "other": "Annet"
+      "other": "Annet",
+      "qr": "QR"
     },
     "recorded": "Betaling registrert",
     "markedPaid": "Merket som betalt",
@@ -270,7 +295,12 @@
     "failedPdf": "Kunne ikke generere PDF-faktura",
     "received": "Mottatte betalinger",
     "noneYet": "Ingenting betalt ennå.",
-    "balanceDue": "Utestående"
+    "balanceDue": "Utestående",
+    "updatePayment": "Oppdater betaling",
+    "updated": "Betaling oppdatert",
+    "paidInFull": "Betalt i sin helhet",
+    "failedUpdate": "Kunne ikke oppdatere betalingen",
+    "adjustPrice": "Adjust service prices"
   },
   "attachments": {
     "deleteTitle": "Slett vedlegg",
@@ -483,12 +513,12 @@
     "notAnswered": "Ingenting funnet på dette ennå",
     "answered": "{count} funn på dette",
     "storyTitle": "Jobbeskrivelse",
-    "storyHint": "Tilstand, årsak, utbedring, kontroll. Klikk på et steg for å åpne det; én rad for hver ting kunden nevnte eller du observerte.",
+    "storyHint": "Skriv hva som er galt, hvorfor, hva som ble gjort og om det er fikset.",
     "steps": {
-      "condition": "Tilstand",
-      "cause": "Årsak",
-      "correction": "Utbedring",
-      "confirm": "Kontroll"
+      "condition": "Hva er galt?",
+      "cause": "Hvorfor?",
+      "correction": "Hva ble gjort?",
+      "confirm": "Er det fikset?"
     },
     "conditionPlaceholder": "Hva kunden meldte, eller hva du observerte",
     "causePlaceholder": "Hva testingen viste var den egentlige årsaken",
@@ -500,7 +530,7 @@
     "confirmedOnSave": "Stemples med navnet ditt når du lagrer",
     "confirmedCount": "{confirmed} av {total} kontrollert",
     "findingsCount": "{count, plural, one {# observasjon} other {# observasjoner}}",
-    "addFinding": "Legg til observasjon",
+    "addFinding": "Legg til notat",
     "unconfirmedTitle": "Fullføre med punkter som ikke er kontrollert?",
     "unconfirmedBody": "{count, plural, one {Ett punkt er ikke kontrollert som utbedret:} other {# punkter er ikke kontrollert som utbedret:}}",
     "unconfirmedProceed": "Fullfør likevel",
@@ -529,7 +559,7 @@
       "engineBrowser": "Nettleser (skriver mens du snakker)",
       "liveFellBack": "Skriver i bolker på noen sekunder i stedet for ord for ord."
     },
-    "stepEmpty": "Ikke skrevet ennå",
+    "stepEmpty": "Trykk for å skrive",
     "removeTitle": "Fjerne dette punktet?",
     "removeBody": "Tilstand, årsak, utbedring og kontroll fjernes sammen med det når du lagrer arbeidsordren.",
     "removeAttached": "Observasjonene og mediene blir liggende på jobben, men ikke lenger under et punkt.",
@@ -754,5 +784,124 @@
   },
   "customStatus": {
     "defaultMessage": "Hei {customer_name}, en oppdatering om din {vehicle}: {status}. {company_name}"
+  },
+  "wash": {
+    "title": "Vaskemottak",
+    "description": "Hva kjøretøyet har med og hvordan det ankommer.",
+    "vehicleClass": "Kjøretøytype",
+    "vehicleClassOptions": {
+      "auto": "Bil",
+      "suv": "SUV",
+      "pickup": "Pickup",
+      "motorcycle": "Motorsykkel",
+      "lightTruck": "Lett lastebil",
+      "heavyTruck": "Tung lastebil",
+      "other": "Annet"
+    },
+    "otherPlaceholder": "Spesifiser",
+    "fuel": "Drivstoffnivå",
+    "fuelOptions": {
+      "empty": "E",
+      "quarter": "1/4",
+      "half": "1/2",
+      "threeQuarters": "3/4",
+      "full": "F"
+    },
+    "accessories": "Tilbehør / personlige gjenstander",
+    "accessoryOptions": {
+      "spareTire": "Reservehjul",
+      "jack": "Jekk",
+      "tools": "Verktøy",
+      "radio": "Radio / skjerm"
+    },
+    "conditions": "Spesielle forhold",
+    "conditionOptions": {
+      "upholstery": "Skadet interiør",
+      "paint": "Skadet lakk",
+      "looseParts": "Løse deler",
+      "glass": "Skadet glass"
+    },
+    "arrivalState": "Kjøretøyets tilstand ved ankomst",
+    "arrivalOptions": {
+      "clean": "Ren",
+      "regular": "Middels",
+      "dirty": "Skitten",
+      "veryDirty": "Svært skitten"
+    },
+    "scratches": "Riper / detaljer å merke",
+    "scratchesPlaceholder": "Beskriv bulker, riper eller manglende deler",
+    "authorizedExtra": "Autorisert tilleggsarbeid",
+    "authorizedExtraPlaceholder": "Tjeneste og tilleggspris",
+    "authorizedBy": "Autorisert av",
+    "authorizedByPlaceholder": "Navn på den som autoriserer",
+    "delivery": "Lovet levering",
+    "deliveryPlaceholder": "Dato og klokkeslett",
+    "save": "Lagre mottak",
+    "saved": "Lagret",
+    "saveFailed": "Kunne ikke lagre mottaket",
+    "servicesTitle": "Wash services",
+    "servicesEmpty": "No services configured yet.",
+    "servicesConfigure": "Configure",
+    "clientSignature": "Customer signature",
+    "staffSignature": "Staff signature",
+    "clearSignature": "Clear",
+    "printSheet": "Print sheet",
+    "catalogTitle": "Wash catalog",
+    "catalogDescription": "Services and prices per vehicle type.",
+    "serviceName": "Service",
+    "addService": "Add service",
+    "saveService": "Save",
+    "deleteService": "Delete",
+    "noServices": "No services yet.",
+    "savedService": "Saved",
+    "queue": {
+      "queued": "Queued",
+      "washing": "Washing",
+      "drying": "Drying",
+      "ready": "Ready",
+      "delivered": "Delivered"
+    },
+    "signaturesTitle": "Signaturer",
+    "signaturesDescription": "Kundens og ansattes signatur.",
+    "saveSignatures": "Lagre signaturer",
+    "summary": {
+      "deliveredToday": "Delivered today",
+      "revenueMonth": "Revenue this month",
+      "topServices": "Top services",
+      "noServices": "No services charged yet.",
+      "billing": "View wash invoices"
+    }
+  },
+  "part": {
+    "titleBrakes": "Brakes & Clutch",
+    "titlePart": "Part intake",
+    "description": "Delen kunden tok med, og tilstanden.",
+    "descriptionLabel": "Part received",
+    "descriptionPlaceholder": "e.g. front brake disc, clutch kit",
+    "brand": "Brand",
+    "brandPlaceholder": "e.g. Bosch, Valeo",
+    "serial": "Serial / code",
+    "serialPlaceholder": "Part number or code",
+    "condition": "Part condition",
+    "conditionOptions": {
+      "good": "Good",
+      "worn": "Worn",
+      "damaged": "Damaged"
+    },
+    "accessories": "Accessories",
+    "accessoriesPlaceholder": "e.g. bolts, clips, sensor",
+    "technician": "Technician doing the work",
+    "technicianPlaceholder": "Select the technician",
+    "technicianRequired": "Assign the technician who will do the work.",
+    "delivery": "Promised delivery",
+    "deliveryPlaceholder": "Date and time",
+    "notes": "Notes",
+    "notesPlaceholder": "Work details, tests, etc.",
+    "clientSignature": "Customer signature",
+    "save": "Save part",
+    "saved": "Saved",
+    "saveFailed": "Could not save the part",
+    "notesAndSignature": "Notater og kundesignatur",
+    "saveNotes": "Lagre notater"
   }
 }

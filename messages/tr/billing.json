@@ -27,7 +27,13 @@
     "filterUnviewed": "Görüntülenmeyen",
     "filterUnviewedHint": "Gönderilen ancak hiç açılmayan faturalar",
     "filterCompleted": "Yalnızca tamamlananlar",
-    "filterCompletedHint": "Yalnızca tamamlandı olarak işaretlenen iş emirlerini göster. Bir sonraki sefer için hatırlanır."
+    "filterCompletedHint": "Yalnızca tamamlandı olarak işaretlenen iş emirlerini göster. Bir sonraki sefer için hatırlanır.",
+    "kindAll": "Tümü",
+    "kindMechanics": "Mekanik",
+    "kindBrakes": "Fren ve debriyaj",
+    "kindWash": "Oto yıkama",
+    "kindParts": "Satışlar",
+    "kindFilter": "İş türü"
   },
   "recurring": {
     "title": "Tekrarlayan",

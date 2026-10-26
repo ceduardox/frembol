@@ -80,7 +80,15 @@
     "part": "Pieza",
     "inspection": "Inspección",
     "shopActions": "Taller",
-    "person": "Añadir a una persona"
+    "person": "Añadir a una persona",
+    "mechanics": "Mecánica",
+    "mechanicsHint": "Vehículo completo",
+    "brakes": "Frenos y embragues",
+    "brakesHint": "Pieza o vehículo",
+    "wash": "Lavadero",
+    "washHint": "Auto, moto o camión",
+    "chooseTitle": "¿Qué trabajo vas a crear?",
+    "chooseDescription": "Elige el tipo. Solo verás lo que tu rol permite."
   },
   "purchaseWhiteLabel": "Adquirir marca blanca",
   "licenseExpired": "Su licencia ha expirado. Las funciones pueden estar limitadas.",
@@ -142,6 +150,7 @@
       "workOrders": "{count} órdenes de trabajo abiertas",
       "inspections": "{count} inspecciones en curso",
       "reminders": "{count} recordatorios vencidos"
-    }
+    },
+    "wash": "Lavadero"
   }
 }

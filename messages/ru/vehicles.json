@@ -376,7 +376,8 @@
     "lookupVin": "Найти по VIN",
     "lookupEnterVin": "Сначала введите VIN",
     "lookupVinNotFound": "Автомобиль с таким VIN не найден",
-    "lookupVinFailed": "Не удалось найти VIN"
+    "lookupVinFailed": "Не удалось найти VIN",
+    "catalogAdd": "Добавить «{value}»"
   },
   "archiveDialog": {
     "title": "Архивировать транспортное средство",
