@@ -92,10 +92,10 @@ export const emptyPart = (defaultMarkupPercent: number = 0): ServicePartInput =>
 
 export const makeEmptyLabor = (defaultRate: number): ServiceLaborInput => ({
   description: '',
-  hours: 0,
+  hours: 1,
   rate: defaultRate,
   total: 0,
-  pricingType: 'hourly',
+  pricingType: 'service',
 })
 
 export const makeEmptyService = (): ServiceLaborInput => ({
