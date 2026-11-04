@@ -5,6 +5,7 @@ import { getAppBaseUrl } from '@/lib/app-url'
 import { generateQrDataUri } from '@/lib/qr'
 import {
   designSourceFromSettings,
+  designSourceFromStored,
   templateConfigFromSource,
 } from '@/features/invoice-designer/Lib/designSource'
 import { workOrderQrWanted } from '@/features/invoice-designer/Pdf/buildWorkOrderPrint'
@@ -68,9 +69,25 @@ export async function assembleWorkOrderPrint(
   ])
 
   // The work order's own design, never the invoice's: what a customer signs
-  // is not what they are billed with. Its default is the work order's, so a
-  // workshop that never opened the designer still gets the right sheet.
-  const source = designSourceFromSettings(settingsMap, 'work_order')
+  // is not what they are billed with. A design chosen in the gallery is used
+  // directly, so its hero image and layout do not depend on settings copies;
+  // the settings remain the fallback for workshops that never picked one.
+  const activeDesign = settingsMap['work_order.activeDesign']
+  const activeRow =
+    activeDesign?.startsWith('design:') && activeDesign.length > 7
+      ? await db.documentDesign.findFirst({
+          where: {
+            id: activeDesign.slice(7),
+            organizationId,
+            documentType: 'work_order',
+          },
+          select: { layout: true, template: true },
+        })
+      : null
+  const activeSource = activeRow
+    ? designSourceFromStored(activeRow.layout, activeRow.template)
+    : null
+  const source = activeSource ?? designSourceFromSettings(settingsMap, 'work_order')
   source.layout = { ...source.layout, documentType: 'work_order' }
   // The work order's own logo when it has one, the company's otherwise.
   const look = await designLook(settingsMap, source)

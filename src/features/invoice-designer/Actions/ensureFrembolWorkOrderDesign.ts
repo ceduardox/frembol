@@ -14,7 +14,7 @@ import {
 } from '@/features/settings/Schema/invoiceLayoutSchema'
 
 const SEEDED_KEY = 'design.frembolSeeded'
-const SEEDED_VERSION = '2'
+const SEEDED_VERSION = '3'
 const DESIGN_NAME = 'Frembol'
 type DesignKind = 'invoice' | 'work_order'
 

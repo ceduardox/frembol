@@ -232,6 +232,15 @@ async function resolveLiveDesign(
     const source = row ? designSourceFromStored(row.layout, row.template) : null
     if (source) return source
   }
+  const activeDesign = settingsMap['invoice.activeDesign']
+  if (activeDesign?.startsWith('design:') && activeDesign.length > 7) {
+    const row = await db.documentDesign.findFirst({
+      where: { id: activeDesign.slice(7), organizationId, documentType: 'invoice' },
+      select: { layout: true, template: true },
+    })
+    const source = row ? designSourceFromStored(row.layout, row.template) : null
+    if (source) return source
+  }
   const byRule = await findRuleDesign(organizationId, designRuleSubjectOf(record))
   const ruled = byRule ? designSourceFromStored(byRule.layout, byRule.template) : null
   if (ruled) return ruled

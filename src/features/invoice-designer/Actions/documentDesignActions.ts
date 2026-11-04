@@ -251,6 +251,7 @@ export async function applyDocumentDesign(id: string) {
         [`${prefix}.headerStyle`]: t.headerStyle,
         [`${prefix}.logoSize`]: String(t.logoSize),
         [`${prefix}.logo`]: t.logoUrl,
+        [`${prefix}.heroImageUrl`]: t.heroImageUrl || '',
         [`${prefix}.activeDesign`]: `design:${row.id}`,
       }
       const before = await settingValuesBefore(organizationId, Object.keys(entries))

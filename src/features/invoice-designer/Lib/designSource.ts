@@ -152,6 +152,7 @@ export function designSourceFromSettings(
         defaults.headerStyle,
       logoSize: Number(settings[`${p}.logoSize`]) || 100,
       logoUrl: settings[`${p}.logo`] || '',
+      heroImageUrl: settings[`${p}.heroImageUrl`] || '',
       showLogo: (settings[`${p}.showLogo`] ?? settings[`${p}.template.showLogo`]) !== 'false',
       showCompanyName: settings[`${p}.showCompanyName`] !== 'false',
     },
