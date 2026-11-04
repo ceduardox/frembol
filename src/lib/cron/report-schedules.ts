@@ -559,6 +559,8 @@ async function fetchPastDue(orgId: string, timeZone: string) {
     amountDue: number
     dueDate: string
     daysPastDue: number
+    dueStatus: 'overdue'
+    days: number
   }[] = []
   let totalAmountDue = 0,
     over30 = 0,
@@ -585,6 +587,8 @@ async function fetchPastDue(orgId: string, timeZone: string) {
       amountDue,
       dueDate: zonedDayKey(dueDate, timeZone),
       daysPastDue: days,
+      dueStatus: 'overdue',
+      days,
     })
     totalAmountDue += amountDue
     if (days > 30) over30++

@@ -503,16 +503,24 @@ export function ReportPDF({
                 l.totalAmount || 'Total',
                 l.amountDue || 'Due',
                 l.dueDate || 'Due Date',
+                l.status || 'Status',
                 l.daysPastDue || 'Days',
               ]}
-              widths={[24, 14, 16, 16, 16, 14]}
+              widths={[20, 12, 14, 14, 14, 14, 12]}
               rows={pastDueData.invoices.map((inv) => [
                 inv.customerName,
                 inv.invoiceNumber || '-',
                 fmt(inv.totalAmount),
                 fmt(inv.amountDue),
-                inv.dueDate,
-                String(inv.daysPastDue),
+                inv.dueDate ?? '-',
+                inv.dueStatus === 'no-date'
+                  ? l.noDate || 'No date'
+                  : inv.dueStatus === 'upcoming'
+                    ? l.upcomingStatus || 'Upcoming'
+                    : inv.dueStatus === 'due'
+                      ? l.dueTodayStatus || 'Due today'
+                      : l.overdueStatus || 'Overdue',
+                inv.days === null ? '-' : String(inv.days),
               ])}
             />
           </View>

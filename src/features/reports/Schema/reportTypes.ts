@@ -192,8 +192,10 @@ export interface PastDueInvoice {
   totalAmount: number
   amountPaid: number
   amountDue: number
-  dueDate: string
-  daysPastDue: number
+  dueDate: string | null
+  daysPastDue: number | null
+  dueStatus: 'upcoming' | 'due' | 'overdue' | 'no-date'
+  days: number | null
 }
 
 export interface PastDueInvoicesReport {

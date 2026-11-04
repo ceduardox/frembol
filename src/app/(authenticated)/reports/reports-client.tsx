@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
@@ -222,6 +223,8 @@ export default function ReportsClient({
 
   // Past due invoices state
   const [pastDueFilter, setPastDueFilter] = useState<string>('all')
+  const [pastDueAge, setPastDueAge] = useState<string>('all')
+  const [pastDueSearch, setPastDueSearch] = useState('')
   const [pastDueSortKey, setPastDueSortKey] = useState<PastDueSortKey>('daysPastDue')
   const [pastDueSortDir, setPastDueSortDir] = useState<PastDueSortDir>('desc')
 
@@ -446,16 +449,27 @@ export default function ReportsClient({
           break
         case 'past-due-invoices':
           if (pastDueData)
-            exportPastDueInvoicesCsv(pastDueData, currencyCode, [
-              h('customer'),
-              h('company'),
-              h('invoiceNumber'),
-              h('totalAmount'),
-              h('amountPaid'),
-              h('amountDue'),
-              h('dueDate'),
-              h('daysPastDue'),
-            ])
+            exportPastDueInvoicesCsv(
+              pastDueData,
+              currencyCode,
+              [
+                h('customer'),
+                h('company'),
+                h('invoiceNumber'),
+                h('totalAmount'),
+                h('amountPaid'),
+                h('amountDue'),
+                h('dueDate'),
+                h('status'),
+                h('daysPastDue'),
+              ],
+              {
+                upcoming: t('pastDueInvoices.upcoming'),
+                due: t('pastDueInvoices.dueToday'),
+                overdue: t('pastDueInvoices.overdue'),
+                'no-date': t('pastDueInvoices.noDate'),
+              }
+            )
           break
         case 'tax':
           if (taxData)
@@ -614,6 +628,10 @@ export default function ReportsClient({
         amountDue: t('pdf.amountDue'),
         dueDate: t('pdf.dueDate'),
         daysPastDue: t('pdf.daysPastDue'),
+        noDate: t('pdf.noDate'),
+        upcomingStatus: t('pdf.upcomingStatus'),
+        dueTodayStatus: t('pdf.dueTodayStatus'),
+        overdueStatus: t('pdf.overdueStatus'),
         totalPastDue: t('pdf.totalPastDue'),
         totalAmountDue: t('pdf.totalAmountDue'),
         over30: t('pdf.over30'),
@@ -686,7 +704,7 @@ export default function ReportsClient({
           filename = 'tax-report'
         } else if (financialSubTab === 'past-due-invoices') {
           pdfProps.pastDueData = pastDueData
-          filename = 'past-due-invoices-report'
+          filename = 'receivables-report'
         }
       } else {
         filename = `${activeTab}-report`
@@ -756,18 +774,82 @@ export default function ReportsClient({
     !(activeTab === 'financial' && financialSubTab === 'past-due-invoices')
 
   // Past due invoice sorting and filtering
+  const receivableTotals = pastDueData
+    ? (() => {
+        let upcomingAmount = 0
+        let overdueAmount = 0
+        let noDateAmount = 0
+        let upcomingCount = 0
+        let overdueCount = 0
+        let noDateCount = 0
+        for (const invoice of pastDueData.invoices) {
+          if (invoice.dueStatus === 'upcoming') {
+            upcomingAmount += invoice.amountDue
+            upcomingCount++
+          } else if (invoice.dueStatus === 'no-date') {
+            noDateAmount += invoice.amountDue
+            noDateCount++
+          } else {
+            overdueAmount += invoice.amountDue
+            overdueCount++
+          }
+        }
+        return {
+          upcomingAmount,
+          overdueAmount,
+          noDateAmount,
+          upcomingCount,
+          overdueCount,
+          noDateCount,
+        }
+      })()
+    : {
+        upcomingAmount: 0,
+        overdueAmount: 0,
+        noDateAmount: 0,
+        upcomingCount: 0,
+        overdueCount: 0,
+        noDateCount: 0,
+      }
+
   const sortedFilteredPastDue = pastDueData
     ? (() => {
         let filtered = pastDueData.invoices
-        if (pastDueFilter === '30') filtered = filtered.filter((inv) => inv.daysPastDue > 30)
-        else if (pastDueFilter === '60') filtered = filtered.filter((inv) => inv.daysPastDue > 60)
-        else if (pastDueFilter === '90') filtered = filtered.filter((inv) => inv.daysPastDue > 90)
+        if (pastDueFilter === 'upcoming') {
+          filtered = filtered.filter((inv) => inv.dueStatus === 'upcoming')
+        } else if (pastDueFilter === 'overdue') {
+          filtered = filtered.filter(
+            (inv) => inv.dueStatus === 'overdue' || inv.dueStatus === 'due'
+          )
+        } else if (pastDueFilter === 'no-date') {
+          filtered = filtered.filter((inv) => inv.dueStatus === 'no-date')
+        }
+        if (pastDueAge === '30') {
+          filtered = filtered.filter((inv) => inv.days !== null && inv.days > 30)
+        } else if (pastDueAge === '60') {
+          filtered = filtered.filter((inv) => inv.days !== null && inv.days > 60)
+        } else if (pastDueAge === '90') {
+          filtered = filtered.filter((inv) => inv.days !== null && inv.days > 90)
+        }
+        const query = pastDueSearch.trim().toLowerCase()
+        if (query) {
+          filtered = filtered.filter((inv) =>
+            [inv.customerName, inv.customerCompany, inv.invoiceNumber, inv.vehicleInfo]
+              .filter(Boolean)
+              .join(' ')
+              .toLowerCase()
+              .includes(query)
+          )
+        }
 
         return [...filtered].sort((a, b) => {
           let cmp = 0
           if (pastDueSortKey === 'customerName') cmp = a.customerName.localeCompare(b.customerName)
           else if (pastDueSortKey === 'amountDue') cmp = a.amountDue - b.amountDue
-          else if (pastDueSortKey === 'daysPastDue') cmp = a.daysPastDue - b.daysPastDue
+          else if (a.daysPastDue === null && b.daysPastDue === null) cmp = 0
+          else if (a.daysPastDue === null) cmp = 1
+          else if (b.daysPastDue === null) cmp = -1
+          else cmp = a.daysPastDue - b.daysPastDue
           return pastDueSortDir === 'asc' ? cmp : -cmp
         })
       })()
@@ -1247,7 +1329,7 @@ export default function ReportsClient({
             {!loading && pastDueData && (
               <div className="space-y-4">
                 {/* Summary cards */}
-                <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
                   <Card>
                     <CardContent className="flex items-center gap-3 p-4">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500/10">
@@ -1284,63 +1366,100 @@ export default function ReportsClient({
                   </Card>
                   <Card>
                     <CardContent className="flex items-center gap-3 p-4">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/10">
-                        <Clock className="h-4 w-4 text-orange-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">
-                          {t('pastDueInvoices.over30Days')}
-                        </p>
-                        <p className="text-lg font-semibold">{pastDueData.summary.over30}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="flex items-center gap-3 p-4">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500/10">
                         <Clock className="h-4 w-4 text-red-500" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground">
-                          {t('pastDueInvoices.over60Days')}
+                          {t('pastDueInvoices.overdueAmount')}
                         </p>
-                        <p className="text-lg font-semibold">{pastDueData.summary.over60}</p>
+                        <p className="text-lg font-semibold truncate">
+                          {fmtCurrency(receivableTotals.overdueAmount)}
+                        </p>
+                        <p className="text-[10px] leading-tight text-muted-foreground/70">
+                          {t('pastDueInvoices.overdueCount', {
+                            count: receivableTotals.overdueCount,
+                          })}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="flex items-center gap-3 p-4">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-600/10">
-                        <Clock className="h-4 w-4 text-red-600" />
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-500/10">
+                        <Clock className="h-4 w-4 text-sky-500" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs text-muted-foreground">
-                          {t('pastDueInvoices.over90Days')}
+                          {t('pastDueInvoices.upcomingAmount')}
                         </p>
-                        <p className="text-lg font-semibold">{pastDueData.summary.over90}</p>
+                        <p className="text-lg font-semibold truncate">
+                          {fmtCurrency(receivableTotals.upcomingAmount)}
+                        </p>
+                        <p className="text-[10px] leading-tight text-muted-foreground/70">
+                          {t('pastDueInvoices.upcomingCount', {
+                            count: receivableTotals.upcomingCount,
+                          })}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-md border px-2 py-1">
+                    {t('pastDueInvoices.over30Days')}: {pastDueData.summary.over30}
+                  </span>
+                  <span className="rounded-md border px-2 py-1">
+                    {t('pastDueInvoices.over60Days')}: {pastDueData.summary.over60}
+                  </span>
+                  <span className="rounded-md border px-2 py-1">
+                    {t('pastDueInvoices.over90Days')}: {pastDueData.summary.over90}
+                  </span>
+                  {receivableTotals.noDateCount > 0 && (
+                    <span className="rounded-md border px-2 py-1">
+                      {t('pastDueInvoices.noDate')}: {receivableTotals.noDateCount}
+                    </span>
+                  )}
+                </div>
+
                 {/* Filter and table */}
                 <Card>
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <CardTitle className="text-sm font-medium">
                         {t('pastDueInvoices.pastDueInvoicesList')}
                       </CardTitle>
-                      <Select value={pastDueFilter} onValueChange={setPastDueFilter}>
-                        <SelectTrigger className="w-[160px] h-8 text-sm">
-                          <SelectValue placeholder={t('pastDueInvoices.filterByAge')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('pastDueInvoices.allPastDue')}</SelectItem>
-                          <SelectItem value="30">{t('pastDueInvoices.30plus')}</SelectItem>
-                          <SelectItem value="60">{t('pastDueInvoices.60plus')}</SelectItem>
-                          <SelectItem value="90">{t('pastDueInvoices.90plus')}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          value={pastDueSearch}
+                          onChange={(event) => setPastDueSearch(event.target.value)}
+                          placeholder={t('pastDueInvoices.searchPlaceholder')}
+                          className="h-8 w-[190px] text-sm"
+                        />
+                        <Select value={pastDueFilter} onValueChange={setPastDueFilter}>
+                          <SelectTrigger className="h-8 w-[150px] text-sm">
+                            <SelectValue placeholder={t('pastDueInvoices.statusFilter')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">{t('pastDueInvoices.allPastDue')}</SelectItem>
+                            <SelectItem value="upcoming">{t('pastDueInvoices.upcoming')}</SelectItem>
+                            <SelectItem value="overdue">{t('pastDueInvoices.overdue')}</SelectItem>
+                            <SelectItem value="no-date">{t('pastDueInvoices.noDate')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={pastDueAge} onValueChange={setPastDueAge}>
+                          <SelectTrigger className="h-8 w-[170px] text-sm">
+                            <SelectValue placeholder={t('pastDueInvoices.filterByAge')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">{t('pastDueInvoices.anyAge')}</SelectItem>
+                            <SelectItem value="30">{t('pastDueInvoices.30plus')}</SelectItem>
+                            <SelectItem value="60">{t('pastDueInvoices.60plus')}</SelectItem>
+                            <SelectItem value="90">{t('pastDueInvoices.90plus')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1423,28 +1542,34 @@ export default function ReportsClient({
                                 {fmtCurrency(inv.amountPaid)}
                               </TableCell>
                               <TableCell className="text-right text-sm hidden md:table-cell">
-                                {inv.dueDate}
+                                {inv.dueDate ?? '-'}
                               </TableCell>
                               <TableCell className="text-right">
                                 <Badge
                                   variant={
-                                    inv.daysPastDue > 90
-                                      ? 'destructive'
-                                      : inv.daysPastDue > 60
+                                    inv.dueStatus === 'no-date'
+                                      ? 'outline'
+                                      : inv.dueStatus === 'overdue' && (inv.days ?? 0) > 60
                                         ? 'destructive'
-                                        : inv.daysPastDue > 30
+                                        : inv.dueStatus === 'overdue' && (inv.days ?? 0) > 30
                                           ? 'outline'
                                           : 'secondary'
                                   }
                                   className={
-                                    inv.daysPastDue > 60
-                                      ? ''
-                                      : inv.daysPastDue > 30
+                                    inv.dueStatus === 'upcoming'
+                                      ? 'border-sky-500/50 text-sky-600 dark:text-sky-400'
+                                      : inv.dueStatus === 'overdue' && (inv.days ?? 0) > 30
                                         ? 'border-amber-500 text-amber-600 dark:text-amber-400'
                                         : ''
                                   }
                                 >
-                                  {inv.daysPastDue}d
+                                  {inv.dueStatus === 'no-date'
+                                    ? t('pastDueInvoices.noDate')
+                                    : inv.dueStatus === 'upcoming'
+                                      ? t('pastDueInvoices.dueIn', { count: inv.days ?? 0 })
+                                      : inv.dueStatus === 'due'
+                                        ? t('pastDueInvoices.dueToday')
+                                        : t('pastDueInvoices.overdueBy', { count: inv.days ?? 0 })}
                                 </Badge>
                               </TableCell>
                             </TableRow>

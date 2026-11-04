@@ -742,7 +742,6 @@ export async function getPastDueInvoicesReport() {
       const records = await db.serviceRecord.findMany({
         where: {
           organizationId,
-          invoiceDueDate: { lt: now },
           status: { not: 'cancelled' },
         },
         select: {
@@ -775,8 +774,10 @@ export async function getPastDueInvoicesReport() {
         totalAmount: number
         amountPaid: number
         amountDue: number
-        dueDate: string
-        daysPastDue: number
+        dueDate: string | null
+        daysPastDue: number | null
+        dueStatus: 'upcoming' | 'due' | 'overdue' | 'no-date'
+        days: number | null
       }[] = []
 
       let totalAmountDue = 0
@@ -791,8 +792,17 @@ export async function getPastDueInvoicesReport() {
 
         if (amountDue <= 0) continue
 
-        const dueDate = r.invoiceDueDate!
-        const daysPastDue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+        const dueDate = r.invoiceDueDate
+        const daysPastDue = dueDate
+          ? Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+          : null
+        const dueStatus = !dueDate
+          ? 'no-date'
+          : daysPastDue === 0
+            ? 'due'
+            : daysPastDue! < 0
+              ? 'upcoming'
+              : 'overdue'
 
         const vehicleParts = r.vehicle
           ? [r.vehicle.year, r.vehicle.make, r.vehicle.model].filter(Boolean)
@@ -809,14 +819,16 @@ export async function getPastDueInvoicesReport() {
           totalAmount: total,
           amountPaid: paid,
           amountDue,
-          dueDate: zonedDayKey(dueDate, tz),
+          dueDate: dueDate ? zonedDayKey(dueDate, tz) : null,
           daysPastDue,
+          dueStatus,
+          days: daysPastDue === null ? null : Math.abs(daysPastDue),
         })
 
         totalAmountDue += amountDue
-        if (daysPastDue > 30) over30++
-        if (daysPastDue > 60) over60++
-        if (daysPastDue > 90) over90++
+        if (daysPastDue !== null && daysPastDue > 30) over30++
+        if (daysPastDue !== null && daysPastDue > 60) over60++
+        if (daysPastDue !== null && daysPastDue > 90) over90++
       }
 
       return {

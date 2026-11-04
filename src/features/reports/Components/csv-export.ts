@@ -247,7 +247,7 @@ export function exportRetentionCsv(
 export function exportPastDueInvoicesCsv(
   data: PastDueInvoicesReport,
   currencyCode: string,
-  headers: [string, string, string, string, string, string, string, string] = [
+  headers: [string, string, string, string, string, string, string, string, string] = [
     'Customer',
     'Company',
     'Invoice #',
@@ -255,8 +255,15 @@ export function exportPastDueInvoicesCsv(
     'Amount Paid',
     'Amount Due',
     'Due Date',
-    'Days Past Due',
-  ]
+    'Status',
+    'Days',
+  ],
+  statusLabels: Record<string, string> = {
+    upcoming: 'Upcoming',
+    due: 'Due today',
+    overdue: 'Overdue',
+    'no-date': 'No date',
+  }
 ) {
   const fmt = (n: number) => formatCurrency(n, currencyCode)
   const rows = data.invoices.map((inv) => ({
@@ -266,10 +273,11 @@ export function exportPastDueInvoicesCsv(
     totalAmount: fmt(inv.totalAmount),
     amountPaid: fmt(inv.amountPaid),
     amountDue: fmt(inv.amountDue),
-    dueDate: inv.dueDate,
-    daysPastDue: inv.daysPastDue,
+    dueDate: inv.dueDate ?? '',
+    status: statusLabels[inv.dueStatus] ?? inv.dueStatus,
+    daysPastDue: inv.days ?? '',
   }))
-  downloadCsv('past-due-invoices-report.csv', headers, rows, [
+  downloadCsv('receivables-report.csv', headers, rows, [
     'customer',
     'company',
     'invoiceNumber',
@@ -277,6 +285,7 @@ export function exportPastDueInvoicesCsv(
     'amountPaid',
     'amountDue',
     'dueDate',
+    'status',
     'daysPastDue',
   ])
 }
