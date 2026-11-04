@@ -14,6 +14,7 @@ import {
 } from '@/features/settings/Schema/invoiceLayoutSchema'
 
 const SEEDED_KEY = 'design.frembolSeeded'
+const SEEDED_VERSION = '2'
 const DESIGN_NAME = 'Frembol'
 type DesignKind = 'invoice' | 'work_order'
 
@@ -33,7 +34,7 @@ export async function ensureFrembolWorkOrderDesign() {
         where: { organizationId_key: { organizationId, key: SEEDED_KEY } },
         select: { value: true },
       })
-      if (seeded?.value === 'true') return { created: false }
+      if (seeded?.value === SEEDED_VERSION) return { created: false }
 
       const [logoRow, heroImageUrl, existingRows] = await Promise.all([
         db.appSetting.findUnique({
@@ -49,7 +50,7 @@ export async function ensureFrembolWorkOrderDesign() {
             name: DESIGN_NAME,
             documentType: { in: ['invoice', 'work_order'] },
           },
-          select: { documentType: true },
+          select: { id: true, documentType: true },
         }),
       ])
 
@@ -58,20 +59,11 @@ export async function ensureFrembolWorkOrderDesign() {
         (kind) => !existing.has(kind)
       )
 
-      if (missing.length === 0) {
-        await db.appSetting.upsert({
-          where: { organizationId_key: { organizationId, key: SEEDED_KEY } },
-          create: { userId, organizationId, key: SEEDED_KEY, value: 'true' },
-          update: { value: 'true' },
-        })
-        return { created: false }
-      }
-
       const template = {
-        primaryColor: '#1b5478',
+        primaryColor: '#103d6f',
         backgroundColor: '#ffffff',
-        textColor: '#355d72',
-        companyTextColor: '',
+        textColor: '#222b35',
+        companyTextColor: '#103d6f',
         frameBorderColor: '',
         frameShadow: 'false',
         frameSide: 'left',
@@ -83,28 +75,39 @@ export async function ensureFrembolWorkOrderDesign() {
         heroImageUrl,
       }
 
-      const operations: Prisma.PrismaPromise<unknown>[] = missing.map((kind) =>
-        db.documentDesign.create({
+      const operations: Prisma.PrismaPromise<unknown>[] = existingRows.map((row) =>
+        db.documentDesign.update({
+          where: { id: row.id },
           data: {
-            organizationId,
-            documentType: kind,
-            name: DESIGN_NAME,
-            layout: buildLayout(kind) as Prisma.InputJsonValue,
+            layout: buildLayout(row.documentType as DesignKind) as Prisma.InputJsonValue,
             template: template as Prisma.InputJsonValue,
           },
         })
       )
       operations.push(
+        ...missing.map((kind) =>
+          db.documentDesign.create({
+            data: {
+              organizationId,
+              documentType: kind,
+              name: DESIGN_NAME,
+              layout: buildLayout(kind) as Prisma.InputJsonValue,
+              template: template as Prisma.InputJsonValue,
+            },
+          })
+        )
+      )
+      operations.push(
         db.appSetting.upsert({
           where: { organizationId_key: { organizationId, key: SEEDED_KEY } },
-          create: { userId, organizationId, key: SEEDED_KEY, value: 'true' },
-          update: { value: 'true' },
+          create: { userId, organizationId, key: SEEDED_KEY, value: SEEDED_VERSION },
+          update: { value: SEEDED_VERSION },
         })
       )
 
       await db.$transaction(operations)
 
-      return { created: true }
+      return { created: missing.length > 0 }
     },
     {
       requiredPermissions: [
@@ -115,9 +118,9 @@ export async function ensureFrembolWorkOrderDesign() {
 }
 
 const tableStyle: InvoiceSectionStyle = {
-  backgroundColor: '#1b5478',
-  labelColor: '#e7d449',
-  borderColor: '#609eb4',
+  backgroundColor: '#103d6f',
+  labelColor: '#f8d448',
+  borderColor: '#3a8cc8',
   borderWidth: 0.5,
 }
 
@@ -126,9 +129,8 @@ function buildLayout(kind: DesignKind) {
   const order =
     kind === 'invoice'
       ? [
-          'header',
           'header_image',
-          'slogan',
+          'header',
           'document_title',
           'customer',
           'vehicle',
@@ -141,9 +143,8 @@ function buildLayout(kind: DesignKind) {
           'footer',
         ]
       : [
-          'header',
           'header_image',
-          'slogan',
+          'header',
           'document_title',
           'customer',
           'vehicle',
@@ -162,17 +163,27 @@ function buildLayout(kind: DesignKind) {
     ...section,
     visible: visible.has(section.id),
     order: positions.get(section.id) ?? order.length + index,
+    ...(section.id === 'header_image'
+      ? {
+          style: {
+            ...section.style,
+            width: 400,
+            align: 'center' as const,
+            marginBottom: 4,
+          },
+        }
+      : {}),
     ...(section.id === 'customer' ? { column: 'left' as const } : {}),
     ...(section.id === 'vehicle' ? { column: 'right' as const } : {}),
     ...(section.id === 'items_table' ? { style: tableStyle } : {}),
-    ...(section.id === 'slogan' ? { style: { ...section.style, textColor: '#ce2728' } } : {}),
-    ...(section.id === 'header' ? { style: { ...section.style, textColor: '#1b5478' } } : {}),
+    ...(section.id === 'slogan' ? { style: { ...section.style, textColor: '#d32027' } } : {}),
+    ...(section.id === 'header' ? { style: { ...section.style, textColor: '#103d6f' } } : {}),
     ...(section.id === 'totals'
       ? {
           style: {
             ...section.style,
-            backgroundColor: '#1b5478',
-            labelColor: '#e7d449',
+            backgroundColor: '#103d6f',
+            labelColor: '#f8d448',
           },
         }
       : {}),
@@ -183,10 +194,10 @@ function buildLayout(kind: DesignKind) {
     sections,
     document: {
       ...base.document,
-      accentColor: '#ce2728',
+      accentColor: '#d32027',
       fontSize: 9,
       rowPadding: 3,
-      margin: 32,
+      margin: 28,
       stripes: false,
     },
     documentType: kind,

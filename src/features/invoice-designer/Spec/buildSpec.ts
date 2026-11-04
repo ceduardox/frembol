@@ -831,18 +831,19 @@ function letterhead(section: InvoiceSection, theme: DocumentTheme, data: Documen
 
 /** A workshop's machine or hero picture, centered above the job. */
 function headerImageBlock(
-  _section: InvoiceSection,
+  section: InvoiceSection,
   _theme: DocumentTheme,
   data: DocumentData
 ): Node | null {
   if (!data.heroImageUrl) return null
+  const width = section.style?.width ?? 240
   return {
     kind: 'image',
     id: 'header_image.image',
     src: data.heroImageUrl,
-    maxWidth: 240,
-    maxHeight: 120,
-    align: 'center',
+    maxWidth: width,
+    maxHeight: section.style?.width ? Math.min(220, Math.round(width * 0.55)) : 120,
+    align: section.style?.align ?? 'center',
   }
 }
 
