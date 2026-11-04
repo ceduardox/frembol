@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Çerçeveli",
         "desc": "Üstte şerit, sol kenarda çubuk"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Torna, resmi logolar, tarih ve iş emri türü ile üç sütun"
       }
     },
     "colors": "Renkler",

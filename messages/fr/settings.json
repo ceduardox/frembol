@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Encadré",
         "desc": "Bandeau en haut, filet sur le bord gauche"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Trois colonnes avec tour, logos officiels, date et type d'ordre"
       }
     },
     "colors": "Couleurs",

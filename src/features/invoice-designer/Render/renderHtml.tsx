@@ -25,7 +25,8 @@ export function boxCss(style?: BoxStyle): CSSProperties {
   if (!style) return {}
   return {
     background: style.background,
-    border: style.borderWidth ? `${style.borderWidth}px solid ${style.borderColor}` : undefined,
+    border: style.borderWidth && !style.borderBottomOnly ? `${style.borderWidth}px solid ${style.borderColor}` : undefined,
+    borderBottom: style.borderWidth && style.borderBottomOnly ? `${style.borderWidth}px solid ${style.borderColor}` : undefined,
     borderRadius: style.radius,
     ...padding(style),
   }

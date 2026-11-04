@@ -322,7 +322,7 @@ function Choice({
   )
 }
 
-const HEADER_STYLES = ['standard', 'compact', 'modern', 'framed']
+const HEADER_STYLES = ['standard', 'compact', 'modern', 'framed', 'frembol']
 
 export interface DesignerFieldDef {
   id: string

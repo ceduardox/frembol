@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Gerahmt",
         "desc": "Band oben, Leiste an der linken Seite"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Drei Spalten mit Drehmaschine, offiziellen Logos, Datum und Auftragsart"
       }
     },
     "colors": "Farben",

@@ -33,6 +33,7 @@ export interface BoxStyle {
   background?: string
   borderColor?: string
   borderWidth?: number
+  borderBottomOnly?: boolean
   radius?: number
   padding?: number | { top: number; right: number; bottom: number; left: number }
 }

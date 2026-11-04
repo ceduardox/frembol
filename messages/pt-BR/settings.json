@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Emoldurado",
         "desc": "Faixa no topo e barra pela lateral esquerda"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Três colunas com torno, logotipos oficiais, data e tipo de ordem"
       }
     },
     "colors": "Cores",

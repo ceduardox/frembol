@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "W ramce",
         "desc": "Pas u góry, listwa przy lewej krawędzi"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Trzy kolumny z tokarką, oficjalnymi logotypami, datą i typem zlecenia"
       }
     },
     "colors": "Kolory",

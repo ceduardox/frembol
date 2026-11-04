@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Com moldura",
         "desc": "Faixa no topo e barra ao longo do lado esquerdo"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Três colunas com torno, logótipos oficiais, data e tipo de ordem"
       }
     },
     "colors": "Cores",

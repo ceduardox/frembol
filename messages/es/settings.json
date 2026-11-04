@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Enmarcado",
         "desc": "Banda arriba y franja por el lado izquierdo"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Tres columnas con torno, logos oficiales, fecha y tipo de orden"
       }
     },
     "colors": "Colores",

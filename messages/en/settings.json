@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Framed",
         "desc": "Band across the top, rail down the left"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Three columns with lathe, official logos, date and order type"
       }
     },
     "colors": "Colors",

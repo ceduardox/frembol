@@ -61,7 +61,9 @@ function boxStylePdf(style?: BoxStyle): Style {
   return {
     ...(style.background ? { backgroundColor: style.background } : {}),
     ...(style.borderWidth
-      ? { borderWidth: style.borderWidth, borderColor: style.borderColor }
+      ? style.borderBottomOnly
+        ? { borderBottomWidth: style.borderWidth, borderBottomColor: style.borderColor }
+        : { borderWidth: style.borderWidth, borderColor: style.borderColor }
       : {}),
     ...(style.radius ? { borderRadius: style.radius } : {}),
     ...padding,

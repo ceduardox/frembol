@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Įrėmintas",
         "desc": "Juosta viršuje, juostelė kairiajame krašte"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Trys stulpeliai su tekinimo staklėmis, logotipais, data ir užsakymo tipu"
       }
     },
     "colors": "Spalvos",

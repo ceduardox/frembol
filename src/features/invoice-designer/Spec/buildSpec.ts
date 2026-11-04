@@ -22,6 +22,7 @@ import {
 import { signatureBlock } from './signatureBlock'
 import { conditionMapBlock } from './conditionMapBlock'
 import { RYZTOR_LOGO_DATA_URI } from '../Lib/ryztorBrand'
+import { getFrembolLogo, getFrembolBrandText, getFrembolTorno } from '../Lib/frembolAssets'
 
 /**
  * The single description of a document.
@@ -470,6 +471,982 @@ function framedBandHeight(
  * the dates live inside this header, exactly where they always printed, so
  * classic sheets never carry a separate document title block.
  */
+
+function parseDateParts(dateStr?: string): { day: string; month: string; year: string } {
+  if (dateStr) {
+    const slashMatch = dateStr.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4})/)
+    if (slashMatch) {
+      const y = slashMatch[3]
+      return {
+        day: slashMatch[1].padStart(2, '0'),
+        month: slashMatch[2].padStart(2, '0'),
+        year: y.length === 4 ? y.slice(-2) : y,
+      }
+    }
+    const isoMatch = dateStr.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})/)
+    if (isoMatch) {
+      return {
+        day: isoMatch[3].padStart(2, '0'),
+        month: isoMatch[2].padStart(2, '0'),
+        year: isoMatch[1].slice(-2),
+      }
+    }
+    const parsed = new Date(dateStr)
+    if (!isNaN(parsed.getTime())) {
+      return {
+        day: String(parsed.getDate()).padStart(2, '0'),
+        month: String(parsed.getMonth() + 1).padStart(2, '0'),
+        year: String(parsed.getFullYear()).slice(-2),
+      }
+    }
+  }
+  const now = new Date()
+  return {
+    day: String(now.getDate()).padStart(2, '0'),
+    month: String(now.getMonth() + 1).padStart(2, '0'),
+    year: String(now.getFullYear()).slice(-2),
+  }
+}
+
+function frembolLetterhead(
+  _section: InvoiceSection,
+  _theme: DocumentTheme,
+  data: DocumentData
+): Node {
+  const { day, month, year } = parseDateParts(data.meta.date)
+  const isProforma =
+    (data.meta.title || '').toLowerCase().includes('pro') ||
+    (data.meta.title || '').toLowerCase().includes('presupuesto') ||
+    (data.meta.title || '').toLowerCase().includes('quote')
+  const serialNo = (data.meta.number || '').replace(/^[^\d]*/, '') || data.meta.number || '100961'
+
+  const sucursalDir =
+    data.fields['company_branch_address'] ||
+    '6to anillo Av. Radial 27 Esq. Hecho de los apóstoles y San Pedro'
+  const sucursalTel = data.fields['company_branch_phone'] || '69060210 / 75685572'
+  const centralDir = data.fields['company_address'] || '6to anillo Av. Piraí y Radial 17 1/2'
+  const centralTel = data.fields['company_phone'] || '69060210 / 76004917'
+  const email = data.fields['company_email'] || 'frembol.santacruz@gmail.com'
+
+  return {
+    kind: 'row',
+    id: 'header.frembol',
+    justify: 'between',
+    align: 'start',
+    gap: 8,
+    children: [
+      // Left Column (width: 220): Logo Escudo + Banner Texto + Sucursal & Central
+      {
+        width: 220,
+        node: {
+          kind: 'stack',
+          gap: 4,
+          children: [
+            // Brand identity: Logo escudo + FREMBOL text banner
+            {
+              kind: 'row',
+              align: 'center',
+              gap: 6,
+              children: [
+                {
+                  width: 44,
+                  node: {
+                    kind: 'image',
+                    id: 'frembol.logo_shield',
+                    src: getFrembolLogo(),
+                    maxWidth: 44,
+                    maxHeight: 44,
+                    align: 'left',
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'image',
+                    id: 'frembol.logo_text',
+                    src: getFrembolBrandText(),
+                    maxWidth: 160,
+                    maxHeight: 40,
+                    align: 'left',
+                  },
+                },
+              ],
+            },
+            // Info sucursal y central
+            {
+              kind: 'stack',
+              gap: 3,
+              children: [
+                {
+                  kind: 'stack',
+                  gap: 1,
+                  children: [
+                    {
+                      kind: 'text',
+                      text: 'SUCURSAL',
+                      style: { color: '#103d6f', bold: true, fontSize: 7 },
+                    },
+                    {
+                      kind: 'text',
+                      text: sucursalDir,
+                      style: { color: '#2b3947', fontSize: 5.5, lineHeight: 1.15 },
+                    },
+                    {
+                      kind: 'text',
+                      text: `Telf: ${sucursalTel}  |  Correo: ${email}`,
+                      style: { color: '#2b3947', fontSize: 5.5 },
+                    },
+                  ],
+                },
+                {
+                  kind: 'stack',
+                  gap: 1,
+                  children: [
+                    {
+                      kind: 'text',
+                      text: 'CENTRAL',
+                      style: { color: '#103d6f', bold: true, fontSize: 7 },
+                    },
+                    {
+                      kind: 'text',
+                      text: `Dir: ${centralDir}`,
+                      style: { color: '#2b3947', fontSize: 5.5, lineHeight: 1.15 },
+                    },
+                    {
+                      kind: 'text',
+                      text: `Telf: ${centralTel}  |  Correo: ${email}`,
+                      style: { color: '#2b3947', fontSize: 5.5 },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+
+      // Center Column (width: 155): Torno Especializado image with slogan
+      {
+        width: 155,
+        node: {
+          kind: 'stack',
+          gap: 2,
+          children: [
+            {
+              kind: 'image',
+              id: 'frembol.torno',
+              src: getFrembolTorno(),
+              maxWidth: 150,
+              maxHeight: 88,
+              align: 'center',
+            },
+            {
+              kind: 'text',
+              text: '¡El líder ofrece seguridad!',
+              style: {
+                color: '#103d6f',
+                bold: true,
+                fontSize: 8.5,
+                align: 'center',
+                letterSpacing: 0.3,
+              },
+            },
+          ],
+        },
+      },
+
+      // Right Column (width: 140): Fecha, Checkboxes Pro Forma / Orden, Nº Serial
+      {
+        width: 140,
+        node: {
+          kind: 'stack',
+          gap: 5,
+          children: [
+            // Date Box (DIA / MES / AÑO)
+            {
+              kind: 'stack',
+              id: 'frembol.date_box',
+              style: {
+                borderColor: '#103d6f',
+                borderWidth: 1.2,
+              },
+              children: [
+                {
+                  kind: 'row',
+                  style: {
+                    background: '#103d6f',
+                    padding: { top: 2, bottom: 2, left: 0, right: 0 },
+                  },
+                  children: [
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: 'DIA',
+                        style: { color: '#f8d448', bold: true, fontSize: 7, align: 'center' },
+                      },
+                    },
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: 'MES',
+                        style: { color: '#f8d448', bold: true, fontSize: 7, align: 'center' },
+                      },
+                    },
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: 'AÑO',
+                        style: { color: '#f8d448', bold: true, fontSize: 7, align: 'center' },
+                      },
+                    },
+                  ],
+                },
+                {
+                  kind: 'row',
+                  style: {
+                    background: '#ffffff',
+                    padding: { top: 2, bottom: 2, left: 0, right: 0 },
+                  },
+                  children: [
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: day,
+                        style: { color: '#103d6f', bold: true, fontSize: 9, align: 'center' },
+                      },
+                    },
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: month,
+                        style: { color: '#103d6f', bold: true, fontSize: 9, align: 'center' },
+                      },
+                    },
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: year,
+                        style: { color: '#103d6f', bold: true, fontSize: 9, align: 'center' },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+
+            // Pro Forma / Orden de Trabajo Checkboxes
+            {
+              kind: 'stack',
+              gap: 3,
+              children: [
+                {
+                  kind: 'row',
+                  justify: 'end',
+                  align: 'center',
+                  gap: 6,
+                  children: [
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: 'PRO FORMA',
+                        style: { color: '#103d6f', bold: true, fontSize: 7, align: 'right' },
+                      },
+                    },
+                    {
+                      width: 22,
+                      node: {
+                        kind: 'row',
+                        justify: 'center',
+                        align: 'center',
+                        style: {
+                          background: '#fdece2',
+                          borderColor: '#103d6f',
+                          borderWidth: 1,
+                          padding: { top: 1, bottom: 1, left: 2, right: 2 },
+                        },
+                        children: [
+                          {
+                            node: {
+                              kind: 'text',
+                              text: isProforma ? 'X' : ' ',
+                              style: { color: '#d32027', bold: true, fontSize: 9, align: 'center' },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+                {
+                  kind: 'row',
+                  justify: 'end',
+                  align: 'center',
+                  gap: 6,
+                  children: [
+                    {
+                      width: 'flex',
+                      node: {
+                        kind: 'text',
+                        text: 'ORDEN DE TRABAJO',
+                        style: { color: '#103d6f', bold: true, fontSize: 7, align: 'right' },
+                      },
+                    },
+                    {
+                      width: 22,
+                      node: {
+                        kind: 'row',
+                        justify: 'center',
+                        align: 'center',
+                        style: {
+                          background: '#fdece2',
+                          borderColor: '#103d6f',
+                          borderWidth: 1,
+                          padding: { top: 1, bottom: 1, left: 2, right: 2 },
+                        },
+                        children: [
+                          {
+                            node: {
+                              kind: 'text',
+                              text: !isProforma ? 'X' : ' ',
+                              style: { color: '#d32027', bold: true, fontSize: 9, align: 'center' },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+
+            // Serial Number
+            {
+              kind: 'row',
+              justify: 'end',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: '№',
+                    style: { color: '#d32027', bold: true, fontSize: 13 },
+                  },
+                },
+                {
+                  node: {
+                    kind: 'text',
+                    text: serialNo,
+                    style: { color: '#d32027', bold: true, fontSize: 13 },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  }
+}
+
+function frembolCustomerVehicleBlock(
+  _section: InvoiceSection,
+  _theme: DocumentTheme,
+  data: DocumentData
+): Node {
+  const customerName = data.fields['customer_name'] || data.fields['name'] || ''
+  const customerPhone = data.fields['customer_phone'] || data.fields['phone'] || ''
+  const serviceTitle =
+    data.fields['service_title'] || data.fields['service_type'] || data.fields['job_type'] || ''
+  const vehicleMca =
+    data.fields['vehicle_name'] ||
+    [data.fields['vehicle_make'], data.fields['vehicle_model']].filter(Boolean).join(' ') ||
+    ''
+  const plate =
+    data.meta?.plate ||
+    (data.fields['license_plate']
+      ? data.fields['license_plate'].replace(/^Plate:\s*/i, '').replace(/^Placa:\s*/i, '')
+      : '') ||
+    ''
+
+  return {
+    kind: 'stack',
+    id: 'frembol.client_section',
+    gap: 4,
+    style: {
+      borderColor: '#3a8cc8',
+      borderWidth: 1.5,
+      padding: { top: 4, bottom: 4, left: 2, right: 2 },
+    },
+    children: [
+      // Fila 1: CLIENTE: ... Telf: ...
+      {
+        kind: 'row',
+        align: 'center',
+        gap: 12,
+        children: [
+          // CLIENTE
+          {
+            width: 'flex',
+            node: {
+              kind: 'row',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: 'CLIENTE:',
+                    style: { color: '#103d6f', bold: true, fontSize: 8.5 },
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'stack',
+                    style: { borderBottomOnly: true, borderWidth: 1, borderColor: '#3a8cc8' },
+                    children: [
+                      {
+                        kind: 'text',
+                        text: customerName || ' ',
+                        style: { color: '#d32027', bold: true, fontSize: 8.5 },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          // Telf:
+          {
+            width: 140,
+            node: {
+              kind: 'row',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: 'Telf:',
+                    style: { color: '#103d6f', bold: true, fontSize: 8.5 },
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'stack',
+                    style: { borderBottomOnly: true, borderWidth: 1, borderColor: '#3a8cc8' },
+                    children: [
+                      {
+                        kind: 'text',
+                        text: customerPhone || ' ',
+                        style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      // Fila 2: TRANSPORTE: ... MCA: ... PLACA: ...
+      {
+        kind: 'row',
+        align: 'center',
+        gap: 12,
+        children: [
+          // TRANSPORTE
+          {
+            width: 'flex',
+            node: {
+              kind: 'row',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: 'TRANSPORTE:',
+                    style: { color: '#103d6f', bold: true, fontSize: 8.5 },
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'stack',
+                    style: { borderBottomOnly: true, borderWidth: 1, borderColor: '#3a8cc8' },
+                    children: [
+                      {
+                        kind: 'text',
+                        text: serviceTitle || ' ',
+                        style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          // MCA:
+          {
+            width: 120,
+            node: {
+              kind: 'row',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: 'MCA:',
+                    style: { color: '#d32027', bold: true, fontSize: 8.5 },
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'stack',
+                    style: { borderBottomOnly: true, borderWidth: 1, borderColor: '#3a8cc8' },
+                    children: [
+                      {
+                        kind: 'text',
+                        text: vehicleMca || ' ',
+                        style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          // PLACA:
+          {
+            width: 100,
+            node: {
+              kind: 'row',
+              align: 'center',
+              gap: 4,
+              children: [
+                {
+                  node: {
+                    kind: 'text',
+                    text: 'PLACA:',
+                    style: { color: '#d32027', bold: true, fontSize: 8.5 },
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'stack',
+                    style: { borderBottomOnly: true, borderWidth: 1, borderColor: '#3a8cc8' },
+                    children: [
+                      {
+                        kind: 'text',
+                        text: plate || ' ',
+                        style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  }
+}
+
+function frembolTotalsBlock(
+  _section: InvoiceSection,
+  _theme: DocumentTheme,
+  data: DocumentData
+): Node {
+  const totalLine = data.totals.find((t) => t.kind === 'total')
+  const paidLine = data.totals.find((t) => t.kind === 'payment')
+  const dueLine = data.totals.find((t) => t.kind === 'due')
+  const discountLine = data.totals.find((t) => t.kind === 'discount')
+  const subtotalLine = data.totals.find((t) => t.kind === 'line')
+
+  const totalVal = totalLine?.value || ''
+  const paidVal = paidLine?.value || ''
+  const saldoVal = dueLine?.value || (paidLine ? dueLine?.value || '' : '')
+  const importeVal = subtotalLine?.value || totalVal
+  const dsctoVal = discountLine?.value || ''
+
+  return {
+    kind: 'row',
+    id: 'frembol.totals_footer',
+    justify: 'between',
+    align: 'start',
+    gap: 16,
+    children: [
+      // Left side: Payment boxes + Signatures
+      {
+        width: 'flex',
+        node: {
+          kind: 'stack',
+          gap: 14,
+          children: [
+            // Payment boxes (TOTAL BS, A CUENTA BS, SALDO BS)
+            {
+              kind: 'row',
+              gap: 8,
+              children: [
+                // TOTAL BS
+                {
+                  width: 95,
+                  node: {
+                    kind: 'stack',
+                    gap: 2,
+                    children: [
+                      {
+                        kind: 'text',
+                        text: 'TOTAL BS',
+                        style: { color: '#103d6f', bold: true, fontSize: 7.5 },
+                      },
+                      {
+                        kind: 'row',
+                        justify: 'end',
+                        align: 'center',
+                        style: {
+                          background: '#fdece2',
+                          borderColor: '#103d6f',
+                          borderWidth: 1.2,
+                          padding: { top: 3, bottom: 3, left: 4, right: 4 },
+                        },
+                        children: [
+                          {
+                            node: {
+                              kind: 'text',
+                              text: totalVal || ' ',
+                              style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+                // A CUENTA BS
+                {
+                  width: 95,
+                  node: {
+                    kind: 'stack',
+                    gap: 2,
+                    children: [
+                      {
+                        kind: 'text',
+                        text: 'A CUENTA BS',
+                        style: { color: '#103d6f', bold: true, fontSize: 7.5 },
+                      },
+                      {
+                        kind: 'row',
+                        justify: 'end',
+                        align: 'center',
+                        style: {
+                          background: '#fdece2',
+                          borderColor: '#103d6f',
+                          borderWidth: 1.2,
+                          padding: { top: 3, bottom: 3, left: 4, right: 4 },
+                        },
+                        children: [
+                          {
+                            node: {
+                              kind: 'text',
+                              text: paidVal || ' ',
+                              style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+                // SALDO BS
+                {
+                  width: 95,
+                  node: {
+                    kind: 'stack',
+                    gap: 2,
+                    children: [
+                      {
+                        kind: 'text',
+                        text: 'SALDO BS',
+                        style: { color: '#103d6f', bold: true, fontSize: 7.5 },
+                      },
+                      {
+                        kind: 'row',
+                        justify: 'end',
+                        align: 'center',
+                        style: {
+                          background: '#fdece2',
+                          borderColor: '#103d6f',
+                          borderWidth: 1.2,
+                          padding: { top: 3, bottom: 3, left: 4, right: 4 },
+                        },
+                        children: [
+                          {
+                            node: {
+                              kind: 'text',
+                              text: saldoVal || ' ',
+                              style: { color: '#222b35', bold: true, fontSize: 8.5 },
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+
+            // Signatures (RECIBIDO, ENTREGADO)
+            {
+              kind: 'row',
+              gap: 36,
+              children: [
+                {
+                  width: 130,
+                  node: {
+                    kind: 'stack',
+                    gap: 3,
+                    style: {
+                      padding: { top: 4, bottom: 0, left: 0, right: 0 },
+                    },
+                    children: [
+                      {
+                        kind: 'spacer',
+                        height: 1,
+                        color: '#3a8cc8',
+                      },
+                      {
+                        kind: 'text',
+                        text: 'RECIBIDO',
+                        style: { color: '#103d6f', bold: true, fontSize: 8, align: 'center' },
+                      },
+                    ],
+                  },
+                },
+                {
+                  width: 130,
+                  node: {
+                    kind: 'stack',
+                    gap: 3,
+                    style: {
+                      padding: { top: 4, bottom: 0, left: 0, right: 0 },
+                    },
+                    children: [
+                      {
+                        kind: 'spacer',
+                        height: 1,
+                        color: '#3a8cc8',
+                      },
+                      {
+                        kind: 'text',
+                        text: 'ENTREGADO',
+                        style: { color: '#103d6f', bold: true, fontSize: 8, align: 'center' },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+
+      // Right side: Totals summary box (IMPORTE BS, DSCTO, TOTAL BS)
+      {
+        width: 180,
+        node: {
+          kind: 'stack',
+          gap: 0,
+          style: {
+            borderColor: '#3a8cc8',
+            borderWidth: 1,
+          },
+          children: [
+            // IMPORTE BS
+            {
+              kind: 'row',
+              justify: 'between',
+              align: 'center',
+              style: {
+                borderBottomOnly: true,
+                borderWidth: 1,
+                borderColor: '#3a8cc8',
+              },
+              children: [
+                {
+                  width: 85,
+                  node: {
+                    kind: 'row',
+                    align: 'center',
+                    style: {
+                      background: '#103d6f',
+                      padding: { top: 4, bottom: 4, left: 6, right: 6 },
+                    },
+                    children: [
+                      {
+                        node: {
+                          kind: 'text',
+                          text: 'IMPORTE BS',
+                          style: { color: '#f8d448', bold: true, fontSize: 8 },
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'row',
+                    justify: 'end',
+                    align: 'center',
+                    style: {
+                      background: '#ffffff',
+                      padding: { top: 4, bottom: 4, left: 6, right: 6 },
+                    },
+                    children: [
+                      {
+                        node: {
+                          kind: 'text',
+                          text: importeVal || '0,00',
+                          style: { color: '#103d6f', bold: true, fontSize: 8.5 },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+
+            // DSCTO (if discountLine present or discount > 0)
+            ...(dsctoVal
+              ? [
+                  {
+                    kind: 'row' as const,
+                    justify: 'between' as const,
+                    align: 'center' as const,
+                    style: {
+                      borderBottomOnly: true,
+                      borderWidth: 1,
+                      borderColor: '#3a8cc8',
+                    },
+                    children: [
+                      {
+                        width: 85,
+                        node: {
+                          kind: 'row' as const,
+                          align: 'center' as const,
+                          style: {
+                            background: '#103d6f',
+                            padding: { top: 4, bottom: 4, left: 6, right: 6 },
+                          },
+                          children: [
+                            {
+                              node: {
+                                kind: 'text' as const,
+                                text: 'DSCTO',
+                                style: { color: '#f8d448', bold: true, fontSize: 8 },
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      {
+                        width: 'flex' as const,
+                        node: {
+                          kind: 'row' as const,
+                          justify: 'end' as const,
+                          align: 'center' as const,
+                          style: {
+                            background: '#ffffff',
+                            padding: { top: 4, bottom: 4, left: 6, right: 6 },
+                          },
+                          children: [
+                            {
+                              node: {
+                                kind: 'text' as const,
+                                text: dsctoVal,
+                                style: { color: '#dc2626', bold: true, fontSize: 8.5 },
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ]
+              : []),
+
+            // TOTAL BS
+            {
+              kind: 'row',
+              justify: 'between',
+              align: 'center',
+              children: [
+                {
+                  width: 85,
+                  node: {
+                    kind: 'row',
+                    align: 'center',
+                    style: {
+                      background: '#103d6f',
+                      padding: { top: 5, bottom: 5, left: 6, right: 6 },
+                    },
+                    children: [
+                      {
+                        node: {
+                          kind: 'text',
+                          text: 'TOTAL BS',
+                          style: { color: '#f8d448', bold: true, fontSize: 8.5 },
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  width: 'flex',
+                  node: {
+                    kind: 'row',
+                    justify: 'end',
+                    align: 'center',
+                    style: {
+                      background: '#ffffff',
+                      padding: { top: 5, bottom: 5, left: 6, right: 6 },
+                    },
+                    children: [
+                      {
+                        node: {
+                          kind: 'text',
+                          text: totalVal || '0,00',
+                          style: { color: '#103d6f', bold: true, fontSize: 9.5 },
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  }
+}
+
 function classicLetterhead(
   section: InvoiceSection,
   theme: DocumentTheme,
@@ -1025,6 +2002,49 @@ function itemsTable(
   theme: DocumentTheme,
   data: DocumentData
 ): Node | null {
+  if (theme.headerStyle === 'frembol' && !data.items.length) {
+    const frembolCols = [
+      { key: 'qty', label: 'CANT', width: 44, align: 'right' as const },
+      { key: 'desc', label: 'DESCRIPCIÓN', width: 'flex' as const },
+      { key: 'sub', label: 'OBSERVACIONES', width: 95 },
+      { key: 'price', label: 'PRECIO BS', width: 75, align: 'right' as const },
+      { key: 'total', label: 'TOTAL BS', width: 75, align: 'right' as const },
+    ]
+    const blanks = Array.from({ length: 6 }, () => ({
+      n: '',
+      qty: '',
+      unit: '',
+      desc: '',
+      sub: '',
+      price: '',
+      total: '',
+      struck: '',
+    }))
+    return {
+      kind: 'table',
+      id: section.id,
+      rowPadding: 3.5,
+      headerPadding: 4,
+      ruleWidth: 0.5,
+      rowBackground: '#ffffff',
+      style: {
+        borderColor: '#3a8cc8',
+        borderWidth: 0.75,
+      },
+      headerStyle: {
+        background: '#103d6f',
+        color: '#f8d448',
+        bold: true,
+        fontSize: 8,
+        borderColor: '#3a8cc8',
+        borderWidth: 0.5,
+      },
+      columns: frembolCols,
+      subKey: 'sub',
+      strikeKey: 'struck',
+      rows: blanks,
+    }
+  }
   if (!data.items.length) return null
   const look = lookOf(section, theme)
   const size = look.fontSize ?? theme.fontSize
@@ -1046,6 +2066,55 @@ function itemsTable(
     }),
     'desc'
   )
+  if (theme.headerStyle === 'frembol') {
+    const frembolCols = [
+      { key: 'qty', label: 'CANT', width: 44, align: 'right' as const },
+      { key: 'desc', label: 'DESCRIPCIÓN', width: 'flex' as const },
+      { key: 'sub', label: 'OBSERVACIONES', width: 95 },
+      { key: 'price', label: 'PRECIO BS', width: 75, align: 'right' as const },
+      { key: 'total', label: 'TOTAL BS', width: 75, align: 'right' as const },
+    ]
+    let rows = (items?.rows || [])
+    if (rows.length < 5) {
+      const blanks = Array.from({ length: 5 - rows.length }, () => ({
+        n: '',
+        qty: '',
+        unit: '',
+        desc: '',
+        sub: '',
+        price: '',
+        total: '',
+        struck: '',
+      }))
+      rows = [...rows, ...blanks]
+    }
+    return {
+      kind: 'table',
+      id: section.id,
+      rowPadding: 3.5,
+      headerPadding: 4,
+      ruleWidth: 0.5,
+      rowBackground: '#ffffff',
+      style: {
+        borderColor: '#3a8cc8',
+        borderWidth: 0.75,
+      },
+      headerStyle: {
+        background: '#103d6f',
+        color: '#f8d448',
+        bold: true,
+        fontSize: 8,
+        borderColor: '#3a8cc8',
+        borderWidth: 0.5,
+      },
+      columns: frembolCols,
+      subKey: 'sub',
+      strikeKey: 'struck',
+      ...(items?.grouped ? { groupKey: GROUP_TITLE_KEY, emphasisKey: GROUP_SUBTOTAL_KEY } : {}),
+      rows,
+    }
+  }
+
   return {
     kind: 'table',
     id: section.id,
@@ -2063,6 +3132,26 @@ function footer(section: InvoiceSection, theme: DocumentTheme, data: DocumentDat
 
 /** The block for one section, or nothing when the section draws nothing. */
 function blockFor(section: InvoiceSection, theme: DocumentTheme, data: DocumentData): Node | null {
+  if (theme.headerStyle === 'frembol') {
+    switch (section.id) {
+      case 'header':
+        return frembolLetterhead(section, theme, data)
+      case 'header_image':
+      case 'slogan':
+      case 'document_title':
+      case 'vehicle':
+      case 'signature':
+      case 'parts_table':
+      case 'labor_table':
+        return null
+      case 'customer':
+        return frembolCustomerVehicleBlock(section, theme, data)
+      case 'totals':
+        return frembolTotalsBlock(section, theme, data)
+      case 'items_table':
+        return itemsTable(section, theme, data)
+    }
+  }
   switch (section.id) {
     case 'header':
       return letterhead(section, theme, data)
@@ -2178,7 +3267,15 @@ export function buildDocumentSpec(
           // to wherever the text above it happens to end.
           section.id === 'footer'
           ? { mode: 'pinned', edge: 'bottom' }
-          : { mode: 'flow', order: section.order, column: section.column })
+          : {
+              mode: 'flow',
+              order: section.order,
+              column:
+                theme.headerStyle === 'frembol' &&
+                (section.id === 'customer' || section.id === 'totals' || section.id === 'header')
+                  ? undefined
+                  : section.column,
+            })
 
     const look = lookOf(section, theme)
     // The room a section keeps around itself. Zero everywhere means none, and
@@ -2210,6 +3307,12 @@ export function buildDocumentSpec(
   }
 
   for (const section of ordered) {
+    if (theme.headerStyle === 'frembol') {
+      if (section.id === 'header' || section.id === 'items_table') {
+        push(section)
+        continue
+      }
+    }
     if (!section.visible) continue
     // A classic letterhead already prints the number and the dates, so the
     // title block would say them twice.

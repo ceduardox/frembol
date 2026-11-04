@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Incorniciato",
         "desc": "Fascia in alto e filetto sul lato sinistro"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Tre colonne con tornio, loghi ufficiali, data e tipo di ordine"
       }
     },
     "colors": "Colori",

@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Innrammet",
         "desc": "Bånd over toppen, stripe ned venstre side"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Tre kolonner med dreiebenk, offisielle logoer, dato og ordretype"
       }
     },
     "colors": "Farger",

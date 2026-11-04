@@ -2139,6 +2139,10 @@
       "framed": {
         "name": "Omlijst",
         "desc": "Band over de bovenkant, balk langs de linkerzijde"
+      },
+      "frembol": {
+        "name": "Frembol",
+        "desc": "Drie kolommen met draaibank, officiële logo's, datum en ordertype"
       }
     },
     "colors": "Kleuren",
