@@ -305,6 +305,7 @@ export function ServicePageClient({
   }
   const [showPdfPreview, setShowPdfPreview] = useState(false)
   const [showWorkOrderPreview, setShowWorkOrderPreview] = useState(false)
+  const [workOrderPreviewVersion, setWorkOrderPreviewVersion] = useState(0)
   const [showNotifyDialog, setShowNotifyDialog] = useState(false)
   const [notifyMessage, setNotifyMessage] = useState('')
 
@@ -493,6 +494,7 @@ export function ServicePageClient({
   // money bar and in the invoice's own download/email path.
   const previewWorkOrder = async () => {
     if (formState.hasUnsavedChanges) await actions.saveNow()
+    setWorkOrderPreviewVersion((value) => value + 1)
     setShowWorkOrderPreview(true)
   }
 
@@ -889,7 +891,7 @@ export function ServicePageClient({
         <PdfPreviewDialog
           open={showWorkOrderPreview}
           onOpenChange={setShowWorkOrderPreview}
-          url={`/api/protected/services/${record.id}/work-order-pdf`}
+          url={`/api/protected/services/${record.id}/work-order-pdf?v=${workOrderPreviewVersion}`}
         />
 
         <SendEmailDialog

@@ -14,7 +14,7 @@ import {
 } from '@/features/settings/Schema/invoiceLayoutSchema'
 
 const SEEDED_KEY = 'design.frembolSeeded'
-const SEEDED_VERSION = '3'
+const SEEDED_VERSION = '4'
 const DESIGN_NAME = 'Frembol'
 type DesignKind = 'invoice' | 'work_order'
 
@@ -106,6 +106,39 @@ export async function ensureFrembolWorkOrderDesign() {
       )
 
       await db.$transaction(operations)
+
+      // Version 4 also makes the seeded sheet the default for both documents.
+      // The preview resolves that saved design directly, so its hero image and
+      // colours do not depend on old settings copies.
+      const designs = await db.documentDesign.findMany({
+        where: {
+          organizationId,
+          name: DESIGN_NAME,
+          documentType: { in: ['invoice', 'work_order'] },
+        },
+        select: { id: true, documentType: true },
+      })
+      if (designs.length > 0) {
+        await db.$transaction(
+          designs.map((design) =>
+            db.appSetting.upsert({
+              where: {
+                organizationId_key: {
+                  organizationId,
+                  key: `${design.documentType}.activeDesign`,
+                },
+              },
+              create: {
+                userId,
+                organizationId,
+                key: `${design.documentType}.activeDesign`,
+                value: `design:${design.id}`,
+              },
+              update: { value: `design:${design.id}` },
+            })
+          )
+        )
+      }
 
       return { created: missing.length > 0 }
     },

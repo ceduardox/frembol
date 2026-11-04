@@ -40,6 +40,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="${result.filename}"`,
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
       },
     })
   } catch (error) {
