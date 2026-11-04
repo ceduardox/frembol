@@ -37,6 +37,7 @@ type QueueRow = {
 export function WashQueue({ initial }: { initial: QueueRow[] }) {
   const t = useTranslations('service.wash.queue')
   const tWash = useTranslations('service.wash')
+  const tVisit = useTranslations('service.visit')
   const router = useRouter()
   const { formatDateTime } = useFormatDate()
   const [rows, setRows] = useState(initial)
@@ -74,14 +75,14 @@ export function WashQueue({ initial }: { initial: QueueRow[] }) {
               <span className="text-xs text-muted-foreground">{stageRows.length}</span>
             </header>
             <div className="space-y-2">
-              {stageRows.map((row) => (
+              {stageRows.map((row) => {
+                const href = row.vehicle
+                  ? `/vehicles/${row.vehicle.id}/service/${row.id}`
+                  : `/sales/${row.id}`
+                return (
                 <div key={row.id} className="space-y-2 rounded-lg border bg-card p-2.5">
                   <Link
-                    href={
-                      row.vehicle
-                        ? `/vehicles/${row.vehicle.id}/service/${row.id}`
-                        : `/sales/${row.id}`
-                    }
+                    href={href}
                     className="block min-w-0 hover:underline"
                   >
                     <p className="truncate text-sm font-semibold">
@@ -98,6 +99,12 @@ export function WashQueue({ initial }: { initial: QueueRow[] }) {
                       {formatDateTime(row.promisedAt)}
                     </p>
                   )}
+                  <Link
+                    href={`${href}?addWork=1`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    + {tVisit('addService')}
+                  </Link>
                   <Select
                     value={row.washIntake?.queueStage ?? 'queued'}
                     onValueChange={(next) => void move(row.id, next)}
@@ -115,7 +122,8 @@ export function WashQueue({ initial }: { initial: QueueRow[] }) {
                     </SelectContent>
                   </Select>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         )

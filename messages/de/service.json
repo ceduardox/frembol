@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Arbeit hinzufügen",
     "tabs": {
       "details": "Details",
       "images": "Bilder",
@@ -315,8 +316,15 @@
     "close": "Schließen"
   },
   "share": {
-    "title": "Rechnung teilen",
+    "title": "Teilen",
     "description": "Generieren Sie einen öffentlichen Link, der es jedem ermöglicht, diese Rechnung anzusehen und herunterzuladen, ohne sich anzumelden.",
+    "invoiceTab": "Rechnung",
+    "workOrderTab": "Arbeitsauftrag",
+    "invoiceDocument": "Rechnung",
+    "workOrderDocument": "Arbeitsauftrag",
+    "copyMessage": "Hallo {name}, hier ist Ihr {document}: {link}",
+    "workOrderDescription": "Teilen Sie den Arbeitsauftrag mit Fotos und Videos.",
+    "workOrderNoNotify": "Der Arbeitsauftrag wird per Link oder WhatsApp geteilt.",
     "notifyTitle": "{name} benachrichtigen",
     "email": "E-Mail",
     "noEmail": "(keine E-Mail vorhanden)",
@@ -410,7 +418,7 @@
     "startTime": "Startzeit",
     "endTime": "Endzeit",
     "durationPresets": "Dauer",
-    "technician": "Techniker",
+    "technician": "Verantwortlicher Techniker",
     "selectTechnician": "Techniker auswählen...",
     "searchOrCreate": "Techniker suchen oder erstellen...",
     "createTechnician": "\"{name}\" erstellen",
@@ -449,7 +457,8 @@
     "findingSlot": "Termin wird gesucht…",
     "slotPicked": "Auf den nächsten freien Termin gelegt",
     "noSlotFound": "In den nächsten Wochen kein freier Termin gefunden",
-    "assignedTitle": "Zugewiesener Techniker",
+    "assignedTitle": "Verantwortlicher Techniker",
+    "collapse": "Planung einklappen",
     "boardLink": "Auftragsboard",
     "someoneElse": "Jemand anderes",
     "loadOf": "{booked} / {capacity} h",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Bei einem Anliegen ist die Behebung nicht bestätigt:} other {Bei # Anliegen ist die Behebung nicht bestätigt:}}",
     "unconfirmedProceed": "Trotzdem abschließen",
     "addMedia": "Medien hinzufügen",
+    "mediaShort": "Fotos",
     "mediaUploading": "Wird hochgeladen…",
     "mediaAdded": "{count, plural, one {# Datei hinzugefügt} other {# Dateien hinzugefügt}}",
     "mediaFailed": "{name} konnte nicht hochgeladen werden",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Vom Handy hinzufügen",
+    "buttonShort": "Handy",
     "dialogTitle": "Fotos und Dokumente per Handy hinzufügen",
     "dialogBody": "Fotos mit einem beliebigen Handy aufnehmen oder auswählen oder ein PDF teilen. Alles landet direkt in diesem Auftrag.",
     "expires": "Der Code gilt bis {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Zubehör / persönliche Gegenstände",
+    "noneSelected": "Nichts ausgewählt",
     "accessoryOptions": {
       "spareTire": "Ersatzreifen",
       "jack": "Wagenheber",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notizen und Kundenunterschrift",
     "saveNotes": "Notizen speichern"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Preis",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Bereich",
+    "dialogDescription": "Fügen Sie dieser Visite einen weiteren Bereich mit Preis, Techniker und Lieferung hinzu.",
+    "added": "Hinzugefügt: {area}",
+    "unassigned": "Nicht zugewiesen",
+    "noAssignable": "Keine aktiven Techniker. Aktiviere „Arbeitet an Autos“ für die Person im Team.",
+    "areaTechnician": "Bereichstechniker",
+    "responsibleHint": "Der verantwortliche Techniker des Besuchs ist {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

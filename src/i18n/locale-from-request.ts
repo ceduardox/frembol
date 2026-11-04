@@ -14,9 +14,9 @@ export function extractCustomerOrgParam(pathname: string | null | undefined): st
   const portalMatch = pathname.match(/^\/portal\/([^/]+)/)
   if (portalMatch) return portalMatch[1]
 
-  // /share/{invoice,quote,inspection,status-report,terms}/[orgId]/...
+  // /share/{invoice,work-order,quote,inspection,status-report,terms}/[orgId]/...
   const shareMatch = pathname.match(
-    /^\/share\/(?:invoice|quote|inspection|status-report|terms)\/([^/]+)/
+    /^\/share\/(?:invoice|work-order|quote|inspection|status-report|terms)\/([^/]+)/
   )
   if (shareMatch) return shareMatch[1]
 

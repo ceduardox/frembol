@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { add, format } from 'date-fns'
-import { type Locale, enUS } from 'date-fns/locale'
+import { de, enUS, es, fr, it, lt, nb, nl, pl, pt, ptBR, ru, tr, type Locale } from 'date-fns/locale'
+import { useLocale } from 'next-intl'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import * as React from 'react'
 import { useImperativeHandle, useRef } from 'react'
@@ -641,13 +642,30 @@ type DateTimePickerRef = {
   value?: Date
 } & Omit<HTMLButtonElement, 'value'>
 
+/** The calendar follows the app's language unless a caller names another. */
+const APP_DATE_LOCALES: Record<string, Locale> = {
+  de,
+  en: enUS,
+  es,
+  fr,
+  it,
+  lt,
+  nb,
+  nl,
+  pl,
+  'pt-BR': ptBR,
+  'pt-PT': pt,
+  ru,
+  tr,
+}
+
 const LocalDateTimePicker = React.forwardRef<
   Partial<DateTimePickerRef>,
   Omit<DateTimePickerProps, 'timeZone'>
 >(
   (
     {
-      locale = enUS,
+      locale: localeProp,
       defaultPopupValue = new Date(new Date().setHours(0, 0, 0, 0)),
       value,
       onChange,
@@ -663,6 +681,8 @@ const LocalDateTimePicker = React.forwardRef<
     },
     ref
   ) => {
+    const appLocale = useLocale()
+    const locale = localeProp ?? APP_DATE_LOCALES[appLocale] ?? enUS
     const [month, setMonth] = React.useState<Date>(value ?? defaultPopupValue)
     const buttonRef = useRef<HTMLButtonElement>(null)
     const [displayDate, setDisplayDate] = React.useState<Date | undefined>(value ?? undefined)

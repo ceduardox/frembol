@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Check, Copy, Link2, Loader2, Mail, MessageSquare } from 'lucide-react'
+import { Check, Copy, Link2, Loader2, Mail, MessageCircle, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { generatePublicLink, revokePublicLink } from '@/features/vehicles/Actions/serviceActions'
 import { sendInvoiceEmail } from '@/features/email/Actions/emailActions'
@@ -46,6 +46,7 @@ export function ShareDialog({
   emailEnabled = false,
 }: ShareDialogProps) {
   const t = useTranslations('service.share')
+  const [docType, setDocType] = useState<'invoice' | 'work_order'>('work_order')
   const [publicToken, setPublicToken] = useState<string | null>(initialToken)
   const [generatingLink, setGeneratingLink] = useState(false)
   const [revoking, setRevoking] = useState(false)
@@ -60,16 +61,27 @@ export function ShareDialog({
 
   const publicUrl =
     publicToken && organizationId
-      ? `${typeof window !== 'undefined' ? window.location.origin : ''}/share/invoice/${organizationId}/${publicToken}`
+      ? `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${docType === 'invoice' ? 'invoice' : 'work-order'}/${organizationId}/${publicToken}`
       : null
+
+  const docLabel = t(docType === 'invoice' ? 'invoiceDocument' : 'workOrderDocument')
+  const copyMessage = publicUrl
+    ? customer?.name
+      ? t('copyMessage', { name: customer.name, document: docLabel, link: publicUrl })
+      : publicUrl
+    : ''
+  const whatsappUrl = copyMessage
+    ? `https://wa.me/?text=${encodeURIComponent(copyMessage)}`
+    : undefined
 
   const handleGenerate = async () => {
     setGeneratingLink(true)
-    const result = await generatePublicLink(recordId)
+    const result = await generatePublicLink(recordId, docType)
     if (result.success && result.data) {
       setPublicToken(result.data.token)
-      // Handing over a link is a way of sending the invoice.
-      onSent?.()
+      // A work order is not the invoice: handing it over must not count as
+      // sending the job or prompt to close it.
+      if (docType === 'invoice') onSent?.()
     }
     setGeneratingLink(false)
   }
@@ -86,8 +98,8 @@ export function ShareDialog({
   }
 
   const handleCopy = () => {
-    if (publicUrl) {
-      navigator.clipboard.writeText(publicUrl)
+    if (copyMessage) {
+      navigator.clipboard.writeText(copyMessage)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -167,7 +179,37 @@ export function ShareDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t('description')}</p>
+          <p className="text-sm text-muted-foreground">
+            {docType === 'invoice' ? t('description') : t('workOrderDescription')}
+          </p>
+
+          <div className="grid grid-cols-2 gap-1 rounded-lg border p-1">
+            <button
+              type="button"
+              aria-pressed={docType === 'work_order'}
+              onClick={() => setDocType('work_order')}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                docType === 'work_order'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t('workOrderTab')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={docType === 'invoice'}
+              onClick={() => setDocType('invoice')}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                docType === 'invoice'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {t('invoiceTab')}
+            </button>
+          </div>
+
           {publicUrl ? (
             <>
               <div className="flex items-center gap-2">
@@ -186,8 +228,17 @@ export function ShareDialog({
                 </Button>
               </div>
 
+              {whatsappUrl && (
+                <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </Button>
+              )}
+
               {/* Notify customer */}
-              {customer && (emailEnabled || smsEnabled) && (
+              {docType === 'invoice' && customer && (emailEnabled || smsEnabled) && (
                 <div className="space-y-3 rounded-lg border p-3">
                   <p className="text-sm font-medium">{t('notifyTitle', { name: customer.name })}</p>
                   <div className="space-y-2">
@@ -250,6 +301,10 @@ export function ShareDialog({
                     {t('sendNotification')}
                   </Button>
                 </div>
+              )}
+
+              {docType === 'work_order' && customer && (
+                <p className="text-xs text-muted-foreground">{t('workOrderNoNotify')}</p>
               )}
 
               <Button

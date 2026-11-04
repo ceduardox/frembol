@@ -127,7 +127,10 @@ function resolveLayout(input: WorkOrderPrintInput): InvoiceLayoutConfig {
     ? mergeWithDefaults({ ...saved, documentType: 'work_order' })
     : getDefaultLayout('work_order')
 
-  let sections = layout.sections
+  // The counter's "what happened / why / what was done / did it work" story is
+  // kept on the screen for the workshop; it is not part of the sheet the
+  // customer signs, so it never reaches the printed work order.
+  let sections = layout.sections.filter((section) => section.id !== 'concerns')
   const assigned = new Set(
     sections.flatMap((s) => (s.fields ?? []).filter((f) => isCustomFieldId(f.id)).map((f) => f.id))
   )
@@ -154,7 +157,11 @@ export function workOrderQrWanted(layout: Pick<InvoiceLayoutConfig, 'sections'>)
 
 export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpec {
   const { workshop, invoiceSettings, template, job } = input
-  const data = { ...input.data, laborItems: documentLaborLines(input.data.laborItems) }
+  const data = {
+    ...input.data,
+    laborItems: documentLaborLines(input.data.laborItems),
+    heroImageUrl: template?.heroImageUrl,
+  }
   const labels = input.labels ?? {}
   const L = (key: string, fallback: string) => labels[key] || fallback
 
@@ -201,7 +208,6 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`
     : ''
-  const tech = data.technician?.name || data.techName || ''
   const unit = invoiceSettings?.unitSystem === 'metric' ? L('km', 'km') : L('mi', 'mi')
 
   const fields: Record<string, string> = {
@@ -224,12 +230,12 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
       : '',
     service_title: data.title || '',
     service_type: data.vehicle ? fillTemplate(L('type', 'Type: {type}'), { type: data.type }) : '',
-    tech_name: tech ? fillTemplate(L('tech', 'Tech: {tech}'), { tech }) : '',
+    tech_name: '',
     // The facts of the job, each already worded as its own line.
     status: job.statusLabel
       ? fillTemplate(L('status', 'Status: {status}'), { status: job.statusLabel })
       : '',
-    technician: tech ? fillTemplate(L('technician', 'Technician: {tech}'), { tech }) : '',
+    technician: '',
     scheduled: data.startDateTime
       ? fillTemplate(L('scheduled', 'Scheduled: {date}'), { date: moment(data.startDateTime) })
       : '',
@@ -405,6 +411,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
   const documentData: DocumentData = {
     fields,
     logoUrl: input.logoDataUri,
+    heroImageUrl: data.heroImageUrl,
     labels,
     meta: {
       title: L('title', 'WORK ORDER'),

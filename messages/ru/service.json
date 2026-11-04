@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Добавить работу",
     "tabs": {
       "details": "Детали",
       "images": "Изображения",
@@ -315,8 +316,15 @@
     "close": "Закрыть"
   },
   "share": {
-    "title": "Поделиться счётом",
+    "title": "Поделиться",
     "description": "Создайте публичную ссылку, по которой любой сможет просмотреть и скачать этот счёт без входа в систему.",
+    "invoiceTab": "Счёт",
+    "workOrderTab": "Заказ-наряд",
+    "invoiceDocument": "счёт",
+    "workOrderDocument": "заказ-наряд",
+    "copyMessage": "Здравствуйте, {name}, вот ваш {document}: {link}",
+    "workOrderDescription": "Поделитесь заказ-нарядом с фотографиями и видео.",
+    "workOrderNoNotify": "Заказ-наряд можно отправить ссылкой или через WhatsApp.",
     "notifyTitle": "Уведомить {name}",
     "email": "Эл. почта",
     "noEmail": "(эл. почта не указана)",
@@ -410,7 +418,7 @@
     "startTime": "Время начала",
     "endTime": "Время окончания",
     "durationPresets": "Длительность",
-    "technician": "Механик",
+    "technician": "Ответственный мастер",
     "selectTechnician": "Выберите механика...",
     "searchOrCreate": "Поиск или создание механика...",
     "createTechnician": "Создать \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Поиск времени…",
     "slotPicked": "Назначено на ближайшее свободное время",
     "noSlotFound": "В ближайшие недели свободного времени не найдено",
-    "assignedTitle": "Назначенный механик",
+    "assignedTitle": "Ответственный мастер",
+    "collapse": "Свернуть планирование",
     "boardLink": "Доска работ",
     "someoneElse": "Кто-то другой",
     "loadOf": "{booked} / {capacity} ч",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, =1 {Один пункт не проверен после ремонта:} one {# пункт не проверен после ремонта:} few {# пункта не проверены после ремонта:} many {# пунктов не проверены после ремонта:} other {# пункта не проверены после ремонта:}}",
     "unconfirmedProceed": "Всё равно завершить",
     "addMedia": "Добавить медиа",
+    "mediaShort": "Фото",
     "mediaUploading": "Загрузка…",
     "mediaAdded": "{count, plural, one {Добавлен # файл} few {Добавлено # файла} many {Добавлено # файлов} other {Добавлено # файла}}",
     "mediaFailed": "Не удалось загрузить {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Добавить с телефона",
+    "buttonShort": "Телефон",
     "dialogTitle": "Добавить фото и документы с телефона",
     "dialogBody": "Снимайте или выбирайте фото или отправьте PDF с любого телефона. Всё сразу попадает в этот заказ-наряд.",
     "expires": "Код действует до {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Аксессуары / личные вещи",
+    "noneSelected": "Ничего не выбрано",
     "accessoryOptions": {
       "spareTire": "Запасное колесо",
       "jack": "Домкрат",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Заметки и подпись клиента",
     "saveNotes": "Сохранить заметки"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Цена",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Область",
+    "dialogDescription": "Добавьте ещё одну область к этому визиту с ценой, мастером и сроком.",
+    "added": "Добавлено: {area}",
+    "unassigned": "Не назначен",
+    "noAssignable": "Нет активных мастеров. Включите «Работает с автомобилями» для этого человека в команде.",
+    "areaTechnician": "Мастер участка",
+    "responsibleHint": "Ответственный мастер визита — {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

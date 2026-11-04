@@ -276,6 +276,18 @@ export async function createDraftRecord(
       type: 'maintenance',
       jobKind: opts.jobKind ?? 'vehicle',
       status: 'pending',
+      // A visit is born with the task of the area it was opened for. More
+      // areas are added later from the order with "Agregar servicio".
+      tasks: {
+        create: {
+          area: opts.jobKind ?? 'vehicle',
+          status: 'pending',
+          sortOrder: 0,
+          ...(resolvedTechId
+            ? { technicians: { create: [{ technician: { connect: { id: resolvedTechId } } }] } }
+            : {}),
+        },
+      },
       shopName,
       techName,
       invoiceNumber,

@@ -70,6 +70,7 @@ import { useLiveRecord } from '@/features/realtime/hooks'
 import { PresenceChips } from '@/features/realtime/Components/PresenceChips'
 import { ModernDetails } from './modern/ModernDetails'
 import { ModernHero } from './modern/ModernHero'
+import { AddVisitWorkDialog } from './AddVisitWorkDialog'
 import mobileStyles from './modern/mobile-work-order.module.css'
 import { lineTotal, resolvePartPrice } from '@/features/inventory/Lib/partPricing'
 
@@ -149,6 +150,13 @@ export function ServicePageClient({
   // Classic until somebody asks for the overhauled page; the server already
   // read this browser's choice, so the first paint is the right one.
   const [layout, setLayout] = useState<WorkOrderLayout>(initialLayout)
+  const [showAddWork, setShowAddWork] = useState(false)
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('addWork') === '1') {
+      setShowAddWork(true)
+    }
+  }, [])
 
   // The overhauled page edits the title in its header, outside the form, so
   // the page holds it and the form carries it as a hidden field. It follows
@@ -480,6 +488,14 @@ export function ServicePageClient({
     setShowPdfPreview(true)
   }
 
+  // The sheet the customer signs is the work order, not the bill. The eye in
+  // the header has to open that one; the invoice preview still sits on the
+  // money bar and in the invoice's own download/email path.
+  const previewWorkOrder = async () => {
+    if (formState.hasUnsavedChanges) await actions.saveNow()
+    setShowWorkOrderPreview(true)
+  }
+
   const shareInvoice = async () => {
     if (!(await checkDates())) return
     if (formState.hasUnsavedChanges) await actions.saveNow()
@@ -524,12 +540,9 @@ export function ServicePageClient({
       if (formState.hasUnsavedChanges) await actions.saveNow()
       actions.handleDownloadPDF()
     },
-    onPreviewPDF: previewInvoice,
+    onPreviewPDF: previewWorkOrder,
     // The sheet says the job as it stands, so what has been typed goes in first.
-    onPrintWorkOrder: async () => {
-      if (formState.hasUnsavedChanges) await actions.saveNow()
-      setShowWorkOrderPreview(true)
-    },
+    onPrintWorkOrder: previewWorkOrder,
     onDelete: actions.handleDelete,
     onShowEmail: async () => {
       if (!(await checkDates())) return
@@ -544,6 +557,7 @@ export function ServicePageClient({
     ) : undefined,
     layout,
     onSwitchLayout: () => void switchLayout(modern ? 'classic' : 'modern', 'menu'),
+    onAddWork: lockState.locked ? undefined : () => setShowAddWork(true),
   }
 
   // One set of props for each column, handed to whichever layout is showing:
@@ -727,9 +741,6 @@ export function ServicePageClient({
                   initialTab: isFileTab || storedTab === 'statusReports' ? storedTab : undefined,
                   statusReports: { count: statusReports.length, list: statusReportList },
                 }}
-                mobileHeaderActions={
-                  <ServiceHeaderActions showSave={false} {...headerActionProps} />
-                }
                 saving={formState.loading}
                 onPreviewInvoice={previewInvoice}
                 onSendToCustomer={shareInvoice}
@@ -740,6 +751,7 @@ export function ServicePageClient({
                 onAddFindingForConcern={(concernId) =>
                   obsControlsRef.current?.onAddFinding(concernId)
                 }
+                onAddWork={lockState.locked ? undefined : () => setShowAddWork(true)}
                 scrollToFiles={isFileTab || storedTab === 'statusReports'}
               />
             ) : (
@@ -847,6 +859,18 @@ export function ServicePageClient({
           onOpenChange={formState.setShowBarcodeScanner}
           onScan={handleBarcodeScan}
           title={t('parts.scanTitle')}
+        />
+
+        <AddVisitWorkDialog
+          open={showAddWork}
+          onOpenChange={setShowAddWork}
+          serviceRecordId={record.id}
+          existingAreas={(record.tasks ?? []).map((task) => task.area)}
+          technicians={boardTechnicians}
+          leadTechnicianId={record.technicianId}
+          leadTechnicianName={record.techName}
+          currencyCode={currencyCode}
+          locked={lockState.locked}
         />
 
         <ImageCarousel

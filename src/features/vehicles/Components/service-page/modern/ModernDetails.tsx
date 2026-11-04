@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,6 +26,7 @@ import { ServiceFindingsSection } from '../../service-detail/ServiceFindingsSect
 import { paymentStatusColors, paymentStatusLabels } from '../../service-detail/types'
 import { ConcernsSection } from '../../service-edit/ConcernsSection'
 import { WashIntakeCard } from '../../service-edit/WashIntakeCard'
+import { VisitTeamCard } from './VisitTeamCard'
 import { PartIntakeCard } from '../../service-edit/PartIntakeCard'
 import { PartIntakeSignaturesCard } from '../../service-edit/PartIntakeSignaturesCard'
 import { WashSignaturesCard } from '../../service-edit/WashSignaturesCard'
@@ -81,8 +82,9 @@ export interface ModernDetailsProps extends LeftProps, Omit<RightProps, keyof Le
   dictationMode?: 'ai' | 'choice'
   /** Opens the finding form already pointed at one concern. */
   onAddFindingForConcern?: (concernId: string) => void
+  /** Opens the guided "add another area" dialog. */
+  onAddWork?: () => void
   files: Omit<ComponentProps<typeof FilesMediaCard>, 'serviceRecordId' | 'customerId'>
-  mobileHeaderActions: ReactNode
   saving: boolean
   onPreviewInvoice: () => void
   onSendToCustomer: () => void
@@ -191,12 +193,18 @@ export function ModernDetails(props: ModernDetailsProps) {
   const router = useRouter()
 
   const customer = record.customer ?? record.vehicle?.customer ?? null
-  // A record with no vehicle is a part dropped off (brakes, clutch, counter
-  // sale). Everything that asks about the car has no answer here.
-  const washMode = record.jobKind === 'wash'
-  const brakesMode = record.jobKind === 'brakes'
-  const partsSaleMode = record.jobKind === 'parts'
-  const partMode = brakesMode || partsSaleMode || !vehicleId
+  // A visit carries the areas it was opened for, and can grow later. The
+  // record's jobKind is still the first area; everything drawn below reads the
+  // tasks so a wash can become a wash + brakes without becoming two orders.
+  const tasks = record.tasks ?? []
+  const taskAreas = new Set(tasks.map((task) => task.area))
+  if (taskAreas.size === 0) taskAreas.add(record.jobKind ?? 'vehicle')
+  const washMode = taskAreas.has('wash')
+  const brakesMode = taskAreas.has('brakes')
+  const partsSaleMode = taskAreas.has('parts')
+  const hasMechanics = taskAreas.has('vehicle')
+  const pureWash = washMode && !brakesMode && !partsSaleMode && !hasMechanics
+  const partMode = !vehicleId && (brakesMode || partsSaleMode)
 
   // Closing a job with a concern nobody has confirmed as fixed is how a car
   // comes back. It is asked about, not refused: a routine service has nothing
@@ -350,7 +358,7 @@ export function ModernDetails(props: ModernDetailsProps) {
               value={formState.initialData.serviceDate || new Date().toISOString().split('T')[0]}
             />
             {/* Outside the lock: a locked invoice still moves along. */}
-            {!(partMode || washMode) && (
+            {!(partMode || pureWash) && (
             <div className="hidden md:block">
               <StatusStepper
                 status={formState.status}
@@ -373,7 +381,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                     locked invoice; the card disables its own fields. */}
 
                 <nav aria-label={t('mobileWork.work')} className="grid grid-cols-2 gap-2.5 md:hidden">
-                  {!partMode && !washMode && (
+                  {!partMode && !pureWash && (
                     <MobileActionTile
                       icon={<ClipboardPlus className="size-5" />}
                       title={t('mobileWork.finding')}
@@ -408,8 +416,8 @@ export function ModernDetails(props: ModernDetailsProps) {
                   />
                   <MobileActionTile
                     icon={<Wrench className="size-5" />}
-                    title={washMode ? t('mobileWork.washService') : t('mobileWork.labor')}
-                    hint={washMode ? t('mobileWork.washServiceHint') : t('mobileWork.laborHint')}
+                    title={pureWash ? t('mobileWork.washService') : t('mobileWork.labor')}
+                    hint={pureWash ? t('mobileWork.washServiceHint') : t('mobileWork.laborHint')}
                     className="border-emerald-500/30 bg-emerald-500/5"
                     iconClassName="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                     disabled={locked}
@@ -417,13 +425,13 @@ export function ModernDetails(props: ModernDetailsProps) {
                       document
                         .getElementById('job-labor')
                         ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
-                      const selector = washMode
+                      const selector = pureWash
                         ? '#job-labor [data-add-service]'
                         : '#job-labor [data-add-row]'
                       document.querySelector<HTMLButtonElement>(selector)?.click()
                     }}
                   />
-                  {!brakesMode && !washMode && (
+                  {(hasMechanics || (!brakesMode && !pureWash)) && (
                     <MobileActionTile
                       icon={<PackagePlus className="size-5" />}
                       title={t('mobileWork.parts')}
@@ -463,8 +471,15 @@ export function ModernDetails(props: ModernDetailsProps) {
                     locked={locked}
                   />
                 )}
+                <VisitTeamCard
+                  serviceRecordId={record.id}
+                  tasks={tasks}
+                  technicians={props.boardTechnicians}
+                  locked={locked}
+                  onAddWork={props.onAddWork}
+                />
                 <Lockable locked={locked}>
-                  {!washMode && !partsSaleMode && (
+                  {!pureWash && !partsSaleMode && (
                   <ConcernsSection
                     concerns={formState.concerns}
                     setConcerns={formState.setConcerns}
@@ -480,7 +495,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                   />
                   )}
 
-                  {!washMode && vehicleId && (
+                  {!pureWash && vehicleId && (
                     <ServiceFindingsSection
                       vehicleId={vehicleId}
                       serviceRecordId={record.id}
@@ -490,8 +505,8 @@ export function ModernDetails(props: ModernDetailsProps) {
                     />
                   )}
 
-                  {!washMode && storeTires}
-                  {!washMode && tireSet && (
+                  {!pureWash && storeTires}
+                  {!pureWash && tireSet && (
                     <TireSetBanner
                       set={tireSet}
                       serviceRecordId={record.id}
@@ -509,17 +524,17 @@ export function ModernDetails(props: ModernDetailsProps) {
                       defaultLaborRate={props.defaultLaborRate}
                       hasPresets={props.hasPresets}
                       onOpenPresets={props.onOpenPresets}
-                      title={washMode ? t('labor.washTitle') : brakesMode ? t('labor.partTitle') : undefined}
-                      onAddFinding={partMode || washMode ? undefined : props.onAddFinding}
+                      title={pureWash ? t('labor.washTitle') : brakesMode && !hasMechanics ? t('labor.partTitle') : undefined}
+                      onAddFinding={partMode || pureWash ? undefined : props.onAddFinding}
                       openObservationsCount={
-                        partMode || washMode ? 0 : props.openObservationsCount
+                        partMode || pureWash ? 0 : props.openObservationsCount
                       }
                       onShowExistingObservations={
-                        partMode || washMode ? undefined : props.onShowExistingObservations
+                        partMode || pureWash ? undefined : props.onShowExistingObservations
                       }
                     />
                   </div>
-                  {!brakesMode && !washMode && (
+                  {(hasMechanics || (!brakesMode && !pureWash)) && (
                     <div id="job-parts" className="min-w-0">
                       <PartsEditor
                         partItems={formState.partItems}
@@ -556,7 +571,6 @@ export function ModernDetails(props: ModernDetailsProps) {
                   serviceRecordId={record.id}
                   aiEnabled={props.aiEnabled}
                   publicLocked={locked}
-                  collapsedByDefault={partMode || washMode}
                 />
                 <MobileDisclosure
                   title={partMode ? t('basicInfo.customerInfo') : t('mobileWork.vehicleDetails')}
@@ -600,7 +614,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                 payments and the sharing save through their own actions and stay
                 usable, as src/lib/document-lock.ts intends. */}
               <aside data-testid="service-sidebar" className="flex min-w-0 flex-col gap-3">
-                {!washMode && (brakesMode || !partMode) && (
+                {!pureWash && (brakesMode || hasMechanics || !partMode) && (
                 <ScheduleTimesSection
                   serviceRecordId={record.id}
                   technicians={props.boardTechnicians}
@@ -622,7 +636,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                     and the parts: it says how the work is going, and the two
                     cards it sat between are the invoice being built. "Add as
                     labour" still puts its line in the labour card. */}
-                {!washMode && (
+                {!pureWash && (
                 <JobClockSection
                   serviceRecordId={record.id}
                   initial={props.jobClock}
@@ -645,7 +659,6 @@ export function ModernDetails(props: ModernDetailsProps) {
                 )}
 
                 <MobileDisclosure title={t('mobileWork.administration')}>
-                  <div className="md:hidden">{props.mobileHeaderActions}</div>
                   <AppCard
                     icon={Receipt}
                     title={t('modern.invoiceTitle')}
@@ -724,7 +737,7 @@ export function ModernDetails(props: ModernDetailsProps) {
 
                   {/* Under the invoice, not over it: the warranty is set once, the
                     invoice card is used on every job. */}
-                  {!washMode && (
+                  {!pureWash && (
                   <Lockable locked={locked} label={lockedLabel}>
                     <WarrantySection
                       value={formState.warranty}
@@ -805,7 +818,7 @@ export function ModernDetails(props: ModernDetailsProps) {
         saving={props.saving}
         dirty={formState.hasUnsavedChanges}
         locked={locked}
-        hideSystemStatuses={partMode || washMode}
+        hideSystemStatuses={partMode || pureWash}
       />
       <MoneyBar
         total={formState.displayTotal}

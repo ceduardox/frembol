@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Dodaj pracę",
     "tabs": {
       "details": "Szczegóły",
       "images": "Obrazy",
@@ -315,8 +316,15 @@
     "close": "Zamknij"
   },
   "share": {
-    "title": "Udostępnij Fakturę",
+    "title": "Udostępnij",
     "description": "Wygeneruj publiczny link, który pozwala każdemu wyświetlać i pobierać tę fakturę bez logowania.",
+    "invoiceTab": "Faktura",
+    "workOrderTab": "Zlecenie",
+    "invoiceDocument": "fakturę",
+    "workOrderDocument": "zlecenie",
+    "copyMessage": "Dzień dobry {name}, oto {document}: {link}",
+    "workOrderDescription": "Udostępnij zlecenie wraz ze zdjęciami i filmami.",
+    "workOrderNoNotify": "Zlecenie udostępnia się linkiem lub przez WhatsApp.",
     "notifyTitle": "Powiadom {name}",
     "email": "Email",
     "noEmail": "(brak adresu email)",
@@ -410,7 +418,7 @@
     "startTime": "Czas rozpoczęcia",
     "endTime": "Czas zakończenia",
     "durationPresets": "Czas trwania",
-    "technician": "Technik",
+    "technician": "Technik odpowiedzialny",
     "selectTechnician": "Wybierz technika...",
     "searchOrCreate": "Szukaj lub utwórz technika...",
     "createTechnician": "Utwórz \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Szukanie terminu…",
     "slotPicked": "Zaplanowano na najbliższy wolny termin",
     "noSlotFound": "Nie znaleziono wolnego terminu w najbliższych tygodniach",
-    "assignedTitle": "Przypisany technik",
+    "assignedTitle": "Technik odpowiedzialny",
+    "collapse": "Zwiń planowanie",
     "boardLink": "Tablica zleceń",
     "someoneElse": "Ktoś inny",
     "loadOf": "{booked} / {capacity} h",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Jedno zgłoszenie nie zostało zweryfikowane jako naprawione:} few {# zgłoszenia nie zostały zweryfikowane jako naprawione:} many {# zgłoszeń nie zostało zweryfikowanych jako naprawione:} other {# zgłoszenia nie zostało zweryfikowanych jako naprawione:}}",
     "unconfirmedProceed": "Zakończ mimo to",
     "addMedia": "Dodaj multimedia",
+    "mediaShort": "Zdjęcia",
     "mediaUploading": "Przesyłanie…",
     "mediaAdded": "{count, plural, one {Dodano # plik} few {Dodano # pliki} many {Dodano # plików} other {Dodano # pliku}}",
     "mediaFailed": "Nie udało się przesłać {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Dodaj z telefonu",
+    "buttonShort": "Telefon",
     "dialogTitle": "Dodaj zdjęcia i dokumenty z telefonu",
     "dialogBody": "Zrób lub wybierz zdjęcia albo udostępnij PDF na dowolnym telefonie. Wszystko trafia prosto do tego zlecenia.",
     "expires": "Kod działa do {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Akcesoria / rzeczy osobiste",
+    "noneSelected": "Nie wybrano",
     "accessoryOptions": {
       "spareTire": "Koło zapasowe",
       "jack": "Podnośnik",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notatki i podpis klienta",
     "saveNotes": "Zapisz notatki"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Cena",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Obszar",
+    "dialogDescription": "Dodaj kolejny obszar do tej wizyty z ceną, technikiem i dostawą.",
+    "added": "Dodano: {area}",
+    "unassigned": "Nieprzypisany",
+    "noAssignable": "Brak aktywnych techników. Włącz „Pracuje przy samochodach” dla tej osoby w Zespole.",
+    "areaTechnician": "Technik obszaru",
+    "responsibleHint": "Technikiem odpowiedzialnym za wizytę jest {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Check, Droplets, Loader2, Save } from 'lucide-react'
+import { Check, ChevronDown, Droplets, Loader2, Save } from 'lucide-react'
 import { AppCard } from '@/components/app-card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -102,6 +102,58 @@ function CheckRow({
   )
 }
 
+function Disclosure({
+  id,
+  title,
+  summary,
+  open,
+  active,
+  onToggle,
+  children,
+}: {
+  id: string
+  title: string
+  summary: string
+  open: boolean
+  active?: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+        className={cn(
+          'flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors',
+          active
+            ? 'border-primary/30 bg-primary/5 hover:bg-primary/10'
+            : 'border-card-edge bg-background hover:bg-muted/40'
+        )}
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{title}</span>
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{summary}</span>
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+            open && 'rotate-180'
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <div id={id} className="space-y-2 pt-2">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function WashIntakeCard({
   serviceRecordId,
   initial,
@@ -149,8 +201,10 @@ export function WashIntakeCard({
   const [fuelLevel, setFuelLevel] = useState(initial?.fuelLevel ?? '')
   const [accessories, setAccessories] = useState(stringList(initial?.accessories))
   const [accessoriesOther, setAccessoriesOther] = useState(initial?.accessoriesOther ?? '')
+  const [accessoriesOpen, setAccessoriesOpen] = useState(false)
   const [conditions, setConditions] = useState(stringList(initial?.conditions))
   const [conditionsOther, setConditionsOther] = useState(initial?.conditionsOther ?? '')
+  const [conditionsOpen, setConditionsOpen] = useState(false)
   const [arrivalState, setArrivalState] = useState(initial?.arrivalState ?? '')
   const [scratches, setScratches] = useState(initial?.scratches ?? '')
   const [authorizedExtra, setAuthorizedExtra] = useState(initial?.authorizedExtra ?? '')
@@ -293,47 +347,81 @@ export function WashIntakeCard({
         </div>
 
         <div className="space-y-2">
-          <Label>{t('accessories')}</Label>
-          <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
-            {ACCESSORIES.map((code) => (
-              <CheckRow
-                key={code}
-                checked={accessories.includes(code)}
-                disabled={locked}
-                onChange={(on) => setAccessories((prev) => toggle(prev, code, on))}
-                label={t(`accessoryOptions.${code}`)}
-              />
-            ))}
-          </div>
-          <Input
-            value={accessoriesOther}
-            onChange={(e) => setAccessoriesOther(e.target.value)}
-            placeholder={t('otherPlaceholder')}
-            disabled={locked}
-            className="h-10"
-          />
+          <Disclosure
+            id="wash-accessories"
+            title={t('accessories')}
+            summary={
+              [
+                ...ACCESSORIES.filter((code) => accessories.includes(code)).map((code) =>
+                  t(`accessoryOptions.${code}`)
+                ),
+                accessoriesOther.trim(),
+              ]
+                .filter(Boolean)
+                .join(', ') || t('noneSelected')
+            }
+            open={accessoriesOpen}
+            active={accessories.length > 0}
+            onToggle={() => setAccessoriesOpen((value) => !value)}
+          >
+            <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+              {ACCESSORIES.map((code) => (
+                <CheckRow
+                  key={code}
+                  checked={accessories.includes(code)}
+                  disabled={locked}
+                  onChange={(on) => setAccessories((prev) => toggle(prev, code, on))}
+                  label={t(`accessoryOptions.${code}`)}
+                />
+              ))}
+            </div>
+            <Input
+              value={accessoriesOther}
+              onChange={(e) => setAccessoriesOther(e.target.value)}
+              placeholder={t('otherPlaceholder')}
+              disabled={locked}
+              className="h-10"
+            />
+          </Disclosure>
         </div>
 
         <div className="space-y-2">
-          <Label>{t('conditions')}</Label>
-          <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
-            {CONDITIONS.map((code) => (
-              <CheckRow
-                key={code}
-                checked={conditions.includes(code)}
-                disabled={locked}
-                onChange={(on) => setConditions((prev) => toggle(prev, code, on))}
-                label={t(`conditionOptions.${code}`)}
-              />
-            ))}
-          </div>
-          <Input
-            value={conditionsOther}
-            onChange={(e) => setConditionsOther(e.target.value)}
-            placeholder={t('otherPlaceholder')}
-            disabled={locked}
-            className="h-10"
-          />
+          <Disclosure
+            id="wash-conditions"
+            title={t('conditions')}
+            summary={
+              [
+                ...CONDITIONS.filter((code) => conditions.includes(code)).map((code) =>
+                  t(`conditionOptions.${code}`)
+                ),
+                conditionsOther.trim(),
+              ]
+                .filter(Boolean)
+                .join(', ') || t('noneSelected')
+            }
+            open={conditionsOpen}
+            active={conditions.length > 0}
+            onToggle={() => setConditionsOpen((value) => !value)}
+          >
+            <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+              {CONDITIONS.map((code) => (
+                <CheckRow
+                  key={code}
+                  checked={conditions.includes(code)}
+                  disabled={locked}
+                  onChange={(on) => setConditions((prev) => toggle(prev, code, on))}
+                  label={t(`conditionOptions.${code}`)}
+                />
+              ))}
+            </div>
+            <Input
+              value={conditionsOther}
+              onChange={(e) => setConditionsOther(e.target.value)}
+              placeholder={t('otherPlaceholder')}
+              disabled={locked}
+              className="h-10"
+            />
+          </Disclosure>
         </div>
 
         <div className="space-y-2">

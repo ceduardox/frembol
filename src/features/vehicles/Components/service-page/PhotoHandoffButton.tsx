@@ -172,12 +172,20 @@ export function PhotoHandoffButton({
         type="button"
         disabled={disabled}
         title={disabled ? disabledReason : undefined}
+        aria-label={t(purpose === 'dropoff' ? 'dropoff.button' : 'button')}
         onClick={() => setOpen(true)}
         data-testid="photo-handoff-open"
-        className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
+        className="flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground sm:text-xs"
       >
         <Smartphone className="h-3 w-3" aria-hidden="true" />
-        {t(purpose === 'dropoff' ? 'dropoff.button' : 'button')}
+        {compact ? (
+          <>
+            <span className="sm:hidden">{t('buttonShort')}</span>
+            <span className="hidden sm:inline">{t(purpose === 'dropoff' ? 'dropoff.button' : 'button')}</span>
+          </>
+        ) : (
+          t(purpose === 'dropoff' ? 'dropoff.button' : 'button')
+        )}
       </button>
     ) : (
       <Button

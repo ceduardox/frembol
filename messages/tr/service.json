@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "İş ekle",
     "tabs": {
       "details": "Ayrıntılar",
       "images": "Resimler",
@@ -315,8 +316,15 @@
     "close": "Kapat"
   },
   "share": {
-    "title": "Faturayı Paylaş",
+    "title": "Paylaş",
     "description": "Herkesin oturum açmadan bu faturayı görüntülemesine ve indirmesine izin veren herkese açık bir bağlantı oluştur.",
+    "invoiceTab": "Fatura",
+    "workOrderTab": "İş emri",
+    "invoiceDocument": "fatura",
+    "workOrderDocument": "iş emri",
+    "copyMessage": "Merhaba {name}, işte {document}: {link}",
+    "workOrderDescription": "İş emrini fotoğraflar ve videolarla paylaşın.",
+    "workOrderNoNotify": "İş emri bağlantı veya WhatsApp ile paylaşılır.",
     "notifyTitle": "{name} Bilgilendir",
     "email": "E-posta",
     "noEmail": "(dosyada e-posta yok)",
@@ -410,7 +418,7 @@
     "startTime": "Başlangıç Saati",
     "endTime": "Bitiş Saati",
     "durationPresets": "Süre",
-    "technician": "Teknisyen",
+    "technician": "Sorumlu teknisyen",
     "selectTechnician": "Teknisyen seçin...",
     "searchOrCreate": "Teknisyen ara veya oluştur...",
     "createTechnician": "\"{name}\" oluştur",
@@ -449,7 +457,8 @@
     "findingSlot": "Saat aranıyor…",
     "slotPicked": "Sıradaki boş saate alındı",
     "noSlotFound": "Önümüzdeki haftalarda boş saat bulunamadı",
-    "assignedTitle": "Atanan teknisyen",
+    "assignedTitle": "Sorumlu teknisyen",
+    "collapse": "Planlamayı daralt",
     "boardLink": "İş panosu",
     "someoneElse": "Başka biri",
     "loadOf": "{booked} / {capacity} sa",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Bir maddenin giderildiği doğrulanmadı:} other {# maddenin giderildiği doğrulanmadı:}}",
     "unconfirmedProceed": "Yine de tamamla",
     "addMedia": "Medya ekle",
+    "mediaShort": "Fotoğraflar",
     "mediaUploading": "Yükleniyor…",
     "mediaAdded": "{count, plural, one {# dosya eklendi} other {# dosya eklendi}}",
     "mediaFailed": "{name} yüklenemedi",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Telefondan ekle",
+    "buttonShort": "Telefon",
     "dialogTitle": "Telefondan fotoğraf ve belge ekleyin",
     "dialogBody": "Herhangi bir telefonla fotoğraf çekin, seçin veya bir PDF paylaşın. Her şey doğrudan bu iş emrine eklenir.",
     "expires": "Kod {time} saatine kadar geçerli.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Aksesuarlar / kişisel eşyalar",
+    "noneSelected": "Hiçbiri seçilmedi",
     "accessoryOptions": {
       "spareTire": "Yedek lastik",
       "jack": "Kriko",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notlar ve müşteri imzası",
     "saveNotes": "Notları kaydet"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Fiyat",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Alan",
+    "dialogDescription": "Bu ziyarete fiyat, teknisyen ve teslimat ile başka bir alan ekleyin.",
+    "added": "Eklendi: {area}",
+    "unassigned": "Atanmadı",
+    "noAssignable": "Aktif teknisyen yok. Ekipte o kişi için „Arabalarda çalışır“ seçeneğini açın.",
+    "areaTechnician": "Alan teknisyeni",
+    "responsibleHint": "Ziyaretin sorumlu teknisyeni {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

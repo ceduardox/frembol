@@ -46,6 +46,7 @@ export const designTemplateSchema = z
     headerStyle: z.string().default('standard'),
     logoSize: z.number().default(100),
     logoUrl: z.string().default(''),
+    heroImageUrl: z.string().default(''),
     showLogo: z.boolean().optional(),
     showCompanyName: z.boolean().optional(),
   })
@@ -178,6 +179,7 @@ export function templateConfigFromSource(source: DesignSource): TemplateConfig {
     showCompanyName: t.showCompanyName !== false,
     headerStyle: t.headerStyle || 'standard',
     logoSize: Number(t.logoSize) || 100,
+    heroImageUrl: t.heroImageUrl || undefined,
     layoutConfig: mergeWithDefaults(source.layout),
   }
 }

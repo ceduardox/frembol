@@ -27,8 +27,71 @@ function toPublicFileUrl(fileUrl: string, token: string): string {
 
 export const revalidate = 60
 
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ orgId: string; token: string }>
+}): Promise<Metadata> {
+  const { orgId: orgParam, token } = await params
+  const resolvedOrg = await resolvePortalOrg(orgParam)
+  const orgId = resolvedOrg?.id ?? orgParam
+
+  const shared = await db.serviceRecord.findUnique({
+    where: { publicToken: token },
+    select: {
+      organizationId: true,
+      invoiceNumber: true,
+      title: true,
+      customer: { select: { name: true } },
+      vehicle: {
+        select: {
+          make: true,
+          model: true,
+          year: true,
+          licensePlate: true,
+          customer: { select: { name: true } },
+        },
+      },
+    },
+  })
+
+  if (!shared || shared.organizationId !== orgId) {
+    return { robots: { index: false, follow: false } }
+  }
+
+  const customerName = shared.customer?.name || shared.vehicle?.customer?.name || null
+  const document = shared.invoiceNumber ? `Factura ${shared.invoiceNumber}` : shared.title || 'Factura'
+  const title = customerName ? `${document} · ${customerName}` : document
+  const vehicle = shared.vehicle
+    ? [shared.vehicle.year, shared.vehicle.make, shared.vehicle.model].filter(Boolean).join(' ')
+    : ''
+  const description = [vehicle, shared.vehicle?.licensePlate, resolvedOrg?.name]
+    .filter(Boolean)
+    .join(' · ')
+  const appUrl = getAppBaseUrl()
+  const url = `${appUrl}/share/invoice/${orgParam}/${token}`
+  const image = `${appUrl}/api/public/logo/${orgId}`
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: resolvedOrg?.name,
+      type: 'website',
+      images: [image],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function PublicInvoicePage({

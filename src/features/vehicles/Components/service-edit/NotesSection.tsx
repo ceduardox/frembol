@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Eye, FileText, Loader2, Lock, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { AppCard } from '@/components/app-card'
 import { useModernWorkOrder } from '@/components/work-order-layout-context'
 import { RichTextEditor } from './RichTextEditor'
 import type { InitialData } from './form-types'
@@ -32,13 +31,68 @@ interface NotesSectionProps {
   publicLocked?: boolean
   /** Only when the internal notes have no save of their own on a locked invoice. */
   internalLocked?: boolean
-  /** A wash or a part intake: notes stay folded until somebody opens them. */
-  collapsedByDefault?: boolean
 }
 
 function hasContent(html: string): boolean {
   const text = html.replace(/<[^>]*>/g, '').trim()
   return text.length > 0
+}
+
+function NoteDisclosure({
+  icon: Icon,
+  title,
+  description,
+  open,
+  onToggle,
+  action,
+  accent,
+  testId,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>
+  title: string
+  description: string
+  open: boolean
+  onToggle: () => void
+  action?: ReactNode
+  accent?: boolean
+  testId: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      data-testid={testId}
+      className={cn(
+        'rounded-lg border border-card-edge bg-card text-card-foreground shadow-[0_1px_2px_rgb(0_0_0/0.05),0_12px_32px_-16px_rgb(0_0_0/0.18)]',
+        accent && 'border-amber-500/30 bg-amber-500/5'
+      )}
+    >
+      <div className="flex items-start gap-2 px-4 py-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-sm font-semibold tracking-tight">{title}</span>
+            <span className="block truncate text-xs text-muted-foreground">{description}</span>
+          </span>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+              open && 'rotate-180'
+            )}
+          />
+        </button>
+        {action && <div className="shrink-0 self-center">{action}</div>}
+      </div>
+      {open && <div className="border-t border-card-edge/60 px-4 py-3">{children}</div>}
+    </div>
+  )
 }
 
 export function NotesSection({
@@ -48,11 +102,11 @@ export function NotesSection({
   aiEnabled,
   publicLocked = false,
   internalLocked = false,
-  collapsedByDefault = false,
 }: NotesSectionProps) {
   const t = useTranslations('service.notes')
   const modern = useModernWorkOrder()
-  const [notesOpen, setNotesOpen] = useState(!collapsedByDefault)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const [publicOpen, setPublicOpen] = useState(false)
   const [noteType, setNoteType] = useState<'public' | 'internal'>('public')
   const [publicNotes, setPublicNotes] = useState(initialData.invoiceNotes || '')
   const [internalNotes, setInternalNotes] = useState(initialData.diagnosticNotes || '')
@@ -105,6 +159,8 @@ export function NotesSection({
   // one it writes to; the classic page writes to the open tab.
   const handleAiClick = (target: 'public' | 'internal' = noteType) => {
     setNoteType(target)
+    if (target === 'public') setPublicOpen(true)
+    else setInternalOpen(true)
     const skipDialog = localStorage.getItem(SKIP_AI_DIALOG_KEY) === 'true'
     const currentNotes = target === 'public' ? publicNotes : internalNotes
 
@@ -198,63 +254,41 @@ export function NotesSection({
   if (modern) {
     return (
       <div data-testid="notes-section" className="space-y-3">
-        {collapsedByDefault && (
-          <button
-            type="button"
-            onClick={() => setNotesOpen((open) => !open)}
-            aria-expanded={notesOpen}
-            className="flex w-full cursor-pointer items-center justify-between rounded-lg border bg-card px-4 py-3 text-sm font-semibold transition-colors hover:bg-muted/40"
-          >
-            <span className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              {t('title')}
-            </span>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform',
-                notesOpen && 'rotate-180'
-              )}
-            />
-          </button>
-        )}
-        <div
-          className={cn(
-            'grid grid-cols-1 gap-3 @2xl:grid-cols-2',
-            collapsedByDefault && !notesOpen && 'hidden'
-          )}
+        <NoteDisclosure
+          icon={Lock}
+          title={t('internalTitle')}
+          description={t('internalHelper')}
+          open={internalOpen}
+          onToggle={() => setInternalOpen((open) => !open)}
+          action={aiButton('internal')}
+          accent
+          testId="notes-internal"
         >
-          <div data-testid="notes-internal">
-            <AppCard
-              icon={Lock}
-              title={t('internalTitle')}
-              description={t('internalHelper')}
-              action={aiButton('internal')}
-              className="border-amber-500/30 bg-amber-500/5 hover:border-amber-500/40"
-            >
-              <RichTextEditor
-                content={internalNotes}
-                onChange={handleInternalChange}
-                editable={!internalLocked}
-                placeholder={t('internalPlaceholder')}
-              />
-            </AppCard>
-          </div>
-          <div data-testid="notes-customer">
-            <AppCard
-              icon={Eye}
-              title={t('publicTitle')}
-              description={t('publicHelper')}
-              action={aiButton('public')}
-            >
-              <RichTextEditor
-                content={publicNotes}
-                onChange={handlePublicChange}
-                editable={!publicLocked}
-                placeholder={t('publicPlaceholder')}
-              />
-            </AppCard>
-          </div>
-        </div>
+          <RichTextEditor
+            content={internalNotes}
+            onChange={handleInternalChange}
+            editable={!internalLocked}
+            placeholder={t('internalPlaceholder')}
+          />
+        </NoteDisclosure>
+
+        <NoteDisclosure
+          icon={Eye}
+          title={t('publicTitle')}
+          description={t('publicHelper')}
+          open={publicOpen}
+          onToggle={() => setPublicOpen((open) => !open)}
+          action={aiButton('public')}
+          testId="notes-customer"
+        >
+          <RichTextEditor
+            content={publicNotes}
+            onChange={handlePublicChange}
+            editable={!publicLocked}
+            placeholder={t('publicPlaceholder')}
+          />
+        </NoteDisclosure>
+
         {aiDialog}
       </div>
     )

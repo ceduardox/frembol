@@ -23,6 +23,7 @@ export function AppCard({
   badge,
   description,
   action,
+  actionClassName,
   subheader,
   footer,
   children,
@@ -37,6 +38,8 @@ export function AppCard({
   description?: ReactNode
   /** Right-aligned header slot: an icon button, a "view all" link. */
   action?: ReactNode
+  /** Extra layout for the header action, usually on phones. */
+  actionClassName?: string
   /** Full-width row between the title block and the hairline (tabs, filters). */
   subheader?: ReactNode
   /** Pinned strip under the content: a "view all" link, a total, a caption. */
@@ -69,15 +72,15 @@ export function AppCard({
       )}
     >
       <div className="relative shrink-0">
-        <div className="flex items-start gap-3 px-5 pb-3 pt-4">
+        <div className="flex flex-wrap items-start gap-3 px-5 pb-3 pt-4">
           {Icon && (
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-linear-to-b from-primary/12 to-primary/4 text-primary ring-1 ring-inset ring-primary/20 shadow-[inset_0_1px_0_rgb(255_255_255/0.15)]">
               <Icon className="h-4 w-4" />
             </div>
           )}
           <div className="min-w-0 flex-1 self-center">
-            <h3 className="flex items-center gap-2 font-display text-sm font-semibold tracking-tight">
-              <span className="truncate">{title}</span>
+            <h3 className="flex min-w-0 items-center gap-2 font-display text-sm font-semibold tracking-tight">
+              <span className="min-w-0 truncate">{title}</span>
               {badge != null && (
                 <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary ring-1 ring-inset ring-primary/15">
                   {badge}
@@ -88,7 +91,7 @@ export function AppCard({
               <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
             )}
           </div>
-          {action && <div className="shrink-0 self-center">{action}</div>}
+          {action && <div className={cn('shrink-0 self-center', actionClassName)}>{action}</div>}
         </div>
         {subheader && <div className="px-5 pb-3">{subheader}</div>}
         {/* Signature hairline: primary under the chip, gone by the far edge.

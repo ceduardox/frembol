@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Legg til arbeid",
     "tabs": {
       "details": "Detaljer",
       "images": "Bilder",
@@ -315,8 +316,15 @@
     "close": "Lukk"
   },
   "share": {
-    "title": "Del faktura",
+    "title": "Del",
     "description": "Generer en offentlig lenke som lar hvem som helst se og laste ned denne fakturaen uten å logge inn.",
+    "invoiceTab": "Faktura",
+    "workOrderTab": "Arbeidsordre",
+    "invoiceDocument": "faktura",
+    "workOrderDocument": "arbeidsordre",
+    "copyMessage": "Hei {name}, her er {document} din: {link}",
+    "workOrderDescription": "Del arbeidsordren med bilder og videoer.",
+    "workOrderNoNotify": "Arbeidsordren deles via lenke eller WhatsApp.",
     "notifyTitle": "Varsle {name}",
     "email": "E-post",
     "noEmail": "(ingen e-post på arkiv)",
@@ -410,7 +418,7 @@
     "startTime": "Starttid",
     "endTime": "Sluttid",
     "durationPresets": "Varighet",
-    "technician": "Tekniker",
+    "technician": "Ansvarlig tekniker",
     "selectTechnician": "Velg tekniker...",
     "searchOrCreate": "Søk eller opprett tekniker...",
     "createTechnician": "Opprett \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Finner en tid…",
     "slotPicked": "Booket inn på neste ledige tid",
     "noSlotFound": "Fant ingen ledig tid de neste ukene",
-    "assignedTitle": "Tilordnet tekniker",
+    "assignedTitle": "Ansvarlig tekniker",
+    "collapse": "Skjul planlegging",
     "boardLink": "Arbeidstavle",
     "someoneElse": "Noen andre",
     "loadOf": "{booked} / {capacity} t",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Ett punkt er ikke kontrollert som utbedret:} other {# punkter er ikke kontrollert som utbedret:}}",
     "unconfirmedProceed": "Fullfør likevel",
     "addMedia": "Legg til media",
+    "mediaShort": "Bilder",
     "mediaUploading": "Laster opp…",
     "mediaAdded": "{count, plural, one {# fil lagt til} other {# filer lagt til}}",
     "mediaFailed": "Kunne ikke laste opp {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Legg til fra mobil",
+    "buttonShort": "Telefon",
     "dialogTitle": "Legg til bilder og dokumenter fra en telefon",
     "dialogBody": "Ta eller velg bilder, eller del en PDF, på en hvilken som helst telefon. Alt havner rett på denne arbeidsordren.",
     "expires": "Koden virker til {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Tilbehør / personlige gjenstander",
+    "noneSelected": "Ingen valgt",
     "accessoryOptions": {
       "spareTire": "Reservehjul",
       "jack": "Jekk",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notater og kundesignatur",
     "saveNotes": "Lagre notater"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Pris",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Område",
+    "dialogDescription": "Legg til et annet område i dette besøket med pris, tekniker og levering.",
+    "added": "Lagt til: {area}",
+    "unassigned": "Ikke tildelt",
+    "noAssignable": "Ingen aktive teknikere. Slå på «Jobber med biler» for personen i Team.",
+    "areaTechnician": "Områdetekniker",
+    "responsibleHint": "Den ansvarlige teknikeren for besøket er {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

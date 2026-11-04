@@ -49,5 +49,8 @@ export function specForPreset(preset: LayoutPreset, data: DocumentData): Documen
  */
 export function specForDesign(design: SavedDesign, data: DocumentData): DocumentSpec {
   const layout = mergeWithDefaults(design.layout)
-  return buildDocumentSpec(layout, themeOf(design.template, layout), data)
+  const dataWithHero = design.template.heroImageUrl
+    ? { ...data, heroImageUrl: design.template.heroImageUrl }
+    : data
+  return buildDocumentSpec(layout, themeOf(design.template, layout), dataWithHero)
 }

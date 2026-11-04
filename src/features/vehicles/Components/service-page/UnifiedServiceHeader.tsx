@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -20,12 +20,13 @@ import {
   ArrowLeft,
   Download,
   Eye,
-  Globe,
   LayoutTemplate,
   Mail,
   MessageSquare,
   MoreVertical,
+  Plus,
   Save,
+  Share2,
   Trash2,
   Video,
   Printer,
@@ -79,6 +80,8 @@ interface UnifiedServiceHeaderProps {
   layout?: WorkOrderLayout
   /** Moves this browser to the other layout. */
   onSwitchLayout?: () => void
+  /** Opens the guided "add another area" dialog. */
+  onAddWork?: () => void
   total?: number
   currencyCode?: string
 }
@@ -109,6 +112,7 @@ export function UnifiedServiceHeader({
   meetingUrl = null,
   layout = 'classic',
   onSwitchLayout,
+  onAddWork,
   total,
   currencyCode = 'USD',
 }: UnifiedServiceHeaderProps) {
@@ -175,6 +179,7 @@ export function UnifiedServiceHeader({
           meetingUrl={meetingUrl}
           layout={layout}
           onSwitchLayout={onSwitchLayout}
+          onAddWork={onAddWork}
         />
       </div>
       <nav className="flex gap-1 border-b overflow-x-auto scrollbar-none">
@@ -219,6 +224,7 @@ type ServiceHeaderActionsProps = Pick<
   | 'meetingUrl'
   | 'layout'
   | 'onSwitchLayout'
+  | 'onAddWork'
 > & {
   /** Save belongs to the details form; the other tabs save as they go. */
   showSave: boolean
@@ -248,6 +254,7 @@ export function ServiceHeaderActions({
   meetingUrl = null,
   layout = 'classic',
   onSwitchLayout,
+  onAddWork,
 }: ServiceHeaderActionsProps) {
   const t = useTranslations('service.header')
   const tPreview = useTranslations('common.pdfPreview')
@@ -288,7 +295,7 @@ export function ServiceHeaderActions({
           onClick={onDownloadPDF}
         />
         <IconActionButton label={t('email')} icon={Mail} onClick={onShowEmail} />
-        <IconActionButton label={t('share')} icon={Globe} onClick={onShowShare} />
+        <IconActionButton label={t('share')} icon={Share2} onClick={onShowShare} />
         {meetingUrl && (
           <IconActionButton
             label={t('joinCall')}
@@ -351,6 +358,12 @@ export function ServiceHeaderActions({
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
+      {onAddWork && (
+        <Button type="button" size="sm" className="gap-1.5" onClick={onAddWork}>
+          <Plus className="size-4" aria-hidden="true" />
+          {t('addWork')}
+        </Button>
+      )}
     </div>
   )
 }

@@ -143,7 +143,11 @@ function resolveLayout(input: InvoicePrintInput): InvoiceLayoutConfig {
 export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
   const { workshop, invoiceSettings, paymentSummary, template } = input
   // The fee under the work, and a fee of nothing left out.
-  const data = { ...input.data, laborItems: documentLaborLines(input.data.laborItems) }
+  const data = {
+    ...input.data,
+    laborItems: documentLaborLines(input.data.laborItems),
+    heroImageUrl: template?.heroImageUrl,
+  }
   const labels = input.labels ?? {}
   const L = (key: string, fallback: string) => labels[key] || fallback
 
@@ -202,7 +206,6 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`
     : ''
-  const tech = data.technician?.name || data.techName
 
   // -------------------------------------------------------------------------
   // Fields: everything a panel can print, already formatted.
@@ -240,7 +243,7 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
         ? fillTemplate(labels.type, { type: data.type })
         : `Type: ${data.type}`
       : '',
-    tech_name: tech ? (labels.tech ? fillTemplate(labels.tech, { tech }) : `Tech: ${tech}`) : '',
+    tech_name: '',
     company_name: shopDisplayName,
     company_slogan: workshop?.slogan?.trim() || '',
     company_address: workshop?.address || '',
@@ -459,6 +462,7 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
   const documentData: DocumentData = {
     fields,
     logoUrl: input.logoDataUri,
+    heroImageUrl: data.heroImageUrl,
     labels,
     meta: {
       title: L('title', 'INVOICE'),

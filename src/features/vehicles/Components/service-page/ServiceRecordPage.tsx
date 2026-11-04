@@ -19,7 +19,8 @@ import { readPartsPricingSettings } from '@/features/inventory/Lib/partPricing'
 import { getInventoryPartsList } from '@/features/inventory/Actions/inventoryActions'
 import { getLaborPresetsList } from '@/features/labor-presets/Actions/laborPresetActions'
 
-import { getTechnicians, getOrgMembers } from '@/features/workboard/Actions/technicianActions'
+import { getOrgMembers } from '@/features/workboard/Actions/technicianActions'
+import { getAssignableTechnicians } from '@/features/vehicles/Actions/getAssignableTechnicians'
 import { getJobClock } from '@/features/time-tracking/Actions/timeClockActions'
 import { getAuthContext } from '@/lib/get-auth-context'
 import { getInvoiceLockState } from '@/lib/document-lock.server'
@@ -99,7 +100,7 @@ export async function ServiceRecordPage({
       ...WARRANTY_SETTING_KEYS,
     ]),
     getInventoryPartsList(),
-    getTechnicians(),
+    getAssignableTechnicians(),
     getLaborPresetsList(),
     getAuthContext(),
     getCachedSession(),

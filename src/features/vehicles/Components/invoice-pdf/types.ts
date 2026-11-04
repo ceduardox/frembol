@@ -31,6 +31,8 @@ export interface TemplateConfig {
   showCompanyName?: boolean
   headerStyle?: string
   logoSize?: number
+  /** A workshop's own machine or hero picture, above the job. */
+  heroImageUrl?: string
   layoutConfig?: InvoiceLayoutConfig
 }
 

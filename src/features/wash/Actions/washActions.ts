@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { recordHasArea } from '@/features/vehicles/Lib/serviceAreas'
 
 const pricesSchema = z.record(z.string().max(40), z.number().min(0).max(10_000_000))
 
@@ -98,10 +99,10 @@ export async function setWashQueueStage(serviceRecordId: string, stage: string) 
     async ({ organizationId }) => {
       const record = await db.serviceRecord.findFirst({
         where: { id: serviceRecordId, organizationId },
-        select: { id: true, jobKind: true },
+        select: { id: true, jobKind: true, tasks: { select: { area: true } } },
       })
       if (!record) throw new Error('Service record not found')
-      if (record.jobKind !== 'wash') throw new Error('Not a wash job')
+      if (!recordHasArea(record, 'wash')) throw new Error('Not a wash job')
 
       return db.washIntake.upsert({
         where: { serviceRecordId },

@@ -171,6 +171,7 @@ model ServiceRecord {
   timeEntries    TimeEntry[]
   washIntake     WashIntake?
   partIntake     PartIntake?
+  tasks          ServiceTask[]
 
   concerns           ServiceConcern[]
   conditionMarks     ConditionMark[]

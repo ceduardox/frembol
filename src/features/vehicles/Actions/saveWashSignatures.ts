@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
+import { recordHasArea } from '../Lib/serviceAreas'
 
 const schema = z.object({
   serviceRecordId: z.string().min(1),
@@ -18,10 +19,10 @@ export async function saveWashSignatures(input: unknown) {
       const data = schema.parse(input)
       const record = await db.serviceRecord.findFirst({
         where: { id: data.serviceRecordId, organizationId },
-        select: { id: true, jobKind: true },
+        select: { id: true, jobKind: true, tasks: { select: { area: true } } },
       })
       if (!record) throw new Error('Service record not found')
-      if (record.jobKind !== 'wash') throw new Error('Not a wash job')
+      if (!recordHasArea(record, 'wash')) throw new Error('Not a wash job')
 
       return db.washIntake.upsert({
         where: { serviceRecordId: data.serviceRecordId },

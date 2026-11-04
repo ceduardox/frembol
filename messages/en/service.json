@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Add work",
     "tabs": {
       "details": "Details",
       "images": "Images",
@@ -315,8 +316,15 @@
     "close": "Close"
   },
   "share": {
-    "title": "Share Invoice",
+    "title": "Share",
     "description": "Generate a public link that allows anyone to view and download this invoice without signing in.",
+    "invoiceTab": "Invoice",
+    "workOrderTab": "Work order",
+    "invoiceDocument": "invoice",
+    "workOrderDocument": "work order",
+    "copyMessage": "Hi {name}, here is your {document}: {link}",
+    "workOrderDescription": "Share the work order with its photos and videos.",
+    "workOrderNoNotify": "The work order is shared by link or WhatsApp.",
     "notifyTitle": "Notify {name}",
     "email": "Email",
     "noEmail": "(no email on file)",
@@ -410,7 +418,7 @@
     "startTime": "Start Time",
     "endTime": "End Time",
     "durationPresets": "Duration presets",
-    "technician": "Technician",
+    "technician": "Responsible technician",
     "selectTechnician": "Select technician...",
     "searchOrCreate": "Search or create technician...",
     "createTechnician": "Create \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Finding a slot…",
     "slotPicked": "Booked into the next free slot",
     "noSlotFound": "No free slot found in the next few weeks",
-    "assignedTitle": "Assigned technician",
+    "assignedTitle": "Responsible technician",
+    "collapse": "Collapse planning",
     "boardLink": "Work board",
     "someoneElse": "Someone else",
     "loadOf": "{booked} / {capacity} h",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {One concern has not been confirmed as fixed:} other {# concerns have not been confirmed as fixed:}}",
     "unconfirmedProceed": "Complete anyway",
     "addMedia": "Add media",
+    "mediaShort": "Photos",
     "mediaUploading": "Uploading…",
     "mediaAdded": "{count, plural, one {# file added} other {# files added}}",
     "mediaFailed": "Could not upload {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Add from phone",
+    "buttonShort": "Phone",
     "dialogTitle": "Add photos and documents from a phone",
     "dialogBody": "Take or choose photos, or share a PDF, on any phone. Everything lands straight on this work order.",
     "expires": "The code works until {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Accessories / personal items",
+    "noneSelected": "None selected",
     "accessoryOptions": {
       "spareTire": "Spare tire",
       "jack": "Jack",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notes and customer signature",
     "saveNotes": "Save notes"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Price",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Area",
+    "dialogDescription": "Add another area to this visit with its price, technician and delivery.",
+    "added": "Added: {area}",
+    "unassigned": "Unassigned",
+    "noAssignable": "No active technicians. Turn on “Works on cars” for the person in Team.",
+    "areaTechnician": "Area technician",
+    "responsibleHint": "The visit's responsible technician is {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

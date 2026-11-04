@@ -448,6 +448,7 @@ export function LaborEditor({
         title={titleOverride ?? t('title')}
         badge={laborItems.length || undefined}
         action={actions}
+        actionClassName="max-sm:flex max-sm:basis-full max-sm:justify-start max-sm:pl-12"
         className="@container"
         contentClassName="space-y-2 px-3"
       >

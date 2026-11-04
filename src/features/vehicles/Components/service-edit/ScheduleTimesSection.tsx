@@ -27,6 +27,8 @@ import {
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
+  ChevronUp,
   ChevronsUpDown,
   Clock,
   Plus,
@@ -37,6 +39,7 @@ import {
 import { toast } from 'sonner'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { useDateSettings } from '@/components/date-settings-context'
+import { useFormatDate } from '@/lib/use-format-date'
 import {
   assignTechnician,
   checkSlotAvailability,
@@ -129,8 +132,10 @@ export function ScheduleTimesSection({
   // Booked times belong to the workshop's clock, not to the clock of whoever
   // happens to be looking at them.
   const { timezone } = useDateSettings()
+  const { formatDate, formatDateTime, formatTime } = useFormatDate()
   const [selectedTechId, setSelectedTechId] = useState(initialTechnicianId || '')
   const [selectedBayId, setSelectedBayId] = useState(initialWorkBayId || NO_BAY)
+  const [planningOpen, setPlanningOpen] = useState(false)
   const [techOpen, setTechOpen] = useState(false)
   const [technicians, setTechnicians] = useState<Technician[]>(initialTechnicians)
   const [techSearch, setTechSearch] = useState('')
@@ -141,6 +146,10 @@ export function ScheduleTimesSection({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    setSelectedTechId(initialTechnicianId || '')
+  }, [initialTechnicianId])
 
   // Opening a job that is already double-booked should say so, not wait for
   // somebody to change something first.
@@ -400,6 +409,33 @@ export function ScheduleTimesSection({
 
   const selectedTechName = technicians.find((t) => t.id === selectedTechId)?.name
 
+  if (modern && !planningOpen) {
+    const summary =
+      [selectedTechName || t('noTechnician'), initialStartDateTime ? formatDate(initialStartDateTime) : null]
+        .filter(Boolean)
+        .join(' · ')
+
+    return (
+      <button
+        type="button"
+        onClick={() => setPlanningOpen(true)}
+        aria-expanded={false}
+        className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-card-edge bg-card px-4 py-3 text-left shadow-[0_1px_2px_rgb(0_0_0/0.05),0_12px_32px_-16px_rgb(0_0_0/0.18)] transition-colors hover:border-primary/30 hover:bg-muted/30"
+      >
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-inset ring-primary/20">
+          <Clock className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-sm font-semibold tracking-tight">
+            {t('assignedTitle')}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">{summary}</span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+    )
+  }
+
   // Platform users that already have a linked technician
   const linkedUserIds = new Set(technicians.filter((t) => t.userId).map((t) => t.userId!))
   // Platform users without a technician record yet
@@ -525,14 +561,27 @@ export function ScheduleTimesSection({
       icon={Clock}
       title={t('assignedTitle')}
       action={
-        partMode ? undefined : (
-          <Link
-            href="/work-board"
-            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {t('boardLink')}
-          </Link>
-        )
+        <div className="flex items-center gap-2">
+          {!partMode && (
+            <Link
+              href="/work-board"
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t('boardLink')}
+            </Link>
+          )}
+          {modern && (
+            <button
+              type="button"
+              onClick={() => setPlanningOpen(false)}
+              aria-label={t('collapse')}
+              title={t('collapse')}
+              className="cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       }
       contentClassName="space-y-3"
       header={
@@ -639,11 +688,7 @@ export function ScheduleTimesSection({
             {startDateTime && technicians.length > 0 && (
               <span className="text-[11px] text-muted-foreground" suppressHydrationWarning>
                 {t('loadOn', {
-                  date: startDateTime.toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                    timeZone: timezone || undefined,
-                  }),
+                  date: formatDate(startDateTime),
                 })}
               </span>
             )}
@@ -790,19 +835,9 @@ export function ScheduleTimesSection({
                       className="text-[11px] leading-snug text-amber-800 dark:text-amber-300"
                     >
                       {c.label || t('anotherJob')} ·{' '}
-                      {new Date(c.start).toLocaleString(undefined, {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: timezone || undefined,
-                      })}
+                      {formatDateTime(new Date(c.start))}
                       {' – '}
-                      {new Date(c.end).toLocaleTimeString(undefined, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: timezone || undefined,
-                      })}
+                      {formatTime(new Date(c.end))}
                       {' · '}
                       {c.onTechnician && c.onBay
                         ? t('clashBoth')

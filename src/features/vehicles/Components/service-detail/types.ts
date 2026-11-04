@@ -44,6 +44,17 @@ export interface ServiceDetail {
   type: string
   /** Which line of the shop: vehicle | brakes | wash | parts. */
   jobKind?: string
+  /** The areas of this visit, in the order they were added. */
+  tasks?: {
+    id: string
+    area: string
+    status: string
+    sortOrder: number
+    technicians: {
+      technicianId: string
+      technician: { id: string; name: string; color: string }
+    }[]
+  }[]
   status: string
   /** One of the workshop's own statuses, under the stage `status` names. */
   customStatus?: { id: string; name: string; color: string; stage: string } | null

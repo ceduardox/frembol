@@ -1,0 +1,39 @@
+/// One area of work inside a visit: the car may get a wash, then brakes,
+/// then mechanics, and each one keeps its own technicians and queue.
+model ServiceTask {
+  id              String        @id @default(cuid())
+  serviceRecordId String
+  serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
+
+  /// vehicle | brakes | wash | parts
+  area       String
+  status     String  @default("pending")
+  sortOrder  Int     @default(0)
+  queueStage String?
+
+  technicians ServiceTaskTechnician[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceRecordId, area])
+  @@index([serviceRecordId])
+  @@index([area, status])
+  @@map("service_tasks")
+}
+
+/// Who did one area of the visit. A task can have one or several technicians;
+/// this is internal control and never printed on the customer's sheet.
+model ServiceTaskTechnician {
+  id           String      @id @default(cuid())
+  taskId       String
+  task         ServiceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  technicianId String
+  technician   Technician  @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, technicianId])
+  @@index([technicianId])
+  @@map("service_task_technicians")
+}

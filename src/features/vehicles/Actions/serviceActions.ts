@@ -232,6 +232,16 @@ export async function getServiceRecord(recordId: string) {
           },
           washIntake: true,
           partIntake: true,
+          tasks: {
+            orderBy: { sortOrder: 'asc' },
+            include: {
+              technicians: {
+                include: {
+                  technician: { select: { id: true, name: true, color: true } },
+                },
+              },
+            },
+          },
           partItems: true,
           laborItems: true,
           attachments: true,
@@ -1439,7 +1449,10 @@ export async function deleteServiceAttachment(attachmentId: string) {
   )
 }
 
-export async function generatePublicLink(serviceRecordId: string) {
+export async function generatePublicLink(
+  serviceRecordId: string,
+  documentType: 'invoice' | 'work_order' = 'invoice'
+) {
   return withAuth(
     async ({ organizationId }) => {
       const record = await db.serviceRecord.findFirst({
@@ -1447,9 +1460,11 @@ export async function generatePublicLink(serviceRecordId: string) {
       })
       if (!record) throw new Error('Record not found')
 
-      // The link is a way of sending the invoice, so what it shows is frozen
-      // now, before the stamp below locks it.
-      await issueInvoice(serviceRecordId, organizationId, 'sent')
+      // Sharing the invoice freezes it and counts as sending it. A work order
+      // is a live sheet, so sharing it must not issue or lock the invoice.
+      if (documentType === 'invoice') {
+        await issueInvoice(serviceRecordId, organizationId, 'sent')
+      }
 
       const token = randomUUID()
       await db.serviceRecord.update({
@@ -1457,14 +1472,7 @@ export async function generatePublicLink(serviceRecordId: string) {
         data: {
           publicToken: token,
           sharedAt: new Date(),
-          // Handing over a link is a way of sending the invoice, so it counts
-          // for "lock when sent". Unlike sharedAt this is never cleared:
-          // revoking the link does not unsend what the customer already saw.
-          // It tracks the latest share, so re-sharing after an unlock locks
-          // the document again. Kept inline (rather than markInvoiceSent,
-          // which owns every other channel) so the token and the stamp land
-          // in one write.
-          sentAt: new Date(),
+          ...(documentType === 'invoice' ? { sentAt: new Date() } : {}),
         },
       })
 

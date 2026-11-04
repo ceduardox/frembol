@@ -61,6 +61,8 @@ export interface DocumentData {
   /** Field id to the value it prints, covering every field a layout can show. */
   fields: Record<string, string>
   logoUrl?: string
+  /** A workshop's own machine or hero picture, above the job. */
+  heroImageUrl?: string
   /** Translated strings. Every lookup falls back to English. */
   labels: Record<string, string>
   meta: {
@@ -824,6 +826,23 @@ function letterhead(section: InvoiceSection, theme: DocumentTheme, data: Documen
         ? { background: look.fill, padding: 10, radius: 3 }
         : undefined,
     children: [...marks, ...below],
+  }
+}
+
+/** A workshop's machine or hero picture, centered above the job. */
+function headerImageBlock(
+  _section: InvoiceSection,
+  _theme: DocumentTheme,
+  data: DocumentData
+): Node | null {
+  if (!data.heroImageUrl) return null
+  return {
+    kind: 'image',
+    id: 'header_image.image',
+    src: data.heroImageUrl,
+    maxWidth: 240,
+    maxHeight: 120,
+    align: 'center',
   }
 }
 
@@ -2046,6 +2065,8 @@ function blockFor(section: InvoiceSection, theme: DocumentTheme, data: DocumentD
   switch (section.id) {
     case 'header':
       return letterhead(section, theme, data)
+    case 'header_image':
+      return headerImageBlock(section, theme, data)
     case 'slogan':
       return sloganBlock(section, theme, data)
     case 'customer':

@@ -229,6 +229,8 @@ export function fromCustomFieldId(cfId: string): string {
 
 export const BUILTIN_SECTIONS = [
   { id: 'header', name: 'Header' },
+  // A workshop's machine or hero picture, above the job.
+  { id: 'header_image', name: 'Header Image' },
   // Directly under the header, which is where the strip carrying the number
   // and the date has always been drawn.
   { id: 'document_title', name: 'Document Title' },
@@ -301,6 +303,8 @@ export const CERTIFICATE_SECTIONS = [
  */
 export const WORK_ORDER_SECTIONS = [
   { id: 'header', name: 'Header' },
+  // A workshop's machine or hero picture, above the job.
+  { id: 'header_image', name: 'Header Image' },
   { id: 'document_title', name: 'Document Title' },
   { id: 'slogan', name: 'Slogan' },
   { id: 'customer', name: 'Customer' },
@@ -802,6 +806,7 @@ const HIDDEN_BY_DEFAULT_SECTIONS = new Set<string>([
   'condition_map',
   'defects',
   'results_table',
+  'header_image',
 ])
 /**
  * Sections that join a saved invoice or quote design in front of the ones
@@ -841,6 +846,7 @@ const HIDDEN_BY_DEFAULT_WORK_ORDER_SECTIONS = new Set<string>([
   'findings',
   'attached_documents',
   'warranty',
+  'header_image',
   // The customer's notes are the invoice's, and the code to scan is the
   // board copy's; each costs the room that keeps the counter copy on one page.
   'notes',

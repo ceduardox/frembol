@@ -17,6 +17,7 @@ model Technician {
 
   loginCodes     TechnicianLoginCode[]
   serviceRecords ServiceRecord[]
+  serviceTasks   ServiceTaskTechnician[]
   inspections    Inspection[]
   statusReports  StatusReport[]
   timeEntries    TimeEntry[]

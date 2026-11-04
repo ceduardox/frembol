@@ -276,9 +276,8 @@ function TemplateTab({
                   {!active && (
                     <Button
                       type="button"
-                      variant="outline"
                       size="sm"
-                      className="mt-2 h-7 text-xs"
+                      className="mt-2 h-8 w-full text-xs"
                       disabled={applying === design.id}
                       onClick={() => void setDefault(design)}
                     >

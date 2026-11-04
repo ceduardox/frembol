@@ -16,6 +16,7 @@ import {
 } from '@/features/settings/Actions/invoiceLayoutActions'
 import type { SavedDesign } from '@/features/invoice-designer/Components/types'
 import { listDocumentDesigns } from '@/features/invoice-designer/Actions/documentDesignActions'
+import { ensureFrembolWorkOrderDesign } from '@/features/invoice-designer/Actions/ensureFrembolWorkOrderDesign'
 export default async function TemplatePage() {
   const data = await getLayoutData()
 
@@ -25,6 +26,10 @@ export default async function TemplatePage() {
   const features = await getFeatures(data.organizationId)
 
   const locked = !features.customTemplates
+
+  // The Frembol work order sheet is offered once as a saved design, so it can
+  // be selected, opened and set as the default like the workshop's own.
+  if (!locked) await ensureFrembolWorkOrderDesign()
 
   const [
     result,

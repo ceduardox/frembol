@@ -98,7 +98,10 @@ export function ConcernMedia({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2" onInput={(e) => e.stopPropagation()}>
+    <div
+      className="flex items-center gap-1 sm:flex-wrap sm:gap-2"
+      onInput={(e) => e.stopPropagation()}
+    >
       {files.map((file) => (
         <a
           key={file.id}
@@ -106,7 +109,7 @@ export function ConcernMedia({
           target="_blank"
           rel="noopener noreferrer"
           title={file.fileName}
-          className="block h-12 w-12 shrink-0 overflow-hidden rounded-md border border-card-edge bg-muted transition-colors hover:border-primary"
+          className="block h-9 w-9 shrink-0 overflow-hidden rounded-md border border-card-edge bg-muted transition-colors hover:border-primary sm:h-12 sm:w-12"
         >
           {file.fileType.startsWith('image/') ? (
             <img src={file.fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
@@ -124,17 +127,25 @@ export function ConcernMedia({
         title={concernId ? undefined : t('saveFirst')}
         onClick={() => inputRef.current?.click()}
         data-testid="concern-add-media"
-        className="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
+        className="flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground sm:text-xs"
       >
         {uploading ? (
           <Loader2 className="h-3 w-3 animate-spin" />
         ) : (
           <ImagePlus className="h-3 w-3" />
         )}
-        {uploading ? t('mediaUploading') : t('addMedia')}
+        {uploading ? (
+          t('mediaUploading')
+        ) : (
+          <>
+            <span className="sm:hidden">{t('mediaShort')}</span>
+            <span className="hidden sm:inline">{t('addMedia')}</span>
+          </>
+        )}
       </button>
       <PhotoHandoffButton
         variant="link"
+        compact
         serviceRecordId={serviceRecordId}
         concernId={concernId}
         concernLabel={concernLabel}

@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
 import { revalidatePath } from 'next/cache'
+import { recordHasArea } from '../Lib/serviceAreas'
 
 const schema = z.object({
   serviceRecordId: z.string().min(1),
@@ -29,10 +30,15 @@ export async function savePartIntake(input: unknown) {
 
       const record = await db.serviceRecord.findFirst({
         where: { id: data.serviceRecordId, organizationId },
-        select: { id: true, jobKind: true, vehicleId: true },
+        select: {
+          id: true,
+          jobKind: true,
+          vehicleId: true,
+          tasks: { select: { area: true } },
+        },
       })
       if (!record) throw new Error('Service record not found')
-      if (record.jobKind !== 'brakes' && record.jobKind !== 'parts') {
+      if (!recordHasArea(record, 'brakes', 'parts')) {
         throw new Error('Not a part job')
       }
 

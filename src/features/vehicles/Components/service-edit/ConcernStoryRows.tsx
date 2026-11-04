@@ -133,7 +133,7 @@ export function ConcernStoryRows({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 sm:space-y-5">
       {rows.map((concern, index) => {
         const done = concernSteps(concern)
         const open = chosen[index] ?? firstOpenStep(concern)
@@ -240,10 +240,11 @@ export function ConcernStoryRows({
                 // becomes the next one, and the box changes under the typing.
                 onFocus={() => setChosen((prev) => ({ ...prev, [index]: open }))}
                 onChange={(e) => onPatch(index, patchFor(open, e.target.value))}
-                className="field-sizing-content min-h-32 w-full resize-y text-base"
+                className="field-sizing-content min-h-24 w-full resize-y text-base sm:min-h-32"
               />
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="rounded-xl border border-card-edge/60 bg-muted/15 p-1.5 sm:border-0 sm:bg-transparent sm:p-0">
+                <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:flex-wrap sm:gap-x-4 sm:gap-y-2 sm:overflow-visible sm:pb-0">
                 <DictateButton
                   key={fieldId}
                   value={text}
@@ -276,7 +277,7 @@ export function ConcernStoryRows({
                     key={finding.id}
                     type="button"
                     onClick={() => onEditFinding?.(finding)}
-                    className="flex max-w-full cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default"
+                    className="flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1 py-0.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default"
                   >
                     <span
                       className={cn(
@@ -294,19 +295,21 @@ export function ConcernStoryRows({
                     title={concern.id ? undefined : t('saveFirst')}
                     onClick={() => concern.id && onAddFinding(concern.id)}
                     data-testid="concern-add-observation"
-                    className="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
+                    className="hidden shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground sm:flex sm:px-2 sm:py-2 sm:text-sm"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     {t('addFinding')}
                   </button>
                 )}
                 {!concern.id && !unwritten && (
-                  <span className="text-[11px] text-muted-foreground">{t('saveFirst')}</span>
+                  <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                    {t('saveFirst')}
+                  </span>
                 )}
 
                 {open === 'confirm' && (
                   <>
-                    <label className="flex min-h-12 cursor-pointer items-center gap-2 text-sm font-medium">
+                    <label className="flex min-h-9 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium sm:min-h-12">
                       <Checkbox
                         checked={Boolean(concern.confirmed)}
                         onCheckedChange={(checked) =>
@@ -330,6 +333,36 @@ export function ConcernStoryRows({
                     )}
                   </>
                 )}
+                </div>
+
+                {index === rows.length - 1 && (
+                  <div className="mt-1 flex items-center gap-1 border-t border-card-edge/50 pt-1.5 sm:hidden">
+                    {onAddFinding && (
+                      <button
+                        type="button"
+                        disabled={!concern.id}
+                        title={concern.id ? undefined : t('saveFirst')}
+                        onClick={() => concern.id && onAddFinding(concern.id)}
+                        data-testid="concern-add-observation-mobile"
+                        className="flex h-8 flex-1 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-md text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:text-muted-foreground"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {t('addFinding')}
+                      </button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={onAdd}
+                      disabled={hasBlankRow}
+                      className="h-8 flex-1 gap-1 text-[11px] text-muted-foreground"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {t('add')}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -342,7 +375,7 @@ export function ConcernStoryRows({
         size="sm"
         onClick={onAdd}
         disabled={hasBlankRow}
-        className="h-10 px-3 text-sm text-muted-foreground"
+        className="hidden h-10 px-3 text-sm text-muted-foreground sm:inline-flex"
       >
         <Plus className="mr-1 h-4 w-4" />
         {t('add')}

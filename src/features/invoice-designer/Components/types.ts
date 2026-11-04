@@ -31,6 +31,11 @@ export interface DesignerTemplate {
    * company settings and never thinks about this.
    */
   logoUrl: string
+  /**
+   * A second mark for the sheet, above the job: the workshop's machine or
+   * hero picture. Absent leaves the section empty.
+   */
+  heroImageUrl?: string
 }
 
 /**

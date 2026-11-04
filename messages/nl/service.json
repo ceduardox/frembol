@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Werk toevoegen",
     "tabs": {
       "details": "Details",
       "images": "Afbeeldingen",
@@ -315,8 +316,15 @@
     "close": "Sluiten"
   },
   "share": {
-    "title": "Factuur delen",
+    "title": "Delen",
     "description": "Genereer een openbare koppeling waarmee iedereen deze factuur kan bekijken en downloaden zonder in te loggen.",
+    "invoiceTab": "Factuur",
+    "workOrderTab": "Werkorder",
+    "invoiceDocument": "factuur",
+    "workOrderDocument": "werkorder",
+    "copyMessage": "Hallo {name}, hier is uw {document}: {link}",
+    "workOrderDescription": "Deel de werkorder met foto's en video's.",
+    "workOrderNoNotify": "De werkorder wordt gedeeld via een link of WhatsApp.",
     "notifyTitle": "Stuur bericht naar {name}",
     "email": "E-mail",
     "noEmail": "(geen e-mailadres op bestand)",
@@ -410,7 +418,7 @@
     "startTime": "Starttijd",
     "endTime": "Eindtijd",
     "durationPresets": "Duur",
-    "technician": "Technicus",
+    "technician": "Verantwoordelijke monteur",
     "selectTechnician": "Selecteer technicus...",
     "searchOrCreate": "Zoek of maak technicus aan...",
     "createTechnician": "\"{name}\" aanmaken",
@@ -449,7 +457,8 @@
     "findingSlot": "Slot zoeken…",
     "slotPicked": "Ingepland op het eerstvolgende vrije slot",
     "noSlotFound": "Geen vrij slot gevonden in de komende weken",
-    "assignedTitle": "Toegewezen technicus",
+    "assignedTitle": "Verantwoordelijke monteur",
+    "collapse": "Planning inklappen",
     "boardLink": "Werkbord",
     "someoneElse": "Iemand anders",
     "loadOf": "{booked} / {capacity} u",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Van één melding is niet bevestigd dat die is verholpen:} other {Van # meldingen is niet bevestigd dat ze zijn verholpen:}}",
     "unconfirmedProceed": "Toch afronden",
     "addMedia": "Media toevoegen",
+    "mediaShort": "Foto's",
     "mediaUploading": "Bezig met uploaden…",
     "mediaAdded": "{count, plural, one {# bestand toegevoegd} other {# bestanden toegevoegd}}",
     "mediaFailed": "Kon {name} niet uploaden",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Toevoegen via telefoon",
+    "buttonShort": "Telefoon",
     "dialogTitle": "Foto’s en documenten toevoegen met een telefoon",
     "dialogBody": "Maak of kies foto’s, of deel een pdf, op elke telefoon. Alles komt direct bij deze werkorder.",
     "expires": "De code werkt tot {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Accessoires / persoonlijke spullen",
+    "noneSelected": "Niets geselecteerd",
     "accessoryOptions": {
       "spareTire": "Reservewiel",
       "jack": "Krik",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notities en handtekening van de klant",
     "saveNotes": "Notities opslaan"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Prijs",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Gebied",
+    "dialogDescription": "Voeg een ander gebied toe aan dit bezoek met prijs, monteur en levering.",
+    "added": "Toegevoegd: {area}",
+    "unassigned": "Niet toegewezen",
+    "noAssignable": "Geen actieve monteurs. Zet 'Werkt aan auto’s' aan voor die persoon in Team.",
+    "areaTechnician": "Gebiedstechnicus",
+    "responsibleHint": "De verantwoordelijke monteur van het bezoek is {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }

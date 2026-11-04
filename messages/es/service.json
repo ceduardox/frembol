@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Añadir trabajo",
     "tabs": {
       "details": "Detalles",
       "images": "Imágenes",
@@ -315,8 +316,15 @@
     "close": "Cerrar"
   },
   "share": {
-    "title": "Compartir Factura",
+    "title": "Compartir",
     "description": "Genere un enlace público que permita a cualquiera ver y descargar esta factura sin iniciar sesión.",
+    "invoiceTab": "Factura",
+    "workOrderTab": "Orden de trabajo",
+    "invoiceDocument": "factura",
+    "workOrderDocument": "orden de trabajo",
+    "copyMessage": "Hola {name}, le comparto su {document}: {link}",
+    "workOrderDescription": "Comparte la orden de trabajo con sus fotos y vídeos.",
+    "workOrderNoNotify": "La orden de trabajo se comparte por enlace o WhatsApp.",
     "notifyTitle": "Notificar a {name}",
     "email": "Correo Electrónico",
     "noEmail": "(sin correo electrónico registrado)",
@@ -410,7 +418,7 @@
     "startTime": "Hora de inicio",
     "endTime": "Hora de fin",
     "durationPresets": "Duración",
-    "technician": "Técnico",
+    "technician": "Técnico responsable",
     "selectTechnician": "Seleccionar técnico...",
     "searchOrCreate": "Buscar o crear técnico...",
     "createTechnician": "Crear \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Buscando una franja…",
     "slotPicked": "Reservado en la siguiente franja libre",
     "noSlotFound": "No se encontró ninguna franja libre en las próximas semanas",
-    "assignedTitle": "Técnico asignado",
+    "assignedTitle": "Técnico responsable",
+    "collapse": "Cerrar planificación",
     "boardLink": "Tablero de trabajo",
     "someoneElse": "Otra persona",
     "loadOf": "{booked} / {capacity} h",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Un motivo no se ha confirmado como reparado:} other {# motivos no se han confirmado como reparados:}}",
     "unconfirmedProceed": "Completar igualmente",
     "addMedia": "Añadir fotos o vídeo",
+    "mediaShort": "Fotos",
     "mediaUploading": "Subiendo…",
     "mediaAdded": "{count, plural, one {# archivo añadido} other {# archivos añadidos}}",
     "mediaFailed": "No se pudo subir {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Añadir desde el móvil",
+    "buttonShort": "Móvil",
     "dialogTitle": "Añadir fotos y documentos desde un móvil",
     "dialogBody": "Haz o elige fotos, o comparte un PDF, con cualquier móvil. Todo llega directamente a esta orden de trabajo.",
     "expires": "El código funciona hasta las {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Accesorios / objetos personales",
+    "noneSelected": "Ninguno seleccionado",
     "accessoryOptions": {
       "spareTire": "Llanta de auxilio",
       "jack": "Gata",
@@ -903,5 +915,29 @@
     "saveFailed": "No se pudo guardar la pieza",
     "notesAndSignature": "Notas y firma del cliente",
     "saveNotes": "Guardar notas"
+  },
+  "visit": {
+    "teamTitle": "Equipo de la visita",
+    "teamDescription": "Quién hizo cada área. Es control interno; no se imprime en la orden.",
+    "addService": "Agregar servicio",
+    "price": "Precio",
+    "noTechnicians": "Sin técnicos",
+    "chooseTechnicians": "Elegir técnicos",
+    "noStaff": "No hay técnicos en el tablero.",
+    "saveFailed": "No se pudieron guardar los técnicos.",
+    "addFailed": "No se pudo agregar el servicio.",
+    "area": "Área",
+    "dialogDescription": "Agrega otra área a esta visita con su precio, técnico y entrega.",
+    "added": "Agregado: {area}",
+    "unassigned": "Sin asignar",
+    "noAssignable": "No hay técnicos activos. Activa «Trabaja en los coches» para esa persona en Equipo.",
+    "areaTechnician": "Técnico del área",
+    "responsibleHint": "El técnico responsable de la visita es {name}.",
+    "areas": {
+      "vehicle": "Mecánica",
+      "brakes": "Frenos y embragues",
+      "wash": "Lavado",
+      "parts": "Venta de piezas"
+    }
   }
 }

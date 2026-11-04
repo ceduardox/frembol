@@ -48,6 +48,7 @@
     }
   },
   "header": {
+    "addWork": "Pridėti darbą",
     "tabs": {
       "details": "Informacija",
       "images": "Vaizdai",
@@ -315,8 +316,15 @@
     "close": "Uždaryti"
   },
   "share": {
-    "title": "Dalintis sąskaita",
+    "title": "Bendrinti",
     "description": "Sugeneruokite viešą nuorodą, leidžiančią bet kam peržiūrėti ir atsisiųsti šią sąskaitą be prisijungimo.",
+    "invoiceTab": "Sąskaita",
+    "workOrderTab": "Darbo užsakymas",
+    "invoiceDocument": "sąskaitą",
+    "workOrderDocument": "darbo užsakymą",
+    "copyMessage": "Sveiki, {name}, štai jūsų {document}: {link}",
+    "workOrderDescription": "Bendrinkite darbo užsakymą su nuotraukomis ir vaizdo įrašais.",
+    "workOrderNoNotify": "Darbo užsakymas bendrinamas nuoroda arba WhatsApp.",
     "notifyTitle": "Pranešti {name}",
     "email": "El. paštas",
     "noEmail": "(nėra el. pašto)",
@@ -410,7 +418,7 @@
     "startTime": "Pradžios laikas",
     "endTime": "Pabaigos laikas",
     "durationPresets": "Trukmė",
-    "technician": "Technikas",
+    "technician": "Atsakingas technikas",
     "selectTechnician": "Pasirinkite techniką...",
     "searchOrCreate": "Ieškoti arba sukurti techniką...",
     "createTechnician": "Sukurti \"{name}\"",
@@ -449,7 +457,8 @@
     "findingSlot": "Ieškoma laiko…",
     "slotPicked": "Priskirta artimiausiam laisvam laikui",
     "noSlotFound": "Artimiausiomis savaitėmis laisvo laiko nerasta",
-    "assignedTitle": "Priskirtas technikas",
+    "assignedTitle": "Atsakingas technikas",
+    "collapse": "Suskleisti planavimą",
     "boardLink": "Darbų lenta",
     "someoneElse": "Kitas žmogus",
     "loadOf": "{booked} / {capacity} val.",
@@ -535,6 +544,7 @@
     "unconfirmedBody": "{count, plural, one {Nepatikrinta, ar sutvarkytas # punktas:} few {Nepatikrinta, ar sutvarkyti # punktai:} many {Nepatikrinta, ar sutvarkyta # punkto:} other {Nepatikrinta, ar sutvarkyta # punktų:}}",
     "unconfirmedProceed": "Vis tiek užbaigti",
     "addMedia": "Pridėti nuotraukų ar vaizdo įrašų",
+    "mediaShort": "Nuotraukos",
     "mediaUploading": "Įkeliama…",
     "mediaAdded": "{count, plural, one {Pridėtas # failas} few {Pridėti # failai} many {Pridėta # failo} other {Pridėta # failų}}",
     "mediaFailed": "Nepavyko įkelti {name}",
@@ -706,6 +716,7 @@
   },
   "photoHandoff": {
     "button": "Pridėti iš telefono",
+    "buttonShort": "Telefonas",
     "dialogTitle": "Pridėti nuotraukas ir dokumentus iš telefono",
     "dialogBody": "Fotografuokite, pasirinkite nuotraukas arba pasidalykite PDF bet kuriame telefone. Viskas iškart atsiranda šiame darbo užsakyme.",
     "expires": "Kodas galioja iki {time}.",
@@ -808,6 +819,7 @@
       "full": "F"
     },
     "accessories": "Priedai / asmeniniai daiktai",
+    "noneSelected": "Nieko nepasirinkta",
     "accessoryOptions": {
       "spareTire": "Atsarginė padanga",
       "jack": "Domkratas",
@@ -903,5 +915,29 @@
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Pastabos ir kliento parašas",
     "saveNotes": "Išsaugoti pastabas"
+  },
+  "visit": {
+    "teamTitle": "Visit team",
+    "teamDescription": "Who did each area. Internal control; never printed on the sheet.",
+    "addService": "Add service",
+    "price": "Kaina",
+    "noTechnicians": "No technicians",
+    "chooseTechnicians": "Choose technicians",
+    "noStaff": "No technicians on the board.",
+    "saveFailed": "The technicians could not be saved.",
+    "addFailed": "The service could not be added.",
+    "area": "Sritis",
+    "dialogDescription": "Pridėkite kitą sritį prie šio apsilankymo su kaina, techniku ir pristatymu.",
+    "added": "Pridėta: {area}",
+    "unassigned": "Nepriskirta",
+    "noAssignable": "Nėra aktyvių technikų. Įjunkite „Dirba su automobiliais“ tam asmeniui komandoje.",
+    "areaTechnician": "Srities technikas",
+    "responsibleHint": "Apsilankymo atsakingas technikas yra {name}.",
+    "areas": {
+      "vehicle": "Mechanics",
+      "brakes": "Brakes & clutch",
+      "wash": "Wash",
+      "parts": "Parts sale"
+    }
   }
 }
