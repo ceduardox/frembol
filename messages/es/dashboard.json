@@ -197,7 +197,7 @@
       "email": "Correo",
       "phone": "Teléfono",
       "address": "Dirección",
-      "taxId": "NIF",
+      "taxId": "NIT",
       "invoiceNumber": "N.º factura",
       "title": "Título",
       "type": "Tipo",

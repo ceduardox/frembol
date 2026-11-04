@@ -721,7 +721,12 @@ function getDefaultFieldsForSection(
     case 'customer':
       return BUILTIN_CUSTOMER_FIELDS.map((f) => ({
         id: f.id,
-        visible: workOrder ? f.id === 'customer_name' || f.id === 'customer_phone' : true,
+        visible: workOrder
+          ? f.id === 'customer_name' ||
+            f.id === 'customer_company' ||
+            f.id === 'customer_phone' ||
+            f.id === 'customer_tax_id'
+          : true,
       }))
     case 'vehicle':
       return BUILTIN_VEHICLE_FIELDS.map((f) => ({

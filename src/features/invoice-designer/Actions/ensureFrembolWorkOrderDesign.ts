@@ -10,11 +10,12 @@ import { SETTING_KEYS } from '@/features/settings/Schema/settingsSchema'
 import {
   DESIGNER_LAYOUT_VERSION,
   getDefaultLayout,
+  type InvoiceLayoutConfig,
   type InvoiceSectionStyle,
 } from '@/features/settings/Schema/invoiceLayoutSchema'
 
 const SEEDED_KEY = 'design.frembolSeeded'
-const SEEDED_VERSION = '4'
+const SEEDED_VERSION = '5'
 const DESIGN_NAME = 'Frembol'
 type DesignKind = 'invoice' | 'work_order'
 
@@ -30,6 +31,8 @@ type DesignKind = 'invoice' | 'work_order'
 export async function ensureFrembolWorkOrderDesign() {
   return withAuth(
     async ({ userId, organizationId }) => {
+      await ensureCustomerTaxIdField(organizationId)
+
       const seeded = await db.appSetting.findUnique({
         where: { organizationId_key: { organizationId, key: SEEDED_KEY } },
         select: { value: true },
@@ -69,7 +72,7 @@ export async function ensureFrembolWorkOrderDesign() {
         frameSide: 'left',
         frameRadius: 0,
         fontFamily: 'Helvetica',
-        headerStyle: 'standard',
+        headerStyle: 'frembol',
         logoSize: 80,
         logoUrl: logoRow?.value ?? '',
         heroImageUrl,
@@ -148,6 +151,57 @@ export async function ensureFrembolWorkOrderDesign() {
       ],
     }
   )
+}
+
+async function ensureCustomerTaxIdField(organizationId: string) {
+  const activeRows = await db.appSetting.findMany({
+    where: {
+      organizationId,
+      key: { in: ['invoice.activeDesign', 'work_order.activeDesign'] },
+    },
+    select: { value: true },
+  })
+  const ids = activeRows
+    .map((row) => row.value)
+    .filter((value): value is string => Boolean(value?.startsWith('design:')))
+    .map((value) => value.slice(7))
+  if (ids.length === 0) return
+
+  const designs = await db.documentDesign.findMany({
+    where: { organizationId, id: { in: ids } },
+    select: { id: true, layout: true },
+  })
+  const updates: Prisma.PrismaPromise<unknown>[] = []
+  for (const design of designs) {
+    const layout = design.layout as InvoiceLayoutConfig | null
+    if (!layout?.sections) continue
+    let changed = false
+    const sections = layout.sections.map((section) => {
+      if (section.id !== 'customer') return section
+      const fields = section.fields ?? []
+      if (fields.some((field) => field.id === 'customer_tax_id' && field.visible)) {
+        return section
+      }
+      changed = true
+      return {
+        ...section,
+        fields: fields.some((field) => field.id === 'customer_tax_id')
+          ? fields.map((field) =>
+              field.id === 'customer_tax_id' ? { ...field, visible: true } : field
+            )
+          : [...fields, { id: 'customer_tax_id', visible: true }],
+      }
+    })
+    if (changed) {
+      updates.push(
+        db.documentDesign.update({
+          where: { id: design.id },
+          data: { layout: { ...layout, sections } as Prisma.InputJsonValue },
+        })
+      )
+    }
+  }
+  if (updates.length > 0) await db.$transaction(updates)
 }
 
 const tableStyle: InvoiceSectionStyle = {
@@ -230,7 +284,7 @@ function buildLayout(kind: DesignKind) {
       accentColor: '#d32027',
       fontSize: 9,
       rowPadding: 3,
-      margin: 28,
+      margin: 24,
       stripes: false,
     },
     documentType: kind,

@@ -3,7 +3,7 @@
     "title": "FACTURA",
     "due": "Vence: {date}",
     "billTo": "Facturar a",
-    "customerTaxId": "NIF",
+    "customerTaxId": "NIT",
     "vehicle": "Vehículo",
     "vehicleMarine": "Embarcación",
     "vin": "VIN: {vin}",
@@ -89,7 +89,7 @@
   "quote": {
     "title": "PRESUPUESTO",
     "to": "Para",
-    "customerTaxId": "NIF",
+    "customerTaxId": "NIT",
     "vehicle": "Vehículo",
     "vin": "VIN: {vin}",
     "typeKey": "HSN/TSN: {typeKey}",
