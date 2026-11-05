@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat openssl postgresql-client bash ffmpeg
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
-ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV NODE_OPTIONS=--max-old-space-size=2048
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV NODE_OPTIONS=--max-old-space-size=2048
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

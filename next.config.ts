@@ -16,9 +16,6 @@ const nextConfig: NextConfig = {
   experimental: {
     // Bound build workers on shared VPS to avoid memory exhaustion
     cpus: 1,
-    webpackBuildWorker: true,
-    webpackMemoryOptimizations: true,
-    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
     proxyClientMaxBodySize: '2gb',
   },
   async headers() {
