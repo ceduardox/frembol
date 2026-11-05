@@ -58,3 +58,6 @@ next-env.d.ts
 
 # local development stack (hot reload); keep it out of the remote / Coolify
 docker-compose.dev.yml
+
+# Local rollback copies
+.local-backups/

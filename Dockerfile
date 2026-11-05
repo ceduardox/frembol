@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat openssl postgresql-client bash ffmpeg
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
-ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NODE_OPTIONS=--max-old-space-size=1536
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json* ./
@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-ENV NODE_OPTIONS=--max-old-space-size=2048
+ENV NODE_OPTIONS=--max-old-space-size=1536
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -45,7 +45,8 @@ RUN --mount=type=cache,target=/app/.next/cache \
 # next the build had traced, and made the image well over a gigabyte larger.
 FROM base AS tools
 WORKDIR /tools
-RUN npm install --no-save --no-audit --no-fund \
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-save --no-audit --no-fund \
       prisma@7.6.0 @prisma/client@7.6.0 @prisma/adapter-pg@7.6.0 pg dotenv tsx
 
 # Production image, copy all the files and run next
