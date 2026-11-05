@@ -289,12 +289,12 @@ export async function installHasLicense(): Promise<boolean> {
 
 /**
  * Returns the max organizations a user is allowed based on their best plan
- * across all orgs they own. In self-hosted mode the limit is one for the
- * whole install, lifted by a valid white-label licence.
+ * across all orgs they own. Self-hosted installs get a small multi-workshop
+ * allowance so the owner can run the branch workshops of the same business.
  */
 export async function getMaxOrganizations(userId: string): Promise<number> {
   if (!isCloudMode()) {
-    return (await installHasLicense()) ? PLAN_FEATURES['white-label'].maxOrganizations : 1
+    return (await installHasLicense()) ? PLAN_FEATURES['white-label'].maxOrganizations : 10
   }
 
   const ownedOrgs = await db.organizationMember.findMany({
