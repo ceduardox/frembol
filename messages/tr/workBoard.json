@@ -81,7 +81,9 @@
     "linkedManagedOnTeam": "Uygulama erişimiyle birlikte Ekip sayfasından yönetilir.",
     "skills": "Uzmanlıklar",
     "skillsPlaceholder": "Arıza tespiti, elektrikli araç sertifikalı",
-    "skillsHint": "İşlerin dağıtıldığı yerde adın altında gösterilir. İsteğe bağlı."
+    "skillsHint": "İşlerin dağıtıldığı yerde adın altında gösterilir. İsteğe bağlı.",
+    "specialties": "Uzmanlıklar",
+    "specialtiesHint": "Bu kişinin çalışabileceği alanlar."
   },
   "jobDetail": {
     "viewDetails": "Ayrıntıları Görüntüle",

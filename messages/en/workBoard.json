@@ -81,7 +81,9 @@
     "linkedManagedOnTeam": "Managed on the Team page, along with their app access.",
     "skills": "Skills",
     "skillsPlaceholder": "Diagnostics, EV certified",
-    "skillsHint": "Shown under the name where work is handed out. Optional."
+    "skillsHint": "Shown under the name where work is handed out. Optional.",
+    "specialties": "Specialties",
+    "specialtiesHint": "Areas this person can work in."
   },
   "jobDetail": {
     "viewDetails": "View Details",

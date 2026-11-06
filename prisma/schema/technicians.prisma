@@ -8,6 +8,8 @@ model Technician {
   /// What this person is good at, in the workshop's own words ("Diagnostics,
   /// EV certified"). Shown beside their name where work is handed out.
   skills        String?
+  /// Area codes this person can work: wash, mechanics, brakes, parts.
+  specialties   String[] @default([])
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)

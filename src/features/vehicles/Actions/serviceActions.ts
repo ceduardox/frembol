@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { db } from '@/lib/db'
 import { concernStoryData } from '@/features/vehicles/Lib/concernStory'
@@ -237,7 +237,7 @@ export async function getServiceRecord(recordId: string) {
             include: {
               technicians: {
                 include: {
-                  technician: { select: { id: true, name: true, color: true } },
+                  technician: { select: { id: true, name: true, color: true, specialties: true } },
                 },
               },
             },

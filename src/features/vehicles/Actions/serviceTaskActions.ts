@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -21,6 +21,7 @@ export async function addServiceTask(input: unknown) {
       description: z.string().trim().max(200).optional(),
       price: z.number().min(0).max(1_000_000).optional(),
       technicianId: z.string().min(1).optional(),
+      technicianIds: z.array(z.string().min(1)).max(30).optional(),
       promisedAt: z.string().datetime().nullable().optional(),
     })
     .parse(input)
@@ -50,15 +51,23 @@ export async function addServiceTask(input: unknown) {
 
       const maxOrder = record.tasks.reduce((max, task) => Math.max(max, task.sortOrder), -1)
       const price = data.price && data.price > 0 ? Math.round(data.price * 100) / 100 : 0
-      const technician = data.technicianId
-        ? await db.technician.findFirst({
-            where: { id: data.technicianId, organizationId, isActive: true },
+      const requestedTechIds = [
+        ...new Set([
+          ...(data.technicianIds ?? []),
+          ...(data.technicianId ? [data.technicianId] : []),
+        ]),
+      ]
+      const technicians = requestedTechIds.length
+        ? await db.technician.findMany({
+            where: { id: { in: requestedTechIds }, organizationId, isActive: true },
             select: { id: true, name: true },
+            orderBy: { sortOrder: 'asc' },
           })
-        : null
-      if (data.technicianId && !technician) {
-        throw new Error('That technician is not active in this workshop.')
+        : []
+      if (technicians.length !== requestedTechIds.length) {
+        throw new Error('One of the technicians is not active in this workshop.')
       }
+      const technician = technicians[0] ?? null
 
       const task = await db.$transaction(async (tx) => {
         const created = await tx.serviceTask.create({
@@ -70,9 +79,12 @@ export async function addServiceTask(input: unknown) {
           },
           select: { id: true, area: true, sortOrder: true },
         })
-        if (technician) {
-          await tx.serviceTaskTechnician.create({
-            data: { taskId: created.id, technicianId: technician.id },
+        if (technicians.length > 0) {
+          await tx.serviceTaskTechnician.createMany({
+            data: technicians.map((tech) => ({
+              taskId: created.id,
+              technicianId: tech.id,
+            })),
           })
         }
         if (price > 0) {

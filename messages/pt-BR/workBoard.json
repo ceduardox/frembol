@@ -81,7 +81,9 @@
     "linkedManagedOnTeam": "Gerenciado na página Equipe, junto com o acesso ao aplicativo.",
     "skills": "Habilidades",
     "skillsPlaceholder": "Diagnóstico, certificado em veículos elétricos",
-    "skillsHint": "Aparece abaixo do nome onde o trabalho é distribuído. Opcional."
+    "skillsHint": "Aparece abaixo do nome onde o trabalho é distribuído. Opcional.",
+    "specialties": "Especialidades",
+    "specialtiesHint": "Áreas em que esta pessoa pode trabalhar."
   },
   "jobDetail": {
     "viewDetails": "Ver Detalhes",

@@ -1,4 +1,4 @@
-import type { TireSetBannerData } from '@/features/tire-hotel/Components/TireSetBanner'
+﻿import type { TireSetBannerData } from '@/features/tire-hotel/Components/TireSetBanner'
 
 export const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
@@ -52,7 +52,7 @@ export interface ServiceDetail {
     sortOrder: number
     technicians: {
       technicianId: string
-      technician: { id: string; name: string; color: string }
+      technician: { id: string; name: string; color: string; specialties?: string[] }
     }[]
   }[]
   status: string

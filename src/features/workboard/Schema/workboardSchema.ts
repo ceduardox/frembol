@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Must be a valid hex color')
 
@@ -10,6 +10,7 @@ export const createTechnicianSchema = z.object({
   color: hexColor.default('#3b82f6'),
   userId: z.string().optional(),
   skills: technicianSkills.optional(),
+  specialties: z.array(z.enum(['wash', 'mechanics', 'brakes', 'parts'])).max(4).optional(),
 })
 
 export const updateTechnicianSchema = z.object({
@@ -22,6 +23,7 @@ export const updateTechnicianSchema = z.object({
   userId: z.string().nullable().optional(),
   /** Empty clears it. */
   skills: technicianSkills.nullable().optional(),
+  specialties: z.array(z.enum(['wash', 'mechanics', 'brakes', 'parts'])).max(4).optional(),
 })
 
 export const createWorkBaySchema = z.object({

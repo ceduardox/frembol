@@ -540,7 +540,7 @@ export function ServicePageClient({
     onDownloadPDF: async () => {
       if (!(await checkDates())) return
       if (formState.hasUnsavedChanges) await actions.saveNow()
-      actions.handleDownloadPDF()
+      actions.handleDownloadWorkOrderPDF()
     },
     onPreviewPDF: previewWorkOrder,
     // The sheet says the job as it stands, so what has been typed goes in first.

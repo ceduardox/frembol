@@ -261,6 +261,26 @@ export function useServiceActions({
     setDownloading(false)
   }
 
+  const handleDownloadWorkOrderPDF = async () => {
+    setDownloading(true)
+    try {
+      const res = await fetch(`/api/protected/services/${record.id}/work-order-pdf`)
+      if (!res.ok) throw new Error('Failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download =
+        res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] ||
+        `work-order-${record.invoiceNumber || record.id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      modal.open('error', tc('errors.error'), t('payments.failedPdf'))
+    }
+    setDownloading(false)
+  }
+
   const handleDeleteAttachment = async (id: string) => {
     const ok = await confirm({
       title: t('attachments.deleteTitle'),
@@ -378,6 +398,7 @@ export function useServiceActions({
     handleSubmit,
     handleDelete,
     handleDownloadPDF,
+    handleDownloadWorkOrderPDF,
     handleDeleteAttachment,
     handleCreatePayment,
     handleUpdatePayment,

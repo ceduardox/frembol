@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -6,6 +6,7 @@ import { DocsLink } from '@/components/docs-link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2 } from 'lucide-react'
 import {
   createTechnician,
@@ -16,6 +17,8 @@ import {
 import { useWorkBoardStore, type Technician } from '../store/workboardStore'
 import { useConfirm } from '@/components/confirm-dialog'
 import { useTranslations } from 'next-intl'
+
+const AREA_CODES = ['wash', 'mechanics', 'brakes', 'parts'] as const
 
 const PRESET_COLORS = [
   '#3b82f6',
@@ -44,6 +47,7 @@ export function TechnicianDialog({
   const [name, setName] = useState('')
   const [color, setColor] = useState(PRESET_COLORS[0])
   const [skills, setSkills] = useState('')
+  const [specialties, setSpecialties] = useState<string[]>([])
   // Kept, but no longer editable here. An existing link survives an edit;
   // a new technician made from the board never gains one.
   const [userId, setUserId] = useState<string>('')
@@ -53,6 +57,7 @@ export function TechnicianDialog({
   const addTechnician = useWorkBoardStore((s) => s.addTechnician)
   const confirm = useConfirm()
   const t = useTranslations('workBoard.technician')
+  const tArea = useTranslations('service.visit')
   const tc = useTranslations('common.buttons')
 
   useEffect(() => {
@@ -61,11 +66,13 @@ export function TechnicianDialog({
         setName(technician.name)
         setColor(technician.color)
         setSkills(technician.skills || '')
+        setSpecialties(technician.specialties ?? [])
         setUserId(technician.userId || '')
       } else {
         setName('')
         setColor(PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)])
         setSkills('')
+        setSpecialties([])
         setUserId('')
       }
       // Fetch org members
@@ -86,6 +93,7 @@ export function TechnicianDialog({
         name: name.trim(),
         color,
         skills: skills.trim() || null,
+        specialties,
         userId: userId && userId !== 'none' ? userId : null,
       })
       if (res.success) {
@@ -99,6 +107,7 @@ export function TechnicianDialog({
                   name: name.trim(),
                   color,
                   skills: skills.trim() || null,
+                  specialties,
                   userId: userId || null,
                 }
               : t
@@ -111,6 +120,7 @@ export function TechnicianDialog({
         name: name.trim(),
         color,
         skills: skills.trim() || undefined,
+        specialties,
         userId: userId && userId !== 'none' ? userId : undefined,
       })
       if (res.success && res.data) {
@@ -157,6 +167,34 @@ export function TechnicianDialog({
               maxLength={80}
             />
             <p className="text-muted-foreground text-xs">{t('skillsHint')}</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t('specialties')}</Label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {AREA_CODES.map((area) => {
+                const checked = specialties.includes(area)
+                return (
+                  <label
+                    key={area}
+                    className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md border px-2.5 text-sm"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(value) =>
+                        setSpecialties((current) =>
+                          value === true
+                            ? [...current, area]
+                            : current.filter((item) => item !== area)
+                        )
+                      }
+                    />
+                    {tArea(`areas.${area}`)}
+                  </label>
+                )
+              })}
+            </div>
+            <p className="text-muted-foreground text-xs">{t('specialtiesHint')}</p>
           </div>
 
           <div className="space-y-2">

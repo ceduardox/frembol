@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
@@ -22,6 +22,7 @@ export async function getAssignableTechnicians() {
           sortOrder: true,
           dailyCapacity: true,
           skills: true,
+          specialties: true,
           userId: true,
           organizationId: true,
           createdAt: true,

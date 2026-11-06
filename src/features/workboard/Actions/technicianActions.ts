@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
@@ -22,6 +22,7 @@ export async function getTechnicians() {
           sortOrder: true,
           dailyCapacity: true,
           skills: true,
+          specialties: true,
           userId: true,
           organizationId: true,
           createdAt: true,
@@ -78,6 +79,7 @@ export async function createTechnician(input: unknown) {
           name: data.name,
           color: data.color,
           skills: data.skills || null,
+          specialties: data.specialties ?? [],
           userId: data.userId || null,
           sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
           organizationId,

@@ -36,6 +36,7 @@ export type Technician = {
   sortOrder: number
   dailyCapacity: number
   skills?: string | null
+  specialties?: string[]
   userId: string | null
   organizationId: string
 }

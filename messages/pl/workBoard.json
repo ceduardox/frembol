@@ -81,7 +81,9 @@
     "linkedManagedOnTeam": "Zarządzane na stronie Zespół, razem z dostępem do aplikacji.",
     "skills": "Umiejętności",
     "skillsPlaceholder": "Diagnostyka, certyfikat EV",
-    "skillsHint": "Wyświetlane pod nazwiskiem tam, gdzie przydziela się pracę. Opcjonalne."
+    "skillsHint": "Wyświetlane pod nazwiskiem tam, gdzie przydziela się pracę. Opcjonalne.",
+    "specialties": "Specjalizacje",
+    "specialtiesHint": "Obszary, w których ta osoba może pracować."
   },
   "jobDetail": {
     "viewDetails": "Wyświetl Szczegóły",

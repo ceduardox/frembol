@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import {
   Dialog,
@@ -27,7 +28,7 @@ import { useDateSettings } from '@/components/date-settings-context'
 import { addServiceTask } from '@/features/vehicles/Actions/serviceTaskActions'
 
 type Area = 'vehicle' | 'brakes' | 'wash' | 'parts'
-type Technician = { id: string; name: string; color?: string | null }
+type Technician = { id: string; name: string; color?: string | null; specialties?: string[] }
 
 const AREAS: Area[] = ['vehicle', 'brakes', 'wash', 'parts']
 
@@ -63,13 +64,19 @@ export function AddVisitWorkDialog({
   const [area, setArea] = useState<Area | ''>('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
-  const [technicianId, setTechnicianId] = useState('')
+  const [technicianIds, setTechnicianIds] = useState<string[]>([])
   const [promisedAt, setPromisedAt] = useState<Date | undefined>()
   const [saving, setSaving] = useState(false)
 
   const leadName =
     leadTechnicianName ||
     (leadTechnicianId ? technicians.find((tech) => tech.id === leadTechnicianId)?.name : null)
+
+  const sortedTechnicians = [...technicians].sort((a, b) => {
+    const aMatch = area && a.specialties?.includes(area) ? 0 : 1
+    const bMatch = area && b.specialties?.includes(area) ? 0 : 1
+    return aMatch - bMatch || a.name.localeCompare(b.name)
+  })
 
   const areaLabel = (value: string) => {
     switch (value) {
@@ -89,7 +96,7 @@ export function AddVisitWorkDialog({
     setArea(remaining[0] ?? '')
     setDescription('')
     setPrice('')
-    setTechnicianId('')
+    setTechnicianIds([])
     setPromisedAt(undefined)
   }, [open])
 
@@ -102,7 +109,7 @@ export function AddVisitWorkDialog({
       area,
       description: description.trim() || areaLabel(area),
       price: Number.isFinite(amount) && amount > 0 ? amount : undefined,
-      technicianId: technicianId || undefined,
+      technicianIds,
       promisedAt: promisedAt ? promisedAt.toISOString() : undefined,
     })
     setSaving(false)
@@ -176,23 +183,44 @@ export function AddVisitWorkDialog({
             </div>
             <div className="space-y-2">
               <Label>{t('areaTechnician')}</Label>
-              <Select
-                value={technicianId || 'none'}
-                onValueChange={(value) => setTechnicianId(value === 'none' ? '' : value)}
-                disabled={saving || locked || technicians.length === 0}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder={tPart('technicianPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('unassigned')}</SelectItem>
-                  {technicians.map((technician) => (
-                    <SelectItem key={technician.id} value={technician.id}>
-                      {technician.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border p-1.5">
+                {sortedTechnicians.map((technician) => {
+                  const checked = technicianIds.includes(technician.id)
+                  const specialties = technician.specialties
+                    ?.map((specialty) => areaLabel(specialty))
+                    .join(' · ')
+                  return (
+                    <label
+                      key={technician.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(value) =>
+                          setTechnicianIds((current) =>
+                            value === true
+                              ? [...current, technician.id]
+                              : current.filter((id) => id !== technician.id)
+                          )
+                        }
+                        disabled={saving || locked}
+                        className="mt-0.5"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{technician.name}</span>
+                        {specialties && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {specialties}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+              {technicianIds.length === 0 && (
+                <p className="text-xs text-muted-foreground">{t('unassigned')}</p>
+              )}
               {leadName && (
                 <p className="text-xs text-muted-foreground">
                   {t('responsibleHint', { name: leadName })}
