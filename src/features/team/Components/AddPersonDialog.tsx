@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -11,6 +11,7 @@ import {
   Droplets,
   Loader2,
   Mail,
+  ShieldCheck,
   UserCheck,
   Wrench,
 } from 'lucide-react'
@@ -35,6 +36,7 @@ import {
 import { createAppSetupCode, revokeAppSetupCode } from '@/features/team/Actions/createAppSetupCode'
 import { createTechnicianAccount } from '@/features/team/Actions/createTechnicianAccount'
 import { createWashManagerAccount } from '@/features/team/Actions/createWashManagerAccount'
+import { createOfficeAccount } from '@/features/team/Actions/createOfficeAccount'
 import { createTechnician } from '@/features/workboard/Actions/technicianActions'
 import { getWorkshopDialCode } from '@/features/team/Actions/createTechnicianAccount'
 import { getRoles } from '@/features/team/Actions/getRoles'
@@ -90,7 +92,7 @@ const BOARD_COLOURS = [
   '#6366f1',
 ]
 
-type Kind = 'member' | 'technician' | 'washManager' | 'standalone'
+type Kind = 'member' | 'technician' | 'washManager' | 'officeAdmin' | 'standalone'
 type Step = 'who' | 'details' | 'clash' | 'handoff' | 'done'
 
 interface RoleOption {
@@ -232,9 +234,10 @@ export function AddPersonDialog({
     setError(null)
     // A password is pre-filled so web access never lands as an afterthought
     // the desk forgot to configure; it stays editable.
-    if (next === 'technician' || next === 'washManager') {
+    if (next === 'technician' || next === 'washManager' || next === 'officeAdmin') {
       setPassword((current) => current || generatePassword())
     }
+    if (next === 'officeAdmin') setRoleValue('admin')
   }, [])
 
   const addTechnician = useCallback(
@@ -313,6 +316,31 @@ export function AddPersonDialog({
     setStep('done')
     setBusy(false)
   }, [busy, name, phone, password, country, onChanged, t])
+
+  const addOfficeAdmin = useCallback(async () => {
+    if (busy || !name.trim() || !phone.trim() || password.length < 8) return
+    setBusy(true)
+    setError(null)
+
+    const result = await createOfficeAccount({
+      name: name.trim(),
+      phone: phone.trim(),
+      dialCode: country || undefined,
+      password,
+      role: roleValue,
+    })
+    if (!result.success) {
+      setError(result.error || t('team.addOfficeAdminFailed'))
+      setBusy(false)
+      return
+    }
+
+    const data = result.data as { userId: string; name: string }
+    setCreated({ userId: data.userId, name: data.name })
+    onChanged()
+    setStep('done')
+    setBusy(false)
+  }, [busy, name, phone, password, country, roleValue, onChanged, t])
 
   const addMember = useCallback(
     async (e: React.FormEvent) => {
@@ -397,6 +425,8 @@ export function AddPersonDialog({
               <Wrench className="h-4 w-4" />
             ) : kind === 'washManager' ? (
               <Droplets className="h-4 w-4" />
+            ) : kind === 'officeAdmin' ? (
+              <ShieldCheck className="h-4 w-4" />
             ) : kind === 'member' ? (
               <Mail className="h-4 w-4" />
             ) : null}
@@ -407,8 +437,10 @@ export function AddPersonDialog({
               ? t('team.addPersonWho')
               : kind === 'technician'
                 ? t('team.addTechnicianHint')
-                : kind === 'washManager'
-                  ? t('team.addWashManagerHint')
+              : kind === 'washManager'
+                ? t('team.addWashManagerHint')
+                : kind === 'officeAdmin'
+                  ? t('team.addOfficeAdminHint')
                   : kind === 'standalone'
                     ? t('team.choiceStandaloneHint')
                     : t('team.inviteMemberHint')}
@@ -459,6 +491,12 @@ export function AddPersonDialog({
               onClick={() => choose('washManager')}
             />
             <ChoiceButton
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title={t('team.choiceOfficeAdmin')}
+              hint={t('team.choiceOfficeAdminHint')}
+              onClick={() => choose('officeAdmin')}
+            />
+            <ChoiceButton
               icon={<Mail className="h-5 w-5" />}
               title={t('team.choiceMember')}
               hint={t('team.choiceMemberHint')}
@@ -473,21 +511,31 @@ export function AddPersonDialog({
           </div>
         )}
 
-        {step === 'details' && (kind === 'technician' || kind === 'washManager') && (
+        {step === 'details' &&
+          (kind === 'technician' || kind === 'washManager' || kind === 'officeAdmin') && (
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (kind === 'washManager') void addWashManager()
+              if (kind === 'officeAdmin') void addOfficeAdmin()
+              else if (kind === 'washManager') void addWashManager()
               else void addTechnician()
             }}
             className="space-y-4"
           >
             <StepIntro
               title={t(
-                kind === 'washManager' ? 'team.washManagerDetailsTitle' : 'team.techDetailsTitle'
+                kind === 'officeAdmin'
+                  ? 'team.officeAdminDetailsTitle'
+                  : kind === 'washManager'
+                    ? 'team.washManagerDetailsTitle'
+                    : 'team.techDetailsTitle'
               )}
               blurb={t(
-                kind === 'washManager' ? 'team.washManagerDetailsBlurb' : 'team.techDetailsBlurb'
+                kind === 'officeAdmin'
+                  ? 'team.officeAdminDetailsBlurb'
+                  : kind === 'washManager'
+                    ? 'team.washManagerDetailsBlurb'
+                    : 'team.techDetailsBlurb'
               )}
             />
             <div className="space-y-2">
@@ -541,7 +589,11 @@ export function AddPersonDialog({
               ) : null}
               <p className="text-muted-foreground text-xs">
                 {t(
-                  kind === 'washManager' ? 'team.washManagerNote' : 'team.addTechnicianNote'
+                  kind === 'officeAdmin'
+                    ? 'team.officeAdminNote'
+                    : kind === 'washManager'
+                      ? 'team.washManagerNote'
+                      : 'team.addTechnicianNote'
                 )}
               </p>
             </div>
@@ -570,6 +622,26 @@ export function AddPersonDialog({
               <p className="text-muted-foreground text-xs">{t('team.technicianPasswordHint')}</p>
             </div>
 
+            {kind === 'officeAdmin' && (
+              <div className="space-y-2">
+                <Label>{t('team.role')}</Label>
+                <Select value={roleValue} onValueChange={setRoleValue} disabled={busy}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">{t('team.admin')}</SelectItem>
+                    {deskRoles.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-muted-foreground text-xs">{t('team.roleHint')}</p>
+              </div>
+            )}
+
             {error && <p className="text-destructive text-sm">{error}</p>}
 
             <Footer
@@ -579,7 +651,11 @@ export function AddPersonDialog({
                 setStep('who')
               }}
               submitLabel={t(
-                kind === 'washManager' ? 'team.addWashManagerSubmit' : 'team.addTechnicianSubmit'
+                kind === 'officeAdmin'
+                  ? 'team.addOfficeAdminSubmit'
+                  : kind === 'washManager'
+                    ? 'team.addWashManagerSubmit'
+                    : 'team.addTechnicianSubmit'
               )}
               busy={busy}
               disabled={!name.trim() || !phone.trim() || password.length < 8}
@@ -817,29 +893,39 @@ export function AddPersonDialog({
               <p className="font-medium">
                 {kind === 'standalone'
                   ? t('team.stepStandaloneTitle', { name: created?.name ?? '' })
-                  : kind === 'washManager'
-                    ? t('team.stepWashManagerTitle', { name: created?.name ?? '' })
-                    : kind === 'technician'
-                      ? t(scanned ? 'team.stepScannedTitle' : 'team.stepDoneTitle', {
-                          name: created?.name ?? '',
-                        })
-                      : t('team.stepInvitedTitle', { email })}
+                  : kind === 'officeAdmin'
+                    ? t('team.stepOfficeAdminTitle', { name: created?.name ?? '' })
+                    : kind === 'washManager'
+                      ? t('team.stepWashManagerTitle', { name: created?.name ?? '' })
+                      : kind === 'technician'
+                        ? t(scanned ? 'team.stepScannedTitle' : 'team.stepDoneTitle', {
+                            name: created?.name ?? '',
+                          })
+                        : t('team.stepInvitedTitle', { email })}
               </p>
               <p className="text-muted-foreground text-sm">
                 {kind === 'standalone'
                   ? t('team.stepStandaloneBody')
-                  : kind === 'washManager'
-                    ? t('team.stepWashManagerBody')
-                    : kind === 'technician'
-                      ? t('team.stepDoneBody')
-                      : t('team.stepInvitedBody')}
+                  : kind === 'officeAdmin'
+                    ? t('team.stepOfficeAdminBody')
+                    : kind === 'washManager'
+                      ? t('team.stepWashManagerBody')
+                      : kind === 'technician'
+                        ? t('team.stepDoneBody')
+                        : t('team.stepInvitedBody')}
               </p>
             </div>
 
-            {kind === 'washManager' && (
+            {(kind === 'washManager' || kind === 'officeAdmin') && (
               <div className="space-y-2 rounded-lg border border-sky-500/30 bg-sky-500/5 p-3 text-left">
                 <p className="text-xs font-medium">{t('team.webAccessTitle')}</p>
-                <p className="text-[11px] text-muted-foreground">{t('team.washManagerAccessHint')}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {t(
+                    kind === 'officeAdmin'
+                      ? 'team.officeAdminAccessHint'
+                      : 'team.washManagerAccessHint'
+                  )}
+                </p>
                 <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-sm">
                   <span className="text-muted-foreground">{t('team.technicianPhone')}</span>
                   <span className="font-medium tabular-nums">{preview}</span>

@@ -589,7 +589,18 @@
     "washManagerNote": "Entrará por la página de acceso con este número y contraseña.",
     "stepWashManagerTitle": "Encargado creado: {name}",
     "stepWashManagerBody": "Ya puede entrar por teléfono, ver solo el lavadero y gestionar sus facturas e informes.",
-    "washManagerAccessHint": "Comparte estos datos; entra por la página de acceso con teléfono."
+    "washManagerAccessHint": "Comparte estos datos; entra por la página de acceso con teléfono.",
+    "choiceOfficeAdmin": "Un administrador de oficina",
+    "choiceOfficeAdminHint": "Crea su acceso con teléfono y contraseña, sin correo. Ideal para un subadministrador.",
+    "addOfficeAdminHint": "Crea la cuenta y entrégale las credenciales en persona.",
+    "officeAdminDetailsTitle": "Credenciales del administrador",
+    "officeAdminDetailsBlurb": "Nombre, teléfono, contraseña y rol. No se envía correo.",
+    "addOfficeAdminSubmit": "Crear administrador",
+    "addOfficeAdminFailed": "No se pudo crear el administrador.",
+    "officeAdminNote": "Entrará con este teléfono y contraseña. No se envía correo.",
+    "stepOfficeAdminTitle": "Administrador creado: {name}",
+    "stepOfficeAdminBody": "Entrega estas credenciales y pídele que cambie la contraseña al entrar.",
+    "officeAdminAccessHint": "Entra en Frembol con teléfono y contraseña."
   },
   "invoice": {
     "title": "Diseño de factura",
