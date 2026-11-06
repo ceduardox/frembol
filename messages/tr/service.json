@@ -938,6 +938,11 @@
       "brakes": "Brakes & clutch",
       "wash": "Wash",
       "parts": "Parts sale"
-    }
+    },
+    "removeArea": "Alanı kaldır",
+    "removeAreaTitle": "Alanı kaldır",
+    "removeAreaBody": "{area} bu ziyaretten kaldırılsın mı? Teknisyenler ve hizmet fiyatı kaldırılacak. Kaydedilmiş kabuller korunur.",
+    "removeAreaConfirm": "Kaldır",
+    "removeFailed": "Alan kaldırılamadı."
   }
 }

@@ -938,6 +938,11 @@
       "brakes": "Brakes & clutch",
       "wash": "Wash",
       "parts": "Parts sale"
-    }
+    },
+    "removeArea": "Fjern område",
+    "removeAreaTitle": "Fjern område",
+    "removeAreaBody": "Fjerne {area} fra dette besøket? Teknikerne og serviceprisen fjernes. Lagrede mottak beholdes.",
+    "removeAreaConfirm": "Fjern",
+    "removeFailed": "Området kunne ikke fjernes."
   }
 }

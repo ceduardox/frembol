@@ -330,7 +330,11 @@ model ServiceLabor {
   serviceRecordId String
   serviceRecord   ServiceRecord @relation(fields: [serviceRecordId], references: [id], onDelete: Cascade)
 
+  serviceTaskId String?
+  serviceTask   ServiceTask? @relation(fields: [serviceTaskId], references: [id], onDelete: Cascade)
+
   @@index([serviceRecordId])
+  @@index([serviceTaskId])
   @@map("service_labor")
 }
 

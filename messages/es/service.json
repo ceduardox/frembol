@@ -938,6 +938,11 @@
       "brakes": "Frenos y embragues",
       "wash": "Lavado",
       "parts": "Venta de piezas"
-    }
+    },
+    "removeArea": "Eliminar área",
+    "removeAreaTitle": "Eliminar área",
+    "removeAreaBody": "¿Quitar {area} de esta visita? Se eliminarán sus técnicos y su precio de servicio. Las recepciones ya guardadas se mantienen.",
+    "removeAreaConfirm": "Eliminar",
+    "removeFailed": "No se pudo eliminar el área."
   }
 }

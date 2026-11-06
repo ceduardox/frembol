@@ -938,6 +938,11 @@
       "brakes": "Brakes & clutch",
       "wash": "Wash",
       "parts": "Parts sale"
-    }
+    },
+    "removeArea": "Pašalinti sritį",
+    "removeAreaTitle": "Pašalinti sritį",
+    "removeAreaBody": "Pašalinti {area} iš šio apsilankymo? Bus pašalinti technikai ir paslaugos kaina. Išsaugoti priėmimai lieka.",
+    "removeAreaConfirm": "Pašalinti",
+    "removeFailed": "Nepavyko pašalinti srities."
   }
 }

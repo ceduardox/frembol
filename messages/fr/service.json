@@ -938,6 +938,11 @@
       "brakes": "Brakes & clutch",
       "wash": "Wash",
       "parts": "Parts sale"
-    }
+    },
+    "removeArea": "Supprimer la zone",
+    "removeAreaTitle": "Supprimer la zone",
+    "removeAreaBody": "Retirer {area} de cette visite ? Ses techniciens et son prix de service seront supprimés. Les réceptions déjà enregistrées sont conservées.",
+    "removeAreaConfirm": "Supprimer",
+    "removeFailed": "La zone n’a pas pu être supprimée."
   }
 }

@@ -91,6 +91,7 @@ export async function addServiceTask(input: unknown) {
           await tx.serviceLabor.create({
             data: {
               serviceRecordId: record.id,
+              serviceTaskId: created.id,
               description: data.description || data.area,
               hours: 1,
               rate: price,
@@ -125,6 +126,47 @@ export async function addServiceTask(input: unknown) {
       revalidatePath('/work-board')
       revalidatePath('/wash')
       return task
+    },
+    {
+      requiredPermissions: [
+        { action: PermissionAction.UPDATE, subject: PermissionSubject.SERVICES },
+      ],
+    }
+  )
+}
+
+export async function removeServiceTask(input: unknown) {
+  const data = z.object({ taskId: z.string().min(1) }).parse(input)
+
+  return withAuth(
+    async ({ organizationId }) => {
+      const task = await db.serviceTask.findFirst({
+        where: { id: data.taskId, serviceRecord: { organizationId } },
+        select: {
+          id: true,
+          area: true,
+          serviceRecord: {
+            select: {
+              id: true,
+              vehicleId: true,
+              _count: { select: { tasks: true } },
+            },
+          },
+        },
+      })
+      if (!task) throw new Error('Service task not found')
+      if (task.serviceRecord._count.tasks <= 1) {
+        throw new Error('A visit needs at least one area.')
+      }
+
+      await db.serviceTask.delete({ where: { id: task.id } })
+      revalidatePath(
+        task.serviceRecord.vehicleId
+          ? `/vehicles/${task.serviceRecord.vehicleId}/service/${task.serviceRecord.id}`
+          : `/sales/${task.serviceRecord.id}`
+      )
+      revalidatePath('/work-board')
+      return { removed: true }
     },
     {
       requiredPermissions: [

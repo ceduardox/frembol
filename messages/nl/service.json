@@ -938,6 +938,11 @@
       "brakes": "Brakes & clutch",
       "wash": "Wash",
       "parts": "Parts sale"
-    }
+    },
+    "removeArea": "Gebied verwijderen",
+    "removeAreaTitle": "Gebied verwijderen",
+    "removeAreaBody": "{area} uit dit bezoek verwijderen? De monteurs en de serviceprijs worden verwijderd. Opgeslagen ontvangsten blijven.",
+    "removeAreaConfirm": "Verwijderen",
+    "removeFailed": "Het gebied kon niet worden verwijderd."
   }
 }

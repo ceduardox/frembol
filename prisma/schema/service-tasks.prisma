@@ -12,6 +12,7 @@ model ServiceTask {
   queueStage String?
 
   technicians ServiceTaskTechnician[]
+  laborItems  ServiceLabor[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
