@@ -30,7 +30,7 @@ RUN npx prisma generate
 
 # The public URL is inlined into the client bundle at build time, so it has to
 # be known here, not only at runtime. Coolify passes it as a build argument.
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_APP_URL=https://frembol.com
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 
 RUN --mount=type=cache,target=/app/.next/cache \
