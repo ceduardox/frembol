@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Pastabos ir kliento parašas",
-    "saveNotes": "Išsaugoti pastabas"
+    "saveNotes": "Išsaugoti pastabas",
+    "showOnPdf": "Rodyti dalis PDF",
+    "showOnPdfHint": "Jei išjungta, gautos dalys nespausdinamos. Numeris lieka."
   },
   "visit": {
     "teamTitle": "Visit team",

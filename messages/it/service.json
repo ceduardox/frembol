@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Note e firma del cliente",
-    "saveNotes": "Salva note"
+    "saveNotes": "Salva note",
+    "showOnPdf": "Mostra i pezzi nel PDF",
+    "showOnPdfHint": "Se disattivato, i pezzi ricevuti non vengono stampati. La targa resta."
   },
   "visit": {
     "teamTitle": "Visit team",

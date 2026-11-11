@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notes et signature du client",
-    "saveNotes": "Enregistrer les notes"
+    "saveNotes": "Enregistrer les notes",
+    "showOnPdf": "Afficher les pièces sur le PDF",
+    "showOnPdfHint": "Si désactivé, les pièces reçues ne sont pas imprimées. La plaque reste."
   },
   "visit": {
     "teamTitle": "Visit team",

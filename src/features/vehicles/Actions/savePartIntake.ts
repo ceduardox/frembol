@@ -11,6 +11,7 @@ import { recordHasArea } from '../Lib/serviceAreas'
 const schema = z.object({
   serviceRecordId: z.string().min(1),
   vehiclePlate: z.string().max(20).nullable().optional(),
+  showOnPdf: z.boolean().optional(),
   description: z.string().max(400).nullable().optional(),
   brand: z.string().max(120).nullable().optional(),
   serial: z.string().max(160).nullable().optional(),
@@ -63,6 +64,7 @@ export async function savePartIntake(input: unknown) {
         condition?: string | null
         accessories?: string | null
         items?: Prisma.InputJsonValue
+        showOnPdf?: boolean
         notes?: string | null
         clientSignature?: string | null
       } = {}
@@ -80,6 +82,7 @@ export async function savePartIntake(input: unknown) {
         values.condition = first?.condition ?? null
         values.accessories = first?.accessories ?? null
       }
+      if (data.showOnPdf !== undefined) values.showOnPdf = data.showOnPdf
       if (data.notes !== undefined) values.notes = data.notes
       if (data.clientSignature !== undefined) values.clientSignature = data.clientSignature
 

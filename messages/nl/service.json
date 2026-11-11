@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notities en handtekening van de klant",
-    "saveNotes": "Notities opslaan"
+    "saveNotes": "Notities opslaan",
+    "showOnPdf": "Toon onderdelen op PDF",
+    "showOnPdfHint": "Indien uit, worden de ontvangen onderdelen niet afgedrukt. Het kenteken blijft."
   },
   "visit": {
     "teamTitle": "Visit team",

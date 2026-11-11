@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Check, Disc3, Loader2, Package, Plus, Save, Trash2 } from 'lucide-react'
 import { AppCard } from '@/components/app-card'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { savePartIntake } from '@/features/vehicles/Actions/savePartIntake'
@@ -81,6 +82,7 @@ export function PartIntakeCard({
 
   const [items, setItems] = useState<PartItem[]>(() => itemsFromInitial(initial))
   const [vehiclePlate, setVehiclePlate] = useState(initialVehiclePlate ?? '')
+  const [showOnPdf, setShowOnPdf] = useState(initial?.showOnPdf !== false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -99,6 +101,7 @@ export function PartIntakeCard({
       const result = await savePartIntake({
         serviceRecordId,
         vehiclePlate: vehiclePlate.trim() || null,
+        showOnPdf,
         items: items
           .filter((item) => item.description.trim())
           .map((item) => ({
@@ -233,6 +236,18 @@ export function PartIntakeCard({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="space-y-1 rounded-lg border border-card-edge/70 p-3">
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+          <Checkbox
+            checked={showOnPdf}
+            onCheckedChange={(value) => setShowOnPdf(value === true)}
+            disabled={locked}
+          />
+          {t('showOnPdf')}
+        </label>
+        <p className="text-xs text-muted-foreground">{t('showOnPdfHint')}</p>
       </div>
 
       <div className="flex items-center gap-3">

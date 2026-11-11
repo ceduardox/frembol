@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notas e assinatura do cliente",
-    "saveNotes": "Salvar notas"
+    "saveNotes": "Salvar notas",
+    "showOnPdf": "Mostrar peças no PDF",
+    "showOnPdfHint": "Se desativado, as peças recebidas não são impressas. A placa permanece."
   },
   "visit": {
     "teamTitle": "Visit team",

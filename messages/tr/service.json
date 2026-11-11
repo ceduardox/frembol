@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notlar ve müşteri imzası",
-    "saveNotes": "Notları kaydet"
+    "saveNotes": "Notları kaydet",
+    "showOnPdf": "Parçaları PDF’de göster",
+    "showOnPdfHint": "Kapalıysa alınan parçalar yazdırılmaz. Plaka kalır."
   },
   "visit": {
     "teamTitle": "Visit team",

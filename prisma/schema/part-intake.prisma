@@ -13,6 +13,8 @@ model PartIntake {
   accessories String?
   /// The pieces the customer brought, one object each.
   items       Json?
+  /// Whether the received pieces are added to the printed document.
+  showOnPdf   Boolean @default(true)
   notes       String?
 
   /// Data URL of the signature drawn at the counter, when one was taken.

@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notater og kundesignatur",
-    "saveNotes": "Lagre notater"
+    "saveNotes": "Lagre notater",
+    "showOnPdf": "Vis deler i PDF",
+    "showOnPdfHint": "Hvis av, skrives de mottatte delene ikke ut. Skiltet beholdes."
   },
   "visit": {
     "teamTitle": "Visit team",

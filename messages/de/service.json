@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notizen und Kundenunterschrift",
-    "saveNotes": "Notizen speichern"
+    "saveNotes": "Notizen speichern",
+    "showOnPdf": "Teile im PDF anzeigen",
+    "showOnPdfHint": "Wenn deaktiviert, werden die erhaltenen Teile nicht gedruckt. Das Kennzeichen bleibt."
   },
   "visit": {
     "teamTitle": "Visit team",

@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notes and customer signature",
-    "saveNotes": "Save notes"
+    "saveNotes": "Save notes",
+    "showOnPdf": "Show pieces on PDF",
+    "showOnPdfHint": "If off, the received pieces are not printed. The plate still prints."
   },
   "visit": {
     "teamTitle": "Visit team",

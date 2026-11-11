@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Notatki i podpis klienta",
-    "saveNotes": "Zapisz notatki"
+    "saveNotes": "Zapisz notatki",
+    "showOnPdf": "Pokaż części w PDF",
+    "showOnPdfHint": "Po wyłączeniu otrzymane części nie są drukowane. Tablica pozostaje."
   },
   "visit": {
     "teamTitle": "Visit team",

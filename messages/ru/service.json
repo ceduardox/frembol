@@ -914,7 +914,9 @@
     "saved": "Saved",
     "saveFailed": "Could not save the part",
     "notesAndSignature": "Заметки и подпись клиента",
-    "saveNotes": "Сохранить заметки"
+    "saveNotes": "Сохранить заметки",
+    "showOnPdf": "Показывать детали в PDF",
+    "showOnPdfHint": "Если выключено, полученные детали не печатаются. Номер остаётся."
   },
   "visit": {
     "teamTitle": "Visit team",

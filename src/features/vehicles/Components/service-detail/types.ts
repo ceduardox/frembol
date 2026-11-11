@@ -95,6 +95,7 @@ export interface ServiceDetail {
     condition: string | null
     accessories: string | null
     items?: unknown
+    showOnPdf?: boolean
     notes: string | null
     clientSignature?: string | null
   } | null

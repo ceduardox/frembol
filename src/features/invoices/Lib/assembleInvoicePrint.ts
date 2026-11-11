@@ -423,7 +423,7 @@ async function assembleLive(
   const partIntake =
     record.partIntake
   let partNote = ''
-  if (partIntake) {
+  if (partIntake && partIntake.showOnPdf !== false) {
     const locale = await resolveWorkshopLocale()
     const t = await getTranslations({ locale, namespace: 'service.part' })
     partNote = partNoteHtml(
@@ -561,7 +561,7 @@ async function assembleFrozen(
   const partIntake =
     record.partIntake
   let partNote = ''
-  if (partIntake) {
+  if (partIntake && partIntake.showOnPdf !== false) {
     const locale = await resolveWorkshopLocale()
     const t = await getTranslations({ locale, namespace: 'service.part' })
     partNote = partNoteHtml(

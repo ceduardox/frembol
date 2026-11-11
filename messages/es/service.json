@@ -914,7 +914,9 @@
     "saved": "Guardado",
     "saveFailed": "No se pudo guardar la pieza",
     "notesAndSignature": "Notas y firma del cliente",
-    "saveNotes": "Guardar notas"
+    "saveNotes": "Guardar notas",
+    "showOnPdf": "Mostrar piezas en PDF",
+    "showOnPdfHint": "Si lo desactivas, las piezas recibidas no se imprimen. La placa sí se mantiene."
   },
   "visit": {
     "teamTitle": "Equipo de la visita",
