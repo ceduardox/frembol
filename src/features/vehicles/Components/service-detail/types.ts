@@ -94,6 +94,7 @@ export interface ServiceDetail {
     serial: string | null
     condition: string | null
     accessories: string | null
+    items?: unknown
     notes: string | null
     clientSignature?: string | null
   } | null

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * One place that turns an invoice into what the renderers take.
  *
  * Four routes used to assemble this by hand from live rows: the protected
@@ -421,7 +421,7 @@ async function assembleLive(
     washNote = washNoteHtml(intake, t)
   }
   const partIntake =
-    record.jobKind === 'brakes' || record.jobKind === 'parts' ? record.partIntake : null
+    record.partIntake
   let partNote = ''
   if (partIntake) {
     const locale = await resolveWorkshopLocale()
@@ -559,7 +559,7 @@ async function assembleFrozen(
     washNote = washNoteHtml(intake, t)
   }
   const partIntake =
-    record.jobKind === 'brakes' || record.jobKind === 'parts' ? record.partIntake : null
+    record.partIntake
   let partNote = ''
   if (partIntake) {
     const locale = await resolveWorkshopLocale()
@@ -743,11 +743,36 @@ function partNoteHtml(
   title: string
 ): string {
   const rows: [string, string][] = []
-  if (intake.description) rows.push([t('descriptionLabel'), intake.description])
-  if (intake.brand) rows.push([t('brand'), intake.brand])
-  if (intake.serial) rows.push([t('serial'), intake.serial])
-  if (intake.condition) rows.push([t('condition'), t(`conditionOptions.${intake.condition}`)])
-  if (intake.accessories) rows.push([t('accessories'), intake.accessories])
+  const pieces: Record<string, unknown>[] = []
+  if (Array.isArray(intake.items)) {
+    for (const item of intake.items) {
+      if (item && typeof item === 'object' && !Array.isArray(item)) {
+        pieces.push(item as Record<string, unknown>)
+      }
+    }
+  }
+  if (pieces.length > 0) {
+    pieces.forEach((item, index) => {
+      const description = typeof item.description === 'string' ? item.description : ''
+      const brand = typeof item.brand === 'string' ? item.brand : ''
+      const serial = typeof item.serial === 'string' ? item.serial : ''
+      const condition =
+        typeof item.condition === 'string' && item.condition
+          ? t(`conditionOptions.${item.condition}`)
+          : ''
+      const accessories = typeof item.accessories === 'string' ? item.accessories : ''
+      const detail = [description, brand, serial, condition, accessories]
+        .filter(Boolean)
+        .join(' · ')
+      if (detail) rows.push([`${t('descriptionLabel')} ${index + 1}`, detail])
+    })
+  } else {
+    if (intake.description) rows.push([t('descriptionLabel'), intake.description])
+    if (intake.brand) rows.push([t('brand'), intake.brand])
+    if (intake.serial) rows.push([t('serial'), intake.serial])
+    if (intake.condition) rows.push([t('condition'), t(`conditionOptions.${intake.condition}`)])
+    if (intake.accessories) rows.push([t('accessories'), intake.accessories])
+  }
   if (intake.notes) rows.push([t('notes'), intake.notes])
 
   const signature = intake.clientSignature

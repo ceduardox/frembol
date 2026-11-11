@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
-import { Check, Disc3, Loader2, Package, Save } from 'lucide-react'
+import { Check, Disc3, Loader2, Package, Plus, Save, Trash2 } from 'lucide-react'
 import { AppCard } from '@/components/app-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,52 @@ import { savePartIntake } from '@/features/vehicles/Actions/savePartIntake'
 import type { ServiceDetail } from '../service-detail/types'
 
 type PartIntakeData = NonNullable<ServiceDetail['partIntake']>
+type PartItem = {
+  description: string
+  brand: string
+  serial: string
+  condition: string
+  accessories: string
+}
+
 const CONDITIONS = ['good', 'worn', 'damaged'] as const
+const EMPTY_ITEM: PartItem = {
+  description: '',
+  brand: '',
+  serial: '',
+  condition: '',
+  accessories: '',
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function itemsFromInitial(initial: PartIntakeData | null): PartItem[] {
+  if (Array.isArray(initial?.items) && initial.items.length > 0) {
+    return initial.items
+      .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+      .map((item) => ({
+        description: stringValue(item.description),
+        brand: stringValue(item.brand),
+        serial: stringValue(item.serial),
+        condition: stringValue(item.condition),
+        accessories: stringValue(item.accessories),
+      }))
+  }
+  if (initial?.description) {
+    return [
+      {
+        description: initial.description,
+        brand: initial.brand ?? '',
+        serial: initial.serial ?? '',
+        condition: initial.condition ?? '',
+        accessories: initial.accessories ?? '',
+      },
+    ]
+  }
+  return [{ ...EMPTY_ITEM }]
+}
 
 export function PartIntakeCard({
   serviceRecordId,
@@ -29,19 +74,23 @@ export function PartIntakeCard({
   locked?: boolean
 }) {
   const t = useTranslations('service.part')
+  const tParts = useTranslations('service.parts')
+  const tButtons = useTranslations('common.buttons')
   const tv = useTranslations('vehicles.form')
   const router = useRouter()
 
-  const [description, setDescription] = useState(initial?.description ?? '')
+  const [items, setItems] = useState<PartItem[]>(() => itemsFromInitial(initial))
   const [vehiclePlate, setVehiclePlate] = useState(initialVehiclePlate ?? '')
-  const [brand, setBrand] = useState(initial?.brand ?? '')
-  const [serial, setSerial] = useState(initial?.serial ?? '')
-  const [condition, setCondition] = useState(initial?.condition ?? '')
-  const [accessories, setAccessories] = useState(initial?.accessories ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const canSave = description.trim().length > 0
+  const canSave = items.some((item) => item.description.trim().length > 0)
+
+  const updateItem = (index: number, field: keyof PartItem, value: string) => {
+    setItems((current) =>
+      current.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    )
+  }
 
   const save = async () => {
     setSaving(true)
@@ -49,12 +98,16 @@ export function PartIntakeCard({
     try {
       const result = await savePartIntake({
         serviceRecordId,
-        description: description || null,
         vehiclePlate: vehiclePlate.trim() || null,
-        brand: brand || null,
-        serial: serial || null,
-        condition: condition || null,
-        accessories: accessories || null,
+        items: items
+          .filter((item) => item.description.trim())
+          .map((item) => ({
+            description: item.description.trim(),
+            brand: item.brand.trim() || null,
+            serial: item.serial.trim() || null,
+            condition: item.condition || null,
+            accessories: item.accessories.trim() || null,
+          })),
       })
       if (!result.success) throw new Error(result.error || t('saveFailed'))
       setSaved(true)
@@ -75,18 +128,6 @@ export function PartIntakeCard({
       contentClassName="space-y-5"
     >
       <div className="space-y-2">
-        <Label htmlFor="part-description">{t('descriptionLabel')}</Label>
-        <Input
-          id="part-description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t('descriptionPlaceholder')}
-          disabled={locked}
-          className="h-11 text-base"
-        />
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="part-vehicle-plate">{tv('licensePlate')}</Label>
         <Input
           id="part-vehicle-plate"
@@ -99,61 +140,99 @@ export function PartIntakeCard({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 @2xl:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="part-brand">{t('brand')}</Label>
-          <Input
-            id="part-brand"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder={t('brandPlaceholder')}
-            disabled={locked}
-            className="h-10"
-          />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <Label>{tParts('title')}</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => setItems((current) => [...current, { ...EMPTY_ITEM }])}
+            disabled={locked || items.length >= 20}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {tParts('addPart')}
+          </Button>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="part-serial">{t('serial')}</Label>
-          <Input
-            id="part-serial"
-            value={serial}
-            onChange={(e) => setSerial(e.target.value)}
-            placeholder={t('serialPlaceholder')}
-            disabled={locked}
-            className="h-10"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>{t('condition')}</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {CONDITIONS.map((code) => (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={condition === code}
+
+        {items.map((item, index) => (
+          <div key={index} className="space-y-3 rounded-lg border border-card-edge/70 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                {t('descriptionLabel')} {index + 1}
+              </span>
+              {items.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={() => setItems((current) => current.filter((_, i) => i !== index))}
+                  disabled={locked}
+                  aria-label={tButtons('delete')}
+                  title={tButtons('delete')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+
+            <Input
+              value={item.description}
+              onChange={(e) => updateItem(index, 'description', e.target.value)}
+              placeholder={t('descriptionPlaceholder')}
+              disabled={locked}
+              className="h-10"
+              aria-label={`${t('descriptionLabel')} ${index + 1}`}
+            />
+
+            <div className="grid grid-cols-1 gap-3 @2xl:grid-cols-2">
+              <Input
+                value={item.brand}
+                onChange={(e) => updateItem(index, 'brand', e.target.value)}
+                placeholder={t('brandPlaceholder')}
                 disabled={locked}
-                onClick={() => setCondition(code)}
-                className={`min-h-10 cursor-pointer rounded-lg border px-3 text-sm font-medium transition-colors ${
-                  condition === code
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-card-edge bg-background hover:bg-muted/40'
-                }`}
-              >
-                {t(`conditionOptions.${code}`)}
-              </button>
-            ))}
+                className="h-10"
+                aria-label={t('brand')}
+              />
+              <Input
+                value={item.serial}
+                onChange={(e) => updateItem(index, 'serial', e.target.value)}
+                placeholder={t('serialPlaceholder')}
+                disabled={locked}
+                className="h-10"
+                aria-label={t('serial')}
+              />
+              <div className="flex flex-wrap items-center gap-1.5">
+                {CONDITIONS.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={item.condition === code}
+                    disabled={locked}
+                    onClick={() => updateItem(index, 'condition', code)}
+                    className={`min-h-10 cursor-pointer rounded-lg border px-2.5 text-sm font-medium transition-colors ${
+                      item.condition === code
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-card-edge bg-background hover:bg-muted/40'
+                    }`}
+                  >
+                    {t(`conditionOptions.${code}`)}
+                  </button>
+                ))}
+              </div>
+              <Input
+                value={item.accessories}
+                onChange={(e) => updateItem(index, 'accessories', e.target.value)}
+                placeholder={t('accessoriesPlaceholder')}
+                disabled={locked}
+                className="h-10"
+                aria-label={t('accessories')}
+              />
+            </div>
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="part-accessories">{t('accessories')}</Label>
-          <Input
-            id="part-accessories"
-            value={accessories}
-            onChange={(e) => setAccessories(e.target.value)}
-            placeholder={t('accessoriesPlaceholder')}
-            disabled={locked}
-            className="h-10"
-          />
-        </div>
+        ))}
       </div>
 
       <div className="flex items-center gap-3">

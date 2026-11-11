@@ -11,6 +11,8 @@ model PartIntake {
   /// good | worn | damaged
   condition   String?
   accessories String?
+  /// The pieces the customer brought, one object each.
+  items       Json?
   notes       String?
 
   /// Data URL of the signature drawn at the counter, when one was taken.

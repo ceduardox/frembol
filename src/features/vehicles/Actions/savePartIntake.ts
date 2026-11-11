@@ -1,6 +1,7 @@
 ﻿'use server'
 
 import { z } from 'zod'
+import type { Prisma } from '@/generated/prisma/client'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
 import { PermissionAction, PermissionSubject } from '@/lib/permissions'
@@ -15,6 +16,18 @@ const schema = z.object({
   serial: z.string().max(160).nullable().optional(),
   condition: z.string().max(30).nullable().optional(),
   accessories: z.string().max(1000).nullable().optional(),
+  items: z
+    .array(
+      z.object({
+        description: z.string().trim().min(1).max(400),
+        brand: z.string().max(120).nullable().optional(),
+        serial: z.string().max(160).nullable().optional(),
+        condition: z.string().max(30).nullable().optional(),
+        accessories: z.string().max(1000).nullable().optional(),
+      })
+    )
+    .max(20)
+    .optional(),
   notes: z.string().max(2000).nullable().optional(),
   clientSignature: z.string().max(500_000).nullable().optional(),
 })
@@ -49,6 +62,7 @@ export async function savePartIntake(input: unknown) {
         serial?: string | null
         condition?: string | null
         accessories?: string | null
+        items?: Prisma.InputJsonValue
         notes?: string | null
         clientSignature?: string | null
       } = {}
@@ -57,6 +71,15 @@ export async function savePartIntake(input: unknown) {
       if (data.serial !== undefined) values.serial = data.serial
       if (data.condition !== undefined) values.condition = data.condition
       if (data.accessories !== undefined) values.accessories = data.accessories
+      if (data.items !== undefined) {
+        values.items = data.items
+        const first = data.items[0]
+        values.description = first?.description ?? null
+        values.brand = first?.brand ?? null
+        values.serial = first?.serial ?? null
+        values.condition = first?.condition ?? null
+        values.accessories = first?.accessories ?? null
+      }
       if (data.notes !== undefined) values.notes = data.notes
       if (data.clientSignature !== undefined) values.clientSignature = data.clientSignature
 
