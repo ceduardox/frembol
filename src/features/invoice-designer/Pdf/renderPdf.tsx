@@ -245,6 +245,7 @@ export function RenderNodePdf({ node, base }: { node: Node; base: TextStyle }): 
           <View
             style={{
               flexDirection: 'row',
+              columnGap: node.columnGap,
             paddingVertical: node.headerPadding ?? 6,
             paddingHorizontal: node.cellPaddingX ?? 8,
               ...(node.headerStyle?.background
@@ -297,7 +298,8 @@ export function RenderNodePdf({ node, base }: { node: Node; base: TextStyle }): 
                 key={`${row[node.columns[0].key]}-${i}`}
                 wrap={false}
                 style={{
-                  flexDirection: 'row',
+              flexDirection: 'row',
+              columnGap: node.columnGap,
                   alignItems: 'flex-start',
             paddingVertical: node.rowPadding ?? 5,
             paddingHorizontal: node.cellPaddingX ?? 8,

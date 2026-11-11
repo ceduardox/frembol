@@ -2028,6 +2028,7 @@ function itemsTable(
       rowPadding: 3.5,
       headerPadding: 4,
       cellPaddingX: 14,
+      columnGap: 14,
       ruleWidth: 0.5,
       rowBackground: '#ffffff',
       style: {
@@ -2097,6 +2098,7 @@ function itemsTable(
       rowPadding: 3.5,
       headerPadding: 4,
       cellPaddingX: 14,
+      columnGap: 14,
       ruleWidth: 0.5,
       rowBackground: '#ffffff',
       style: {

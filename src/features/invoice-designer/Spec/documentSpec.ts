@@ -1,4 +1,4 @@
-/**
+﻿/**
  * What a printed document is, as data.
  *
  * One description, built once, rendered twice: to react-pdf for the paper and
@@ -121,6 +121,8 @@ export type Node =
       headerPadding?: number
       /** Horizontal padding inside every cell, in points. Unset is 8. */
       cellPaddingX?: number
+      /** Gap between columns, in points. Unset is 0. */
+      columnGap?: number
       stripe?: string
       anchor?: Anchor
     }

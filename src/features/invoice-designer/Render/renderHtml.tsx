@@ -277,6 +277,7 @@ function NodeBody({ node }: { node: Node }): ReactNode {
           <div
             style={{
               display: 'flex',
+              columnGap: node.columnGap,
               ...boxCss(node.headerStyle),
               ...textCss(node.headerStyle),
               padding: `${node.headerPadding ?? 6}px ${node.cellPaddingX ?? 8}px`,
@@ -317,7 +318,8 @@ function NodeBody({ node }: { node: Node }): ReactNode {
               <div
                 key={`${row[node.columns[0].key]}-${i}`}
                 style={{
-                  display: 'flex',
+              display: 'flex',
+              columnGap: node.columnGap,
                   alignItems: 'flex-start',
                   padding: `${node.rowPadding ?? 5}px ${node.cellPaddingX ?? 8}px`,
                   background: banded ? node.stripe : node.rowBackground,
