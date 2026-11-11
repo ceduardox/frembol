@@ -245,8 +245,8 @@ export function RenderNodePdf({ node, base }: { node: Node; base: TextStyle }): 
           <View
             style={{
               flexDirection: 'row',
-              paddingVertical: node.headerPadding ?? 6,
-              paddingHorizontal: 8,
+            paddingVertical: node.headerPadding ?? 6,
+            paddingHorizontal: node.cellPaddingX ?? 8,
               ...(node.headerStyle?.background
                 ? { backgroundColor: node.headerStyle.background }
                 : {}),
@@ -299,8 +299,8 @@ export function RenderNodePdf({ node, base }: { node: Node; base: TextStyle }): 
                 style={{
                   flexDirection: 'row',
                   alignItems: 'flex-start',
-                  paddingVertical: node.rowPadding ?? 5,
-                  paddingHorizontal: 8,
+            paddingVertical: node.rowPadding ?? 5,
+            paddingHorizontal: node.cellPaddingX ?? 8,
                   ...(banded
                     ? { backgroundColor: node.stripe }
                     : node.rowBackground

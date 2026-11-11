@@ -2027,6 +2027,7 @@ function itemsTable(
       id: section.id,
       rowPadding: 3.5,
       headerPadding: 4,
+      cellPaddingX: 14,
       ruleWidth: 0.5,
       rowBackground: '#ffffff',
       style: {
@@ -2095,6 +2096,7 @@ function itemsTable(
       id: section.id,
       rowPadding: 3.5,
       headerPadding: 4,
+      cellPaddingX: 14,
       ruleWidth: 0.5,
       rowBackground: '#ffffff',
       style: {

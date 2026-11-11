@@ -279,7 +279,7 @@ function NodeBody({ node }: { node: Node }): ReactNode {
               display: 'flex',
               ...boxCss(node.headerStyle),
               ...textCss(node.headerStyle),
-              padding: `${node.headerPadding ?? 6}px 8px`,
+              padding: `${node.headerPadding ?? 6}px ${node.cellPaddingX ?? 8}px`,
             }}
           >
             {node.columns.map((column) => (
@@ -319,7 +319,7 @@ function NodeBody({ node }: { node: Node }): ReactNode {
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',
-                  padding: `${node.rowPadding ?? 5}px 8px`,
+                  padding: `${node.rowPadding ?? 5}px ${node.cellPaddingX ?? 8}px`,
                   background: banded ? node.stripe : node.rowBackground,
                   opacity: struck ? 0.5 : undefined,
                   textDecoration: struck ? 'line-through' : undefined,

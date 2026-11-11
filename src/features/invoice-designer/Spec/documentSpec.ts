@@ -119,6 +119,8 @@ export type Node =
       rowPadding?: number
       /** Vertical padding of the column headings, in points. Unset is 6. */
       headerPadding?: number
+      /** Horizontal padding inside every cell, in points. Unset is 8. */
+      cellPaddingX?: number
       stripe?: string
       anchor?: Anchor
     }
