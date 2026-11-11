@@ -6,7 +6,6 @@ import {
   Geist,
   Geist_Mono,
   IBM_Plex_Mono,
-  IBM_Plex_Sans,
   Inter,
   Inter_Tight,
   JetBrains_Mono,
@@ -44,20 +43,16 @@ const geistMono = Geist_Mono({
   subsets: ['latin', 'latin-ext'],
 })
 
-// The "workshop" font set (Settings → Appearance). Not preloaded: a browser
-// fetches a font file only when some text is actually set in it, so whoever
-// stays on the default never downloads these.
-const plexSans = IBM_Plex_Sans({
+// The "workshop" font set (Settings → Appearance). IBM Plex Sans is loaded
+// via stylesheet link to avoid Turbopack font parser issues with Google's dynamic font API.
+const plexSans = {
   variable: '--font-plex-sans',
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin', 'latin-ext', 'cyrillic'],
-  preload: false,
-})
+}
 
 const plexMono = IBM_Plex_Mono({
   variable: '--font-plex-mono',
   weight: ['400', '500', '600'],
-  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  subsets: ['latin', 'latin-ext'],
   preload: false,
 })
 
@@ -71,19 +66,19 @@ const barlowCondensed = Barlow_Condensed({
 // The "precise" set. Variable fonts, so one file covers every weight.
 const inter = Inter({
   variable: '--font-inter',
-  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  subsets: ['latin', 'latin-ext'],
   preload: false,
 })
 
 const interTight = Inter_Tight({
   variable: '--font-inter-tight',
-  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  subsets: ['latin', 'latin-ext'],
   preload: false,
 })
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
-  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  subsets: ['latin', 'latin-ext'],
   preload: false,
 })
 
@@ -188,6 +183,7 @@ export default async function RootLayout({
         <meta name="google" content="notranslate" />
         <meta name="theme-color" content="#09090b" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var c=document.documentElement.classList;var p=location.pathname;if(p.indexOf('/share/')===0||p.indexOf('/portal')===0){c.add('light');return}var M={light:'light',dark:'dark',graphite:'light',ocean:'light',forest:'light',midnight:'dark',carbon:'dark'};var t=localStorage.getItem('torqvoice-theme')||'dark';if(t==='system'){t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}var m=M[t];if(!m){t='dark';m='dark'}c.add(m);if(t!==m){c.add('theme-'+t)}var f=localStorage.getItem('torqvoice-font');if(f==='workshop'||f==='precise'||f==='legible'){c.add('font-set-'+f)}}catch(e){}})()`,

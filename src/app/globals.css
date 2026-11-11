@@ -313,6 +313,7 @@
    resolves to whichever theme is active. */
 :root {
   --card-edge: color-mix(in oklab, var(--foreground) 20%, transparent);
+  --font-plex-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer base {
