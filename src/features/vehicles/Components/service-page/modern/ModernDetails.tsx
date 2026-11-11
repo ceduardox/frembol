@@ -327,6 +327,22 @@ export function ModernDetails(props: ModernDetailsProps) {
       />
     ) : null
 
+  const concernsCard = !pureWash && !partsSaleMode ? (
+    <ConcernsSection
+      concerns={formState.concerns}
+      setConcerns={formState.setConcerns}
+      onChange={formState.markDirty}
+      answeredCounts={answeredCounts}
+      findings={partMode ? [] : findings}
+      onAddFinding={partMode ? undefined : props.onAddFindingForConcern}
+      onEditFinding={partMode ? undefined : props.onEditFinding}
+      serviceRecordId={record.id}
+      media={record.attachments}
+      serverTranscription={props.aiTranscription}
+      dictationMode={props.dictationMode}
+    />
+  ) : null
+
   return (
     <>
       {/* One scroller for the whole page, with the classic page's padding. The
@@ -480,21 +496,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                   onAddWork={props.onAddWork}
                 />
                 <Lockable locked={locked}>
-                  {!pureWash && !partsSaleMode && (
-                  <ConcernsSection
-                    concerns={formState.concerns}
-                    setConcerns={formState.setConcerns}
-                    onChange={formState.markDirty}
-                    answeredCounts={answeredCounts}
-                    findings={partMode ? [] : findings}
-                    onAddFinding={partMode ? undefined : props.onAddFindingForConcern}
-                    onEditFinding={partMode ? undefined : props.onEditFinding}
-                    serviceRecordId={record.id}
-                    media={record.attachments}
-                    serverTranscription={props.aiTranscription}
-                    dictationMode={props.dictationMode}
-                  />
-                  )}
+                  {!brakesMode && concernsCard}
 
                   {!pureWash && vehicleId && (
                     <ServiceFindingsSection
@@ -535,6 +537,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                       }
                     />
                   </div>
+                  {brakesMode && concernsCard}
                   {(hasMechanics || (!brakesMode && !pureWash)) && (
                     <div id="job-parts" className="min-w-0">
                       <PartsEditor
