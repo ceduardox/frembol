@@ -1,4 +1,4 @@
-import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
+﻿import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
 import {
   DEFAULT_DATE_FORMAT,
   DEFAULT_TIME_FORMAT,
@@ -208,6 +208,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`
     : ''
+  const plate = data.vehicle?.licensePlate || data.vehiclePlate || ''
   const unit = invoiceSettings?.unitSystem === 'metric' ? L('km', 'km') : L('mi', 'mi')
 
   const fields: Record<string, string> = {
@@ -220,9 +221,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
     vehicle_name: vehicleName,
     vin: data.vehicle?.vin ? fillTemplate(L('vin', 'VIN: {vin}'), { vin: data.vehicle.vin }) : '',
     hsn_tsn: typeKeyLine(data.vehicle, labels.typeKey),
-    license_plate: data.vehicle?.licensePlate
-      ? fillTemplate(L('plate', 'Plate: {plate}'), { plate: data.vehicle.licensePlate })
-      : '',
+    license_plate: plate ? fillTemplate(L('plate', 'Plate: {plate}'), { plate }) : '',
     mileage: data.mileage
       ? `${fillTemplate(L('mileage', 'Mileage: {mileage}'), {
           mileage: data.mileage.toLocaleString(),
@@ -418,7 +417,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
       number: job.orderNumber,
       customerNumber: customer?.customerNumber ?? undefined,
       date: openedOn,
-      plate: data.vehicle?.licensePlate ?? undefined,
+      plate: data.vehicle?.licensePlate || data.vehiclePlate || undefined,
     },
     items,
     parts,

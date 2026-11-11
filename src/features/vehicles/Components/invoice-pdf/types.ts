@@ -1,4 +1,4 @@
-import type { InvoiceLayoutConfig } from '@/features/settings/Schema/invoiceLayoutSchema'
+﻿import type { InvoiceLayoutConfig } from '@/features/settings/Schema/invoiceLayoutSchema'
 
 export interface TemplateConfig {
   primaryColor?: string
@@ -97,6 +97,8 @@ export interface InvoiceData {
     taxId?: string | null
     customerNumber?: string | null
   } | null
+  /** Plate written by hand for a counter job with no Vehicle row. */
+  vehiclePlate?: string | null
   vehicle: {
     make: string
     model: string

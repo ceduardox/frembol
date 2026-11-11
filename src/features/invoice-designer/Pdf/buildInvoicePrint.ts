@@ -1,4 +1,4 @@
-import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
+﻿import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
 import { DEFAULT_DATE_FORMAT, formatCurrency, formatDateForPdf } from '@/lib/format'
 import { documentLaborLines, isShopFeeLine } from '@/features/settings/Lib/shopFee'
 import { formatQuantity } from '@/lib/format-quantity'
@@ -206,6 +206,7 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
   const vehicleName = data.vehicle
     ? `${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`
     : ''
+  const plate = data.vehicle?.licensePlate || data.vehiclePlate || ''
 
   // -------------------------------------------------------------------------
   // Fields: everything a panel can print, already formatted.
@@ -224,10 +225,10 @@ export function buildInvoicePrintSpec(input: InvoicePrintInput): DocumentSpec {
         : `VIN: ${data.vehicle.vin}`
       : '',
     hsn_tsn: typeKeyLine(data.vehicle, labels.typeKey),
-    license_plate: data.vehicle?.licensePlate
+    license_plate: plate
       ? labels.plate
-        ? fillTemplate(labels.plate, { plate: data.vehicle.licensePlate })
-        : `Plate: ${data.vehicle.licensePlate}`
+        ? fillTemplate(labels.plate, { plate })
+        : `Plate: ${plate}`
       : '',
     mileage: data.mileage
       ? `${

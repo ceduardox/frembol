@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import { z } from 'zod'
 import { db } from '@/lib/db'
@@ -9,6 +9,7 @@ import { recordHasArea } from '../Lib/serviceAreas'
 
 const schema = z.object({
   serviceRecordId: z.string().min(1),
+  vehiclePlate: z.string().max(20).nullable().optional(),
   description: z.string().max(400).nullable().optional(),
   brand: z.string().max(120).nullable().optional(),
   serial: z.string().max(160).nullable().optional(),
@@ -58,6 +59,13 @@ export async function savePartIntake(input: unknown) {
       if (data.accessories !== undefined) values.accessories = data.accessories
       if (data.notes !== undefined) values.notes = data.notes
       if (data.clientSignature !== undefined) values.clientSignature = data.clientSignature
+
+      if (data.vehiclePlate !== undefined) {
+        await db.serviceRecord.update({
+          where: { id: data.serviceRecordId },
+          data: { vehiclePlate: data.vehiclePlate?.trim().toUpperCase() || null },
+        })
+      }
 
       const intake = await db.partIntake.upsert({
         where: { serviceRecordId: data.serviceRecordId },

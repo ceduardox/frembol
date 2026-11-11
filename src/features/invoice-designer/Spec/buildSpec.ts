@@ -1,4 +1,4 @@
-import {
+﻿import {
   FOOTER_SPECIAL_FIELD_IDS,
   footerColumnsOf,
   getBuiltinFieldsForSection,
@@ -59,6 +59,8 @@ export interface LineGroup {
 }
 
 export interface DocumentData {
+  /** Plate written by hand for a counter job with no Vehicle row. */
+  vehiclePlate?: string | null
   /** Field id to the value it prints, covering every field a layout can show. */
   fields: Record<string, string>
   logoUrl?: string

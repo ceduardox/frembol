@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -19,17 +19,21 @@ export function PartIntakeCard({
   serviceRecordId,
   jobKind,
   initial,
+  vehiclePlate: initialVehiclePlate = '',
   locked = false,
 }: {
   serviceRecordId: string
   jobKind: 'brakes' | 'parts'
   initial: PartIntakeData | null
+  vehiclePlate?: string | null
   locked?: boolean
 }) {
   const t = useTranslations('service.part')
+  const tv = useTranslations('vehicles.form')
   const router = useRouter()
 
   const [description, setDescription] = useState(initial?.description ?? '')
+  const [vehiclePlate, setVehiclePlate] = useState(initialVehiclePlate ?? '')
   const [brand, setBrand] = useState(initial?.brand ?? '')
   const [serial, setSerial] = useState(initial?.serial ?? '')
   const [condition, setCondition] = useState(initial?.condition ?? '')
@@ -46,6 +50,7 @@ export function PartIntakeCard({
       const result = await savePartIntake({
         serviceRecordId,
         description: description || null,
+        vehiclePlate: vehiclePlate.trim() || null,
         brand: brand || null,
         serial: serial || null,
         condition: condition || null,
@@ -78,6 +83,19 @@ export function PartIntakeCard({
           placeholder={t('descriptionPlaceholder')}
           disabled={locked}
           className="h-11 text-base"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="part-vehicle-plate">{tv('licensePlate')}</Label>
+        <Input
+          id="part-vehicle-plate"
+          value={vehiclePlate}
+          onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
+          placeholder={tv('licensePlate')}
+          disabled={locked}
+          className="h-10 uppercase"
+          maxLength={20}
         />
       </div>
 

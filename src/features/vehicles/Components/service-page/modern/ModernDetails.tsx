@@ -468,6 +468,7 @@ export function ModernDetails(props: ModernDetailsProps) {
                     serviceRecordId={record.id}
                     jobKind="brakes"
                     initial={record.partIntake ?? null}
+                    vehiclePlate={record.vehiclePlate ?? null}
                     locked={locked}
                   />
                 )}

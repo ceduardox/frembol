@@ -44,6 +44,8 @@ export interface ServiceDetail {
   type: string
   /** Which line of the shop: vehicle | brakes | wash | parts. */
   jobKind?: string
+  /** Plate written for a counter job with no vehicle row. */
+  vehiclePlate?: string | null
   /** The areas of this visit, in the order they were added. */
   tasks?: {
     id: string
