@@ -26,6 +26,17 @@ export function PdfPreviewDialog({ open, onOpenChange, url }: PdfPreviewDialogPr
 
   useEffect(() => {
     if (!open) return
+    const mobile =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768
+    if (mobile) {
+      // Android Chrome cannot embed a PDF in an iframe: it shows its own
+      // "Open" fallback, which often does nothing inside the dialog. Let the
+      // phone open the real PDF in its own viewer instead.
+      const opened = window.open(url, '_blank', 'noopener,noreferrer')
+      if (opened) onOpenChange(false)
+      else window.location.assign(url)
+      return
+    }
     let cancelled = false
     let created: string | null = null
     setBlobUrl(null)
