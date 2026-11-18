@@ -4,6 +4,7 @@ import { getPendingInvitations } from '@/features/team/Actions/getPendingInvitat
 import { getTechnicianUserIds } from '@/features/team/Actions/setMemberTechnician'
 import { getWorkshopDialCode } from '@/features/team/Actions/createTechnicianAccount'
 import { getStandaloneTechnicians } from '@/features/team/Actions/giveTechnicianTheApp'
+import { getSalaryFlags } from '@/features/salaries/Actions/salaryActions'
 import { TeamSettings } from './team-settings'
 
 export default async function TeamPage({
@@ -14,15 +15,23 @@ export default async function TeamPage({
   // Quick Add sends people here to add somebody, so land them on the question
   // rather than on a page where they have to find the button again.
   const { add } = await searchParams
-  const [result, rolesResult, invitationsResult, technicianResult, dialResult, standaloneResult] =
-    await Promise.all([
-      getOrganization(),
-      getRoles(),
-      getPendingInvitations(),
-      getTechnicianUserIds(),
-      getWorkshopDialCode(),
-      getStandaloneTechnicians(),
-    ])
+  const [
+    result,
+    rolesResult,
+    invitationsResult,
+    technicianResult,
+    dialResult,
+    standaloneResult,
+    salaryFlagsResult,
+  ] = await Promise.all([
+    getOrganization(),
+    getRoles(),
+    getPendingInvitations(),
+    getTechnicianUserIds(),
+    getWorkshopDialCode(),
+    getStandaloneTechnicians(),
+    getSalaryFlags(),
+  ])
   const orgData = result.success ? result.data : null
   const roles = rolesResult.success && rolesResult.data ? rolesResult.data : []
   const pendingInvitations =
@@ -41,6 +50,16 @@ export default async function TeamPage({
       dialCode={(dialResult.success && dialResult.data?.dialCode) || ''}
       standaloneTechnicians={
         standaloneResult.success && standaloneResult.data ? standaloneResult.data : []
+      }
+      salariedUserIds={
+        salaryFlagsResult.success && salaryFlagsResult.data
+          ? salaryFlagsResult.data.userIds
+          : []
+      }
+      salariedTechnicianIds={
+        salaryFlagsResult.success && salaryFlagsResult.data
+          ? salaryFlagsResult.data.technicianIds
+          : []
       }
     />
   )

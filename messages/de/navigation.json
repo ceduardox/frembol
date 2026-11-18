@@ -65,7 +65,8 @@
     "tireSetDetails": "Reifensatz",
     "tireForecast": "Nächste Saison",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "HU-Erinnerungen"
+    "inspectionReminders": "HU-Erinnerungen",
+    "salaries": "Gehälter"
   },
   "search": "Suchen...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} laufende Inspektionen",
       "reminders": "{count} fällige Erinnerungen"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Gehälter"
   }
 }

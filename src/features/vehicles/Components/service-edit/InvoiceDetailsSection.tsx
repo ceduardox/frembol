@@ -100,8 +100,17 @@ export function InvoiceDetailsSection({
     }
   }
   // ISO YYYY-MM-DD strings, matching the native date input's value format
+  const [serviceDate, setServiceDate] = useState(
+    initialData.serviceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10)
+  )
   const [invoiceDate, setInvoiceDate] = useState(initialData.invoiceDate || '')
   const [invoiceDueDate, setInvoiceDueDate] = useState(initialData.invoiceDueDate || '')
+
+  useEffect(() => {
+    setServiceDate(
+      initialData.serviceDate?.slice(0, 10) || new Date().toISOString().slice(0, 10)
+    )
+  }, [initialData.serviceDate])
 
   useEffect(() => {
     setInvoiceDate(initialData.invoiceDate || '')
@@ -146,13 +155,6 @@ export function InvoiceDetailsSection({
         />
       </div>
 
-      {/* Hidden serviceDate — kept for form submission */}
-      <input
-        type="hidden"
-        name="serviceDate"
-        value={initialData.serviceDate || new Date().toISOString().split('T')[0]}
-      />
-
       <div
         className={showType && statusField ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'}
       >
@@ -179,6 +181,22 @@ export function InvoiceDetailsSection({
 
   const invoiceFields = (
     <>
+      <div className="space-y-1">
+        <Label htmlFor="serviceDate" className="text-xs">
+          {t('serviceDate')}
+        </Label>
+        <DateInput
+          id="serviceDate"
+          name="serviceDate"
+          value={serviceDate}
+          onChange={(v) => {
+            setServiceDate(v)
+            onDirty?.()
+          }}
+          className="h-9 text-sm"
+        />
+      </div>
+
       <div className="space-y-1">
         <Label htmlFor="invoiceNumber" className="text-xs">
           {t('invoiceNumber')}

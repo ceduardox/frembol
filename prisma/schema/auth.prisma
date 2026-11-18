@@ -62,6 +62,7 @@ model User {
   tireMovements          TireMovement[]
   tireTreatments         TireTreatment[]
   importBatches          ImportBatch[]
+  salaryProfiles         SalaryProfile[]
 
   @@map("users")
 }

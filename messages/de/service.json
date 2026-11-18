@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Reiner Teileverkauf"
     },
-    "designSaveFailed": "Rechnungsdesign konnte nicht geändert werden"
+    "designSaveFailed": "Rechnungsdesign konnte nicht geändert werden",
+    "serviceDate": "Ankunftsdatum"
   },
   "parts": {
     "title": "Teile",

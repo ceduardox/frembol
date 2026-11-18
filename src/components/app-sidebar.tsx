@@ -70,6 +70,7 @@ import {
   Timer,
   Users,
   UserRound,
+  Wallet,
   Sparkles,
 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -288,6 +289,12 @@ export function AppSidebar({
       url: '/timesheets',
       icon: Timer,
       subject: 'time_tracking',
+    },
+    {
+      titleKey: 'sidebar.salaries' as const,
+      url: '/salaries',
+      icon: Wallet,
+      subject: 'settings',
     },
     // Only once a provider is connected: a link to a page that can only say
     // "not connected" is noise.

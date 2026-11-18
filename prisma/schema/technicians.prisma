@@ -23,6 +23,7 @@ model Technician {
   inspections    Inspection[]
   statusReports  StatusReport[]
   timeEntries    TimeEntry[]
+  salaryProfiles SalaryProfile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

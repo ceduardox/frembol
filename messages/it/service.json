@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Vendita solo ricambi"
     },
-    "designSaveFailed": "Impossibile cambiare il design della fattura"
+    "designSaveFailed": "Impossibile cambiare il design della fattura",
+    "serviceDate": "Data di arrivo"
   },
   "parts": {
     "title": "Pezzi",

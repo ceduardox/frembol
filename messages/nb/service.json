@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Kun delesalg"
     },
-    "designSaveFailed": "Kunne ikke endre fakturadesignet"
+    "designSaveFailed": "Kunne ikke endre fakturadesignet",
+    "serviceDate": "Ankomstdato"
   },
   "parts": {
     "title": "Deler",

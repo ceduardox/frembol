@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
@@ -366,13 +366,8 @@ export function ModernDetails(props: ModernDetailsProps) {
             {/* The title is edited in the header, which is not inside this form,
               and the save reads its fields from the form. So the value lives
               here, hidden, and follows what the header holds. The service date
-              has no field on either page and travels the same way. */}
+              has its own field in the invoice card, below. */}
             <input type="hidden" name="title" value={props.title} />
-            <input
-              type="hidden"
-              name="serviceDate"
-              value={formState.initialData.serviceDate || new Date().toISOString().split('T')[0]}
-            />
             {/* Outside the lock: a locked invoice still moves along. */}
             {!(partMode || pureWash) && (
             <div className="hidden md:block">

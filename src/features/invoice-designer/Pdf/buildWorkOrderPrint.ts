@@ -1,4 +1,4 @@
-﻿import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
+import { resolveCurrencyCode, resolveCurrencyFormat } from '@/lib/currencies'
 import {
   DEFAULT_DATE_FORMAT,
   DEFAULT_TIME_FORMAT,
@@ -200,7 +200,7 @@ export function buildWorkOrderPrintSpec(input: WorkOrderPrintInput): DocumentSpe
   const day = (value: Date | string) => formatDateForPdf(value, df, tz)
   const timeFormat = invoiceSettings?.timeFormat === '24h' ? '24h' : DEFAULT_TIME_FORMAT
   const moment = (value: Date | string) => formatDateTime(value, df, timeFormat, tz)
-  const openedOn = day(data.startDateTime ?? data.serviceDate)
+  const openedOn = day(data.serviceDate)
   const printedOn = day(job.printedAt)
 
   const shopDisplayName = workshop?.name || data.shopName || 'Frembol'

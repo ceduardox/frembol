@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Vente de pièces seule"
     },
-    "designSaveFailed": "Impossible de changer le design de la facture"
+    "designSaveFailed": "Impossible de changer le design de la facture",
+    "serviceDate": "Date d'arrivée"
   },
   "parts": {
     "title": "Pièces",

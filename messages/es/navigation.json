@@ -65,7 +65,8 @@
     "tireSetDetails": "Juego de neumáticos",
     "tireForecast": "La próxima temporada",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Recordatorios de inspección"
+    "inspectionReminders": "Recordatorios de inspección",
+    "salaries": "Salarios"
   },
   "search": "Buscar...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} inspecciones en curso",
       "reminders": "{count} recordatorios vencidos"
     },
-    "wash": "Lavadero"
+    "wash": "Lavadero",
+    "salaries": "Salarios"
   }
 }

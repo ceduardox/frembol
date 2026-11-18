@@ -89,6 +89,8 @@ model Organization {
   documentDesigns             DocumentDesign[]
   documentDesignSnapshots     DocumentDesignSnapshot[]
   documentAssetSnapshots      DocumentAssetSnapshot[]
+  salaryProfiles              SalaryProfile[]
+  salaryEntries               SalaryEntry[]
 
   @@map("organizations")
 }

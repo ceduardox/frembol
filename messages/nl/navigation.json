@@ -65,7 +65,8 @@
     "tireSetDetails": "Bandenset",
     "tireForecast": "Volgend seizoen",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Keuringsherinneringen"
+    "inspectionReminders": "Keuringsherinneringen",
+    "salaries": "Salarissen"
   },
   "search": "Zoeken...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} lopende inspecties",
       "reminders": "{count} herinneringen vervallen"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Salarissen"
   }
 }

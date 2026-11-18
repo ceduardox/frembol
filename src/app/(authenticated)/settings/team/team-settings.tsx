@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AppCard } from '@/components/app-card'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -42,6 +43,7 @@ import { GiveAppDialog } from '@/features/team/Components/GiveAppDialog'
 import { removeTechnicianAccess } from '@/features/team/Actions/removeTechnicianAccess'
 import { deleteTechnician } from '@/features/workboard/Actions/technicianActions'
 import { permissionGroups, PermissionAction } from '@/lib/permissions'
+import { toggleSalaryProfile } from '@/features/salaries/Actions/salaryActions'
 
 /**
  * Which wording an action gets, since one of them is not generic.
@@ -130,6 +132,8 @@ export function TeamSettings({
   dialCode = '',
   standaloneTechnicians = [],
   pendingInvitations = [],
+  salariedUserIds = [],
+  salariedTechnicianIds = [],
 }: {
   organization: Organization | null
   currentRole: string | null
@@ -143,14 +147,31 @@ export function TeamSettings({
   /** On the board, with nobody behind them. */
   standaloneTechnicians?: { id: string; name: string; color: string }[]
   pendingInvitations?: PendingInvitation[]
+  /** Team members with an active salary profile. */
+  salariedUserIds?: string[]
+  /** Board-only technicians with an active salary profile. */
+  salariedTechnicianIds?: string[]
 }) {
   const router = useRouter()
   const t = useTranslations('settings')
   const tPerm = useTranslations('permissions')
+  const tSalary = useTranslations('common.salaries')
   const modal = useGlassModal()
   const confirm = useConfirm()
   const [loading, setLoading] = useState(false)
   const [orgName, setOrgName] = useState('')
+  const [salariedUsers, setSalariedUsers] = useState(() => new Set(salariedUserIds))
+  const [salariedTechnicians, setSalariedTechnicians] = useState(
+    () => new Set(salariedTechnicianIds)
+  )
+
+  useEffect(() => {
+    setSalariedUsers(new Set(salariedUserIds))
+  }, [salariedUserIds])
+
+  useEffect(() => {
+    setSalariedTechnicians(new Set(salariedTechnicianIds))
+  }, [salariedTechnicianIds])
 
   // Role form state
   const [showRoleForm, setShowRoleForm] = useState(false)
@@ -495,6 +516,43 @@ export function TeamSettings({
     }
   }
 
+  const handleToggleSalaryMember = async (member: Member, enabled: boolean) => {
+    const next = new Set(salariedUsers)
+    if (enabled) next.add(member.user.id)
+    else next.delete(member.user.id)
+    setSalariedUsers(next)
+    const result = await toggleSalaryProfile({ userId: member.user.id, enabled })
+    if (!result.success) {
+      setSalariedUsers((current) => {
+        const reverted = new Set(current)
+        if (enabled) reverted.delete(member.user.id)
+        else reverted.add(member.user.id)
+        return reverted
+      })
+      toast.error(result.error || tSalary('saveFailed'))
+    }
+  }
+
+  const handleToggleSalaryTechnician = async (
+    tech: { id: string; name: string },
+    enabled: boolean
+  ) => {
+    const next = new Set(salariedTechnicians)
+    if (enabled) next.add(tech.id)
+    else next.delete(tech.id)
+    setSalariedTechnicians(next)
+    const result = await toggleSalaryProfile({ technicianId: tech.id, enabled })
+    if (!result.success) {
+      setSalariedTechnicians((current) => {
+        const reverted = new Set(current)
+        if (enabled) reverted.delete(tech.id)
+        else reverted.add(tech.id)
+        return reverted
+      })
+      toast.error(result.error || tSalary('saveFailed'))
+    }
+  }
+
   if (!organization) {
     return (
       <div className="space-y-6">
@@ -573,6 +631,18 @@ export function TeamSettings({
                 <p className="truncate text-xs text-muted-foreground">{contactFor(member.user)}</p>
               </div>
               <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 text-xs">
+                    <Switch
+                      checked={salariedUsers.has(member.user.id)}
+                      onCheckedChange={(checked) =>
+                        void handleToggleSalaryMember(member, checked === true)
+                      }
+                      aria-label={tSalary('markSalaried')}
+                    />
+                    <span className="hidden lg:inline">{tSalary('markSalaried')}</span>
+                  </label>
+                )}
                 {technicians.has(member.user.id) && (
                   <Badge variant="outline" className="text-xs">
                     <Wrench className="mr-1 h-3 w-3" />
@@ -710,6 +780,16 @@ export function TeamSettings({
                 </div>
                 {isAdmin && (
                   <>
+                    <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 text-xs">
+                      <Switch
+                        checked={salariedTechnicians.has(tech.id)}
+                        onCheckedChange={(checked) =>
+                          void handleToggleSalaryTechnician(tech, checked === true)
+                        }
+                        aria-label={tSalary('markSalaried')}
+                      />
+                      <span className="hidden lg:inline">{tSalary('markSalaried')}</span>
+                    </label>
                     <Button
                       variant="outline"
                       size="sm"

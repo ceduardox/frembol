@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Sprzedaż samych części"
     },
-    "designSaveFailed": "Nie udało się zmienić projektu faktury"
+    "designSaveFailed": "Nie udało się zmienić projektu faktury",
+    "serviceDate": "Data przyjazdu"
   },
   "parts": {
     "title": "Części",

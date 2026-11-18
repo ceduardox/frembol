@@ -1,0 +1,78 @@
+/// A person the workshop pays a salary, and the cycle that salary follows.
+///
+/// Deliberately separate from the team member row: a technician can be on the
+/// board without a login, and an office account can be paid without working
+/// on jobs. One of userId or technicianId identifies the person; the name is
+/// kept here so a removed member still leaves a readable payroll history.
+model SalaryProfile {
+  id String @id @default(cuid())
+
+  name          String
+  monthlyAmount Float   @default(0)
+  /// YYYY-MM-DD. The first day this salary applies, and the anchor for a
+  /// rolling 30-day cycle.
+  startDate String
+  /// "monthly" (5th to the 5th, or any fixed day) or "days30" (rolling).
+  cycleType String @default("monthly")
+  /// For a monthly cycle: the day the period starts, 1-28.
+  cycleDay  Int    @default(1)
+  isActive  Boolean @default(true)
+  notes     String?
+
+  userId String?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  technicianId String?
+  technician   Technician? @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  entries SalaryEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, userId])
+  @@unique([organizationId, technicianId])
+  @@index([organizationId, isActive])
+  @@map("salary_profiles")
+}
+
+/// One movement in a salary period: an advance, a deduction, a payment, or a
+/// bonus. Amounts are positive; `type` decides which side of the balance they
+/// fall on. Receipt images are held in the row, like MemberSignature, so a
+/// backup of the database carries the proof with the payment.
+model SalaryEntry {
+  id String @id @default(cuid())
+
+  /// advance | deduction | payment | bonus
+  type String
+  /// For deductions: absence | other. Null for every other type.
+  category String?
+  amount   Float
+  /// YYYY-MM-DD, the date the money moved or the deduction applies.
+  effectiveDate String
+  note          String?
+
+  /// Proof uploaded for an advance (or any entry). The row is the file, so
+  /// there is no orphan upload to sweep later.
+  receiptName     String?
+  receiptMimeType String?
+  receiptData     Bytes?
+
+  createdById String?
+
+  profileId String
+  profile   SalaryProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId, effectiveDate])
+  @@index([organizationId, effectiveDate])
+  @@map("salary_entries")
+}

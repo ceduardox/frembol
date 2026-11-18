@@ -65,7 +65,8 @@
     "tireSetDetails": "Комплект шин",
     "tireForecast": "Следующий сезон",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Напоминания о техосмотре"
+    "inspectionReminders": "Напоминания о техосмотре",
+    "salaries": "Зарплаты"
   },
   "search": "Поиск...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} проверок в работе",
       "reminders": "{count} напоминаний просрочено"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Зарплаты"
   }
 }

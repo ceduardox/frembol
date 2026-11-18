@@ -65,7 +65,8 @@
     "tireSetDetails": "Tire Set",
     "tireForecast": "Next season",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Inspection reminders"
+    "inspectionReminders": "Inspection reminders",
+    "salaries": "Salaries"
   },
   "search": "Search...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} inspections in progress",
       "reminders": "{count} reminders due"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Salaries"
   }
 }

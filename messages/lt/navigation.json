@@ -65,7 +65,8 @@
     "tireSetDetails": "Padangų komplektas",
     "tireForecast": "Kitas sezonas",
     "whatsapp": "„WhatsApp“",
-    "inspectionReminders": "Apžiūros priminimai"
+    "inspectionReminders": "Apžiūros priminimai",
+    "salaries": "Atlyginimai"
   },
   "search": "Ieškoti...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} vykdomos apžiūros",
       "reminders": "{count} priminimai, kurių terminas suėjo"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Atlyginimai"
   }
 }

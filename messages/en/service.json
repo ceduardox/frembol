@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Parts-Only Sale"
     },
-    "designSaveFailed": "Could not change the invoice design"
+    "designSaveFailed": "Could not change the invoice design",
+    "serviceDate": "Arrival date"
   },
   "parts": {
     "title": "Parts",

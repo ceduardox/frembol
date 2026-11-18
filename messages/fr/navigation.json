@@ -65,7 +65,8 @@
     "tireSetDetails": "Jeu de pneus",
     "tireForecast": "La saison prochaine",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Rappels de contrôle"
+    "inspectionReminders": "Rappels de contrôle",
+    "salaries": "Salaires"
   },
   "search": "Rechercher…",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} inspections en cours",
       "reminders": "{count} rappels à échéance"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Salaires"
   }
 }

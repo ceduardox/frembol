@@ -65,7 +65,8 @@
     "tireSetDetails": "Jogo de pneus",
     "tireForecast": "Próxima época",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Lembretes de inspeção"
+    "inspectionReminders": "Lembretes de inspeção",
+    "salaries": "Salários"
   },
   "search": "Pesquisar...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} inspeções em curso",
       "reminders": "{count} lembretes pendentes"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Salários"
   }
 }

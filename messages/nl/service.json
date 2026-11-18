@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Alleen onderdelenverkoop"
     },
-    "designSaveFailed": "Kon het factuurontwerp niet wijzigen"
+    "designSaveFailed": "Kon het factuurontwerp niet wijzigen",
+    "serviceDate": "Aankomstdatum"
   },
   "parts": {
     "title": "Onderdelen",

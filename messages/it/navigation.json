@@ -65,7 +65,8 @@
     "tireSetDetails": "Treno di pneumatici",
     "tireForecast": "La prossima stagione",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Promemoria revisione"
+    "inspectionReminders": "Promemoria revisione",
+    "salaries": "Stipendi"
   },
   "search": "Cerca...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} ispezioni in corso",
       "reminders": "{count} promemoria in scadenza"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Stipendi"
   }
 }

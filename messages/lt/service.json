@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Tik dalių pardavimas"
     },
-    "designSaveFailed": "Nepavyko pakeisti sąskaitos dizaino"
+    "designSaveFailed": "Nepavyko pakeisti sąskaitos dizaino",
+    "serviceDate": "Atvykimo data"
   },
   "parts": {
     "title": "Dalys",

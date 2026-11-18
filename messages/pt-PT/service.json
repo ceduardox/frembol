@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Venda só de peças"
     },
-    "designSaveFailed": "Não foi possível alterar o design da fatura"
+    "designSaveFailed": "Não foi possível alterar o design da fatura",
+    "serviceDate": "Data de chegada"
   },
   "parts": {
     "title": "Peças",

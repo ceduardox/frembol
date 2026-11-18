@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Продажа только запчастей"
     },
-    "designSaveFailed": "Не удалось изменить дизайн счёта"
+    "designSaveFailed": "Не удалось изменить дизайн счёта",
+    "serviceDate": "Дата прибытия"
   },
   "parts": {
     "title": "Запчасти",

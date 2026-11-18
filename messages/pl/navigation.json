@@ -65,7 +65,8 @@
     "tireSetDetails": "Komplet opon",
     "tireForecast": "Następny sezon",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Przypomnienia o przeglądzie"
+    "inspectionReminders": "Przypomnienia o przeglądzie",
+    "salaries": "Wynagrodzenia"
   },
   "search": "Szukaj...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} przeglądy w toku",
       "reminders": "{count} zaległe przypomnienia"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Wynagrodzenia"
   }
 }

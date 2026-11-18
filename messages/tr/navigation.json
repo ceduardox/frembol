@@ -65,7 +65,8 @@
     "tireSetDetails": "Lastik takımı",
     "tireForecast": "Gelecek sezon",
     "whatsapp": "WhatsApp",
-    "inspectionReminders": "Muayene hatırlatmaları"
+    "inspectionReminders": "Muayene hatırlatmaları",
+    "salaries": "Maaşlar"
   },
   "search": "Ara...",
   "shortcut": "Ctrl+K",
@@ -151,6 +152,7 @@
       "inspections": "{count} devam eden muayene",
       "reminders": "{count} vadesi gelen hatırlatma"
     },
-    "wash": "Car wash"
+    "wash": "Car wash",
+    "salaries": "Maaşlar"
   }
 }

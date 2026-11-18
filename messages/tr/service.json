@@ -139,7 +139,8 @@
     "designRule": {
       "parts_sale": "Yalnızca parça satışı"
     },
-    "designSaveFailed": "Fatura tasarımı değiştirilemedi"
+    "designSaveFailed": "Fatura tasarımı değiştirilemedi",
+    "serviceDate": "Geliş tarihi"
   },
   "parts": {
     "title": "Parçalar",
