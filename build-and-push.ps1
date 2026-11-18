@@ -1,5 +1,6 @@
 # Build and Push Frembol Docker Image from local PC (64GB RAM)
 $ErrorActionPreference = "Stop"
+Set-Location $PSScriptRoot
 
 $COMMIT_HASH = (git rev-parse --short HEAD).Trim()
 $IMAGE_LATEST = "seduardocallau/frembol:latest"
