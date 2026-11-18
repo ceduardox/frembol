@@ -1213,6 +1213,9 @@ function frembolTotalsBlock(
               ],
             },
 
+            // The signature line needs room above it for a handwritten name.
+            { kind: 'spacer', height: 22 },
+
             // Signatures (RECIBIDO, ENTREGADO)
             {
               kind: 'row',
