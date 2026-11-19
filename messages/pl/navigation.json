@@ -89,7 +89,8 @@
     "wash": "Myjnia",
     "washHint": "Samochód, motocykl lub ciężarówka",
     "chooseTitle": "Co chcesz utworzyć?",
-    "chooseDescription": "Wybierz typ. Zobaczysz tylko to, na co pozwala Twoja rola."
+    "chooseDescription": "Wybierz typ. Zobaczysz tylko to, na co pozwala Twoja rola.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Kup White-Label",
   "licenseExpired": "Twoja licencja wygasła. Funkcje mogą być ograniczone.",

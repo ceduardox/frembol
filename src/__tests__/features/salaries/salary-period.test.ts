@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   salaryBalance,
   salaryPeriodFor,
+  salaryPeriodsInRange,
   tenureParts,
   type SalaryProfileForPeriod,
 } from '@/features/salaries/Lib/salaryPeriod'
@@ -68,5 +69,14 @@ describe('salary periods', () => {
       months: 2,
       days: 13,
     })
+  })
+
+  it('lists every period in a history range, oldest first', () => {
+    expect(
+      salaryPeriodsInRange({ ...profile, startDate: '2026-09-05' }, '2026-09-01', '2026-10-31')
+    ).toEqual([
+      { start: '2026-09-05', end: '2026-10-04' },
+      { start: '2026-10-05', end: '2026-11-04' },
+    ])
   })
 })

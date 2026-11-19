@@ -89,7 +89,8 @@
     "wash": "Автомойка",
     "washHint": "Авто, мото или грузовик",
     "chooseTitle": "Что вы создаёте?",
-    "chooseDescription": "Выберите тип. Вы увидите только то, что разрешает ваша роль."
+    "chooseDescription": "Выберите тип. Вы увидите только то, что разрешает ваша роль.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Купить White-Label",
   "licenseExpired": "Ваша лицензия истекла. Функции могут быть ограничены.",

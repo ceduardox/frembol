@@ -89,7 +89,8 @@
     "wash": "Automobilių plovykla",
     "washHint": "Automobilis, motociklas ar sunkvežimis",
     "chooseTitle": "Ką kursite?",
-    "chooseDescription": "Pasirinkite tipą. Matysite tik tai, ką leidžia jūsų rolė."
+    "chooseDescription": "Pasirinkite tipą. Matysite tik tai, ką leidžia jūsų rolė.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Įsigyti \"White-Label\"",
   "licenseExpired": "Jūsų licencija pasibaigė. Funkcijos gali būti ribotos.",

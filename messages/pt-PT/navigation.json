@@ -89,7 +89,8 @@
     "wash": "Lavagem auto",
     "washHint": "Carro, mota ou camião",
     "chooseTitle": "O que vai criar?",
-    "chooseDescription": "Escolha o tipo. Só verá o que o seu perfil permite."
+    "chooseDescription": "Escolha o tipo. Só verá o que o seu perfil permite.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Adquirir White-Label",
   "licenseExpired": "A sua licença expirou. Algumas funcionalidades podem estar limitadas.",

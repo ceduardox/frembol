@@ -89,7 +89,8 @@
     "wash": "Autolavaggio",
     "washHint": "Auto, moto o camion",
     "chooseTitle": "Cosa vuoi creare?",
-    "chooseDescription": "Scegli il tipo. Vedrai solo ciò che il tuo ruolo consente."
+    "chooseDescription": "Scegli il tipo. Vedrai solo ciò che il tuo ruolo consente.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Acquista White-Label",
   "licenseExpired": "La tua licenza è scaduta. Le funzionalità potrebbero essere limitate.",

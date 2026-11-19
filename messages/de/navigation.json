@@ -89,7 +89,8 @@
     "wash": "Autowäsche",
     "washHint": "Auto, Motorrad oder LKW",
     "chooseTitle": "Was möchten Sie anlegen?",
-    "chooseDescription": "Wählen Sie den Typ. Sie sehen nur, was Ihre Rolle erlaubt."
+    "chooseDescription": "Wählen Sie den Typ. Sie sehen nur, was Ihre Rolle erlaubt.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "White-Label erwerben",
   "licenseExpired": "Ihre Lizenz ist abgelaufen. Funktionen können eingeschränkt sein.",

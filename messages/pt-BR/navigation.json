@@ -89,7 +89,8 @@
     "wash": "Lava-jato",
     "washHint": "Carro, moto ou caminhão",
     "chooseTitle": "O que você vai criar?",
-    "chooseDescription": "Escolha o tipo. Você só verá o que seu perfil permite."
+    "chooseDescription": "Escolha o tipo. Você só verá o que seu perfil permite.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Adquirir White-Label",
   "licenseExpired": "Sua licença expirou. Os recursos podem estar limitados.",

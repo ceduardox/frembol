@@ -89,7 +89,8 @@
     "wash": "Lavadero",
     "washHint": "Auto, moto o camión",
     "chooseTitle": "¿Qué trabajo vas a crear?",
-    "chooseDescription": "Elige el tipo. Solo verás lo que tu rol permite."
+    "chooseDescription": "Elige el tipo. Solo verás lo que tu rol permite.",
+    "worker": "Agregar trabajador"
   },
   "purchaseWhiteLabel": "Adquirir marca blanca",
   "licenseExpired": "Su licencia ha expirado. Las funciones pueden estar limitadas.",

@@ -89,7 +89,8 @@
     "wash": "Oto yıkama",
     "washHint": "Araba, motosiklet veya kamyon",
     "chooseTitle": "Ne oluşturacaksınız?",
-    "chooseDescription": "Tür seçin. Yalnızca rolünüzün izin verdiğini görürsünüz."
+    "chooseDescription": "Tür seçin. Yalnızca rolünüzün izin verdiğini görürsünüz.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Beyaz Etiket Satın Al",
   "licenseExpired": "Lisansınız sona erdi. Özellikler sınırlı olabilir.",

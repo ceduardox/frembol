@@ -7,14 +7,19 @@ import { useTranslations } from 'next-intl'
 import {
   ArrowDownCircle,
   ArrowUpCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  CircleDollarSign,
   FileText,
+  History,
   Settings2,
   Trash2,
   Users,
   Wallet,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,6 +29,7 @@ import { useDateSettings } from '@/components/date-settings-context'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { deleteSalaryEntry } from '@/features/salaries/Actions/salaryActions'
 import { SalaryEntryDialog, type SalaryEntryMode } from '@/features/salaries/Components/SalaryEntryDialog'
+import { SalaryHistoryDialog } from '@/features/salaries/Components/SalaryHistoryDialog'
 import { SalaryProfileDialog } from '@/features/salaries/Components/SalaryProfileDialog'
 import {
   addDaysIso,
@@ -56,6 +62,8 @@ export function SalariesClient({
   )
   const [profileDialog, setProfileDialog] = useState(false)
   const [entryMode, setEntryMode] = useState<SalaryEntryMode | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(initial[0]?.id ?? null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   useEffect(() => {
     if (!initial.some((profile) => profile.id === selectedId)) {
@@ -152,134 +160,203 @@ export function SalariesClient({
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-        <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+      <div className="flex items-center gap-3">
+        <div className="bg-primary/10 text-primary ring-primary/15 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1">
+          <Wallet className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
+        </div>
       </div>
 
       <div className="space-y-4">
-        <Card>
-          <CardHeader className="border-b">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="h-4 w-4 text-primary" />
-              {t('teamSummary')}
-            </CardTitle>
+        <Card className="overflow-hidden shadow-sm">
+          <CardHeader className="from-primary/[0.07] border-b bg-gradient-to-r via-transparent to-transparent">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4 text-primary" />
+                {t('teamSummary')}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-muted-foreground">
+                  {initial.length}
+                </Badge>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href="/api/protected/salaries/team-pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileText className="mr-1 h-3.5 w-3.5" />
+                    {t('teamPdf')}
+                  </a>
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-sm">
-                <thead className="bg-muted/40 text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="px-4 py-2.5 text-left font-medium">{t('workers')}</th>
-                    <th className="px-4 py-2.5 text-left font-medium">{t('seniority')}</th>
-                    <th className="px-4 py-2.5 text-left font-medium">{t('currentPeriod')}</th>
-                    <th className="px-4 py-2.5 text-right font-medium">{t('baseSalary')}</th>
-                    <th className="px-4 py-2.5 text-right font-medium">{t('advances')}</th>
-                    <th className="px-4 py-2.5 text-right font-medium">{t('deductions')}</th>
-                    <th className="px-4 py-2.5 text-right font-medium">{t('paid')}</th>
-                    <th className="px-4 py-2.5 text-right font-medium">{t('pending')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(({ profile, period: rowPeriod, balance: rowBalance, tenure }) => (
-                    <tr
-                      key={profile.id}
-                      className={`cursor-pointer border-b transition-colors last:border-b-0 ${
-                        profile.id === selected?.id ? 'bg-primary/5' : 'hover:bg-muted/40'
+          <CardContent className="space-y-2 bg-muted/10 p-3 sm:p-4">
+            {rows.map(({ profile, period: rowPeriod, balance: rowBalance, tenure }) => {
+              const expanded = expandedId === profile.id
+              return (
+                <div
+                  key={profile.id}
+                  className={`group relative overflow-hidden rounded-xl border bg-card transition-all ${
+                    profile.id === selected?.id
+                      ? 'border-primary/40 shadow-sm'
+                      : 'hover:border-primary/25 hover:shadow-sm'
+                  }`}
+                >
+                  {profile.id === selected?.id && (
+                    <span className="bg-primary absolute inset-y-0 left-0 w-0.5" />
+                  )}
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-3 p-3 text-left sm:p-4"
+                    onClick={() => {
+                      setSelectedId(profile.id)
+                      setExpandedId(expanded ? null : profile.id)
+                    }}
+                    aria-expanded={expanded}
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ${
+                        profile.id === selected?.id
+                          ? 'bg-primary text-primary-foreground ring-primary/30'
+                          : 'bg-primary/10 text-primary ring-primary/15'
                       }`}
-                      onClick={() => setSelectedId(profile.id)}
                     >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{profile.name}</span>
-                          {profile.monthlyAmount <= 0 && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {t('salaryNotConfigured')}
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-muted-foreground px-4 py-3 text-xs">
-                        <div>{t('sinceDate', { date: day(profile.startDate) })}</div>
-                        <div className="text-foreground/80">{tenureLabel(tenure)}</div>
-                      </td>
-                      <td className="text-muted-foreground px-4 py-3 text-xs">
-                        {day(rowPeriod.start)} - {day(rowPeriod.end)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {money(rowBalance.base)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {money(rowBalance.advances)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {money(rowBalance.deductions)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {money(rowBalance.payments)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {rowBalance.pending > 0 ? (
-                          <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700">
-                            {t('payable')} {money(rowBalance.pending)}
-                          </Badge>
-                        ) : rowBalance.pending < 0 ? (
-                          <Badge variant="destructive">
-                            {t('against')} {money(Math.abs(rowBalance.pending))}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-emerald-600">
-                            {t('upToDate')}
+                      {initials(profile.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[15px] font-semibold">{profile.name}</span>
+                        {profile.monthlyAmount <= 0 && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {t('salaryNotConfigured')}
                           </Badge>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      <p className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+                        <span>{t('sinceDate', { date: day(profile.startDate) })}</span>
+                        <span className="text-border">·</span>
+                        <span>{tenureLabel(tenure)}</span>
+                      </p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        <span className="text-foreground/75 font-medium">
+                          {money(rowBalance.base)}
+                        </span>
+                        <span> / {t('monthShort')}</span>
+                        <span className="mx-1 text-border">·</span>
+                        <span>
+                          {t('currentPeriod')}: {day(rowPeriod.start)} - {day(rowPeriod.end)}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      {rowBalance.pending > 0 ? (
+                        <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700">
+                          {t('payable')} {money(rowBalance.pending)}
+                        </Badge>
+                      ) : rowBalance.pending < 0 ? (
+                        <Badge variant="destructive">
+                          {t('against')} {money(Math.abs(rowBalance.pending))}
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/25 bg-emerald-500/5 text-emerald-600"
+                        >
+                          {t('upToDate')}
+                        </Badge>
+                      )}
+                      <ChevronDown
+                        className={`text-muted-foreground h-4 w-4 transition-transform ${
+                          expanded ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="bg-muted/20 grid grid-cols-2 gap-2 border-t p-3 sm:grid-cols-4">
+                      <MiniStat
+                        icon={Wallet}
+                        tone="primary"
+                        label={t('baseSalary')}
+                        value={money(rowBalance.base)}
+                      />
+                      <MiniStat
+                        icon={ArrowUpCircle}
+                        tone="amber"
+                        label={t('advances')}
+                        value={money(rowBalance.advances)}
+                      />
+                      <MiniStat
+                        icon={ArrowDownCircle}
+                        tone="rose"
+                        label={t('deductions')}
+                        value={money(rowBalance.deductions)}
+                      />
+                      <MiniStat
+                        icon={CheckCircle2}
+                        tone="emerald"
+                        label={t('paid')}
+                        value={money(rowBalance.payments)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
 
         {selected && period && balance && (
-          <Card>
-            <CardHeader className="border-b">
+          <Card className="overflow-hidden shadow-sm">
+            <CardHeader className="from-primary/[0.08] border-b bg-gradient-to-r via-transparent to-transparent">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Wallet className="h-5 w-5 text-primary" />
-                    {selected.name}
-                  </CardTitle>
-                  <div className="mt-2 flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => movePeriod(-1)}
-                      aria-label={t('previousPeriod')}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="min-w-0 text-sm font-medium">
-                      {day(period.start)} - {day(period.end)}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => movePeriod(1)}
-                      aria-label={t('nextPeriod')}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                <div className="flex items-start gap-3">
+                  <div className="bg-primary text-primary-foreground ring-primary/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1">
+                    {initials(selected.name)}
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{selected.name}</CardTitle>
+                    <div className="border-border/70 bg-background/60 mt-2 inline-flex items-center gap-1 rounded-full border px-1 py-0.5 shadow-sm">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-full"
+                        onClick={() => movePeriod(-1)}
+                        aria-label={t('previousPeriod')}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="min-w-0 px-1 text-xs font-medium sm:text-sm">
+                        {day(period.start)} - {day(period.end)}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 rounded-full"
+                        onClick={() => movePeriod(1)}
+                        aria-label={t('nextPeriod')}
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => setProfileDialog(true)}>
                     <Settings2 className="mr-1 h-4 w-4" />
                     {t('configure')}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+                    <History className="mr-1 h-4 w-4" />
+                    {t('history')}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setEntryMode('advance')}>
                     <ArrowUpCircle className="mr-1 h-4 w-4" />
@@ -298,15 +375,37 @@ export function SalariesClient({
             </CardHeader>
 
             <CardContent className="space-y-5 pt-5">
-              <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-5">
-                <Stat label={t('baseSalary')} value={money(balance.base)} />
-                <Stat label={t('advances')} value={money(balance.advances)} />
-                <Stat label={t('deductions')} value={money(balance.deductions)} />
-                <Stat label={t('paid')} value={money(balance.payments)} />
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
                 <Stat
+                  icon={Wallet}
+                  tone="primary"
+                  label={t('baseSalary')}
+                  value={money(balance.base)}
+                />
+                <Stat
+                  icon={ArrowUpCircle}
+                  tone="amber"
+                  label={t('advances')}
+                  value={money(balance.advances)}
+                />
+                <Stat
+                  icon={ArrowDownCircle}
+                  tone="rose"
+                  label={t('deductions')}
+                  value={money(balance.deductions)}
+                />
+                <Stat
+                  icon={CheckCircle2}
+                  tone="emerald"
+                  label={t('paid')}
+                  value={money(balance.payments)}
+                />
+                <Stat
+                  icon={CircleDollarSign}
+                  tone={balance.pending > 0 ? 'amber' : balance.pending < 0 ? 'rose' : 'emerald'}
                   label={t('pending')}
                   value={money(balance.pending)}
-                  emphasize={balance.pending > 0}
+                  emphasize={balance.pending !== 0}
                 />
               </div>
 
@@ -323,15 +422,26 @@ export function SalariesClient({
                     {t('noEntries')}
                   </p>
                 ) : (
-                  <div className="overflow-hidden rounded-lg border">
+                  <div className="overflow-hidden rounded-xl border">
                     {entries.map((entry) => (
                       <div
                         key={entry.id}
-                        className="flex flex-wrap items-center gap-3 border-b p-3 last:border-b-0"
+                        className="flex flex-wrap items-center gap-3 border-b p-3 transition-colors last:border-b-0 hover:bg-muted/30"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="text-[10px] uppercase">
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] uppercase ${
+                                entry.type === 'payment'
+                                  ? 'border-emerald-500/25 bg-emerald-500/5 text-emerald-600'
+                                  : entry.type === 'deduction'
+                                    ? 'border-rose-500/25 bg-rose-500/5 text-rose-600'
+                                    : entry.type === 'advance'
+                                      ? 'border-amber-500/25 bg-amber-500/5 text-amber-700'
+                                      : 'border-primary/20 bg-primary/5 text-primary'
+                              }`}
+                            >
                               {entryLabel(entry, t)}
                             </Badge>
                             <span className="text-muted-foreground text-xs">
@@ -344,7 +454,13 @@ export function SalariesClient({
                             </p>
                           )}
                         </div>
-                        <span className="font-medium tabular-nums">
+                        <span
+                          className={`font-semibold tabular-nums ${
+                            entry.type === 'advance' || entry.type === 'deduction'
+                              ? 'text-rose-600'
+                              : 'text-emerald-600'
+                          }`}
+                        >
                           {entry.type === 'advance' || entry.type === 'deduction' ? '- ' : ''}
                           {money(entry.amount)}
                         </span>
@@ -405,6 +521,13 @@ export function SalariesClient({
             pending={balance?.pending ?? 0}
             currencyCode={currencyCode}
           />
+          <SalaryHistoryDialog
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            profile={selected}
+            currencyCode={currencyCode}
+            currencyFormat={currencyFormat}
+          />
         </>
       )}
     </div>
@@ -412,21 +535,82 @@ export function SalariesClient({
 }
 
 function Stat({
+  icon: Icon,
+  tone,
   label,
   value,
   emphasize = false,
 }: {
+  icon: LucideIcon
+  tone: 'primary' | 'amber' | 'rose' | 'emerald'
   label: string
   value: string
   emphasize?: boolean
 }) {
+  const tones = {
+    primary: { box: 'border-primary/15 bg-primary/5', icon: 'text-primary', value: '' },
+    amber: { box: 'border-amber-500/15 bg-amber-500/5', icon: 'text-amber-600', value: '' },
+    rose: { box: 'border-rose-500/15 bg-rose-500/5', icon: 'text-rose-600', value: 'text-rose-600' },
+    emerald: {
+      box: 'border-emerald-500/15 bg-emerald-500/5',
+      icon: 'text-emerald-600',
+      value: 'text-emerald-600',
+    },
+  }[tone]
+
   return (
-    <div className={`rounded-lg border p-3 ${emphasize ? 'border-primary/40 bg-primary/5' : ''}`}>
-      <p className="text-muted-foreground text-[11px] uppercase tracking-wide">{label}</p>
-      <p className={`mt-1 font-semibold tabular-nums ${emphasize ? 'text-primary' : ''}`}>
-        {value}
-      </p>
+    <div
+      className={`rounded-xl border p-3 ${tones.box} ${
+        emphasize ? 'ring-primary/10 ring-1' : ''
+      }`}
+    >
+      <div className="flex items-center gap-1.5">
+        <Icon className={`h-3.5 w-3.5 ${tones.icon}`} />
+        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{label}</p>
+      </div>
+      <p className={`mt-1.5 text-base font-semibold tabular-nums ${tones.value}`}>{value}</p>
     </div>
+  )
+}
+
+function MiniStat({
+  icon: Icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: LucideIcon
+  tone: 'primary' | 'amber' | 'rose' | 'emerald'
+  label: string
+  value: string
+}) {
+  const tones = {
+    primary: { box: 'border-primary/15 bg-primary/5', icon: 'text-primary' },
+    amber: { box: 'border-amber-500/15 bg-amber-500/5', icon: 'text-amber-600' },
+    rose: { box: 'border-rose-500/15 bg-rose-500/5', icon: 'text-rose-600' },
+    emerald: { box: 'border-emerald-500/15 bg-emerald-500/5', icon: 'text-emerald-600' },
+  }[tone]
+
+  return (
+    <div className={`rounded-lg border p-2.5 ${tones.box}`}>
+      <div className="flex items-center gap-1.5">
+        <Icon className={`h-3.5 w-3.5 ${tones.icon}`} />
+        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{label}</p>
+      </div>
+      <p className="mt-1 text-sm font-semibold tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+function initials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0))
+      .join('')
+      .toUpperCase() || '?'
   )
 }
 

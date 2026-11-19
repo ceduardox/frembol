@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import {
@@ -58,6 +59,7 @@ interface TemplateOption {
 export function QuickCreateMenu() {
   const t = useTranslations('navigation')
   const router = useRouter()
+  const pathname = usePathname()
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false)
   const [pickerKind, setPickerKind] = useState<NewWorkKind>('mechanics')
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false)
@@ -136,6 +138,17 @@ export function QuickCreateMenu() {
     canManageSettings
 
   if (!hasAnyAction) return null
+
+  if (pathname.startsWith('/salaries')) {
+    return canManageSettings ? (
+      <Button size="sm" asChild>
+        <Link href="/settings/team?add=true">
+          <UserPlus className="mr-1 h-3.5 w-3.5" />
+          {t('quickCreate.worker')}
+        </Link>
+      </Button>
+    ) : null
+  }
 
   return (
     <>

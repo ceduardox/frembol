@@ -89,7 +89,8 @@
     "wash": "Bilvask",
     "washHint": "Bil, mc eller lastebil",
     "chooseTitle": "Hva skal du opprette?",
-    "chooseDescription": "Velg type. Du ser bare det rollen din tillater."
+    "chooseDescription": "Velg type. Du ser bare det rollen din tillater.",
+    "worker": "Add worker"
   },
   "purchaseWhiteLabel": "Kjøp White-Label",
   "licenseExpired": "Lisensen din har utløpt. Funksjoner kan være begrenset.",

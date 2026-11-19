@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AppCard } from '@/components/app-card'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -61,6 +60,7 @@ function labelKey(subject: string, action: string): string {
   return ACTION_LABEL_OVERRIDES[`${subject}:${action}`] ?? action
 }
 import {
+  BadgeCheck,
   Crown,
   Loader2,
   LogOut,
@@ -613,35 +613,63 @@ export function TeamSettings({
           ) : undefined
         }
       >
+        {isAdmin && (
+          <p className="text-muted-foreground bg-muted/30 mb-3 rounded-lg border px-3 py-2 text-xs">
+            {tSalary('payrollTeamHint')}
+          </p>
+        )}
         <div className="space-y-2">
           {organization.members.map((member) => (
             <div
               key={member.id}
               data-testid="team-member"
-              className="flex items-center gap-3 rounded-lg border p-3"
+              className="flex flex-wrap items-start gap-3 rounded-xl border bg-card p-3 shadow-sm transition-colors hover:border-primary/20"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium">
+              <div className="bg-primary/10 text-primary ring-primary/15 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1">
                 {member.user.name?.charAt(0)?.toUpperCase() || '?'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-sm">{member.user.name}</p>
+                <p className="text-sm font-semibold leading-snug break-words">
+                  {member.user.name}
+                </p>
                 {/* The mobile for a mechanic set up at the counter, whose
                     address is a placeholder nobody can act on, and the email
                     for everybody else. Whichever one identifies them. */}
-                <p className="truncate text-xs text-muted-foreground">{contactFor(member.user)}</p>
+                <p className="text-muted-foreground mt-0.5 text-xs break-all">
+                  {contactFor(member.user)}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 border-t pt-2 sm:ml-auto sm:w-auto sm:border-0 sm:pt-0">
                 {isAdmin && (
-                  <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 text-xs">
-                    <Switch
-                      checked={salariedUsers.has(member.user.id)}
-                      onCheckedChange={(checked) =>
-                        void handleToggleSalaryMember(member, checked === true)
-                      }
-                      aria-label={tSalary('markSalaried')}
-                    />
-                    <span className="hidden lg:inline">{tSalary('markSalaried')}</span>
-                  </label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={
+                          salariedUsers.has(member.user.id)
+                            ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'
+                            : ''
+                        }
+                        onClick={() =>
+                          void handleToggleSalaryMember(
+                            member,
+                            !salariedUsers.has(member.user.id)
+                          )
+                        }
+                        aria-label={tSalary('payrollHint')}
+                      >
+                        <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+                        {salariedUsers.has(member.user.id)
+                          ? tSalary('inPayroll')
+                          : tSalary('addToPayroll')}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      {tSalary('payrollHint')}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {technicians.has(member.user.id) && (
                   <Badge variant="outline" className="text-xs">
@@ -766,30 +794,52 @@ export function TeamSettings({
             <p className="font-medium text-sm">{t('team.boardOnly')}</p>
             <p className="text-muted-foreground text-xs">{t('team.boardOnlyHint')}</p>
             {standaloneTechnicians.map((tech) => (
-              <div key={tech.id} className="flex items-center gap-3 rounded-lg border p-3">
+              <div
+                key={tech.id}
+                className="flex flex-wrap items-start gap-3 rounded-xl border bg-card p-3 shadow-sm transition-colors hover:border-primary/20"
+              >
                 <div
-                  className="h-9 w-9 shrink-0 rounded-full"
+                  className="h-10 w-10 shrink-0 rounded-full"
                   style={{ backgroundColor: tech.color }}
                   aria-hidden
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-sm">{tech.name}</p>
-                  <p className="truncate text-muted-foreground text-xs">
+                  <p className="text-sm font-semibold leading-snug break-words">{tech.name}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
                     {t('team.boardOnlyNoAccount')}
                   </p>
                 </div>
                 {isAdmin && (
                   <>
-                    <label className="text-muted-foreground flex cursor-pointer items-center gap-1.5 text-xs">
-                      <Switch
-                        checked={salariedTechnicians.has(tech.id)}
-                        onCheckedChange={(checked) =>
-                          void handleToggleSalaryTechnician(tech, checked === true)
-                        }
-                        aria-label={tSalary('markSalaried')}
-                      />
-                      <span className="hidden lg:inline">{tSalary('markSalaried')}</span>
-                    </label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={
+                            salariedTechnicians.has(tech.id)
+                              ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/15'
+                              : ''
+                          }
+                          onClick={() =>
+                            void handleToggleSalaryTechnician(
+                              tech,
+                              !salariedTechnicians.has(tech.id)
+                            )
+                          }
+                          aria-label={tSalary('payrollHint')}
+                        >
+                          <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+                          {salariedTechnicians.has(tech.id)
+                            ? tSalary('inPayroll')
+                            : tSalary('addToPayroll')}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        {tSalary('payrollHint')}
+                      </TooltipContent>
+                    </Tooltip>
                     <Button
                       variant="outline"
                       size="sm"

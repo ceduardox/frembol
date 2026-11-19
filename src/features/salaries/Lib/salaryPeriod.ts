@@ -81,6 +81,26 @@ export function entriesInPeriod<T extends { effectiveDate: string }>(
     .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate))
 }
 
+/** Every salary period touched by [from, to], oldest first. */
+export function salaryPeriodsInRange(
+  profile: SalaryProfileForPeriod,
+  from: string,
+  to: string
+): SalaryPeriod[] {
+  if (to < from) return []
+  const firstReference = from < profile.startDate ? profile.startDate : from
+  if (firstReference > to) return []
+
+  const periods: SalaryPeriod[] = []
+  let period = salaryPeriodFor(profile, firstReference)
+  for (let index = 0; index < 120; index += 1) {
+    if (period.start > to) break
+    if (period.end >= profile.startDate && period.end >= from) periods.push(period)
+    period = salaryPeriodFor(profile, addDaysIso(period.end, 1))
+  }
+  return periods
+}
+
 /** Calendar time since the salary started, for the team table. */
 export function tenureParts(startDate: string, reference: string = todayIso()) {
   const start = parseIso(startDate)
