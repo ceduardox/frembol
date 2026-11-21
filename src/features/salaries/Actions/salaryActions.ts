@@ -212,6 +212,25 @@ export async function updateSalaryProfile(input: unknown) {
   })
 }
 
+export async function deactivateSalaryProfile(profileId: string) {
+  const id = z.string().min(1).parse(profileId)
+  return withAuth(async (ctx) => {
+    assertAdmin(ctx)
+    const profile = await db.salaryProfile.findFirst({
+      where: { id, organizationId: ctx.organizationId },
+      select: { id: true },
+    })
+    if (!profile) throw new Error('Salary profile not found')
+
+    await db.salaryProfile.update({
+      where: { id: profile.id },
+      data: { isActive: false },
+    })
+    revalidateSalaries()
+    return { id: profile.id, isActive: false }
+  })
+}
+
 export async function addSalaryEntry(input: unknown) {
   const data = z
     .object({

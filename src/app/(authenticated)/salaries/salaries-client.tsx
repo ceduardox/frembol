@@ -27,7 +27,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useConfirm } from '@/components/confirm-dialog'
 import { useDateSettings } from '@/components/date-settings-context'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { deleteSalaryEntry } from '@/features/salaries/Actions/salaryActions'
+import {
+  deactivateSalaryProfile,
+  deleteSalaryEntry,
+} from '@/features/salaries/Actions/salaryActions'
 import { SalaryEntryDialog, type SalaryEntryMode } from '@/features/salaries/Components/SalaryEntryDialog'
 import { SalaryHistoryDialog } from '@/features/salaries/Components/SalaryHistoryDialog'
 import { SalaryProfileDialog } from '@/features/salaries/Components/SalaryProfileDialog'
@@ -138,6 +141,24 @@ export function SalariesClient({
       return
     }
     toast.success(t('entryDeleted'))
+    router.refresh()
+  }
+
+  const removeFromPayroll = async () => {
+    if (!selected) return
+    const ok = await confirm({
+      title: t('removeFromPayroll'),
+      description: t('removeFromPayrollDescription', { name: selected.name }),
+      confirmLabel: t('removeFromPayroll'),
+      destructive: true,
+    })
+    if (!ok) return
+    const result = await deactivateSalaryProfile(selected.id)
+    if (!result.success) {
+      toast.error(result.error || t('saveFailed'))
+      return
+    }
+    toast.success(t('removedFromPayroll'))
     router.refresh()
   }
 
@@ -369,6 +390,15 @@ export function SalariesClient({
                   <Button size="sm" onClick={() => setEntryMode('payment')}>
                     <FileText className="mr-1 h-4 w-4" />
                     {t('registerPayment')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => void removeFromPayroll()}
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    {t('removeFromPayroll')}
                   </Button>
                 </div>
               </div>

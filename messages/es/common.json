@@ -235,6 +235,9 @@
     "addToPayroll": "Agregar a planilla",
     "inPayroll": "En planilla",
     "payrollHint": "Incluí a esta persona en Salarios para registrar sueldo, adelantos, descuentos y pagos.",
-    "payrollTeamHint": "Usá “Agregar a planilla” para incluir a la persona en Salarios y registrar sueldo, adelantos y pagos."
+    "payrollTeamHint": "Usá “Agregar a planilla” para incluir a la persona en Salarios y registrar sueldo, adelantos y pagos.",
+    "removeFromPayroll": "Quitar de planilla",
+    "removeFromPayrollDescription": "Se ocultará a {name} de Salarios. Su historial de pagos, adelantos y descuentos se conserva.",
+    "removedFromPayroll": "Trabajador quitado de la planilla"
   }
 }

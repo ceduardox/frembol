@@ -235,6 +235,9 @@
     "addToPayroll": "Add to payroll",
     "inPayroll": "On payroll",
     "payrollHint": "Include this person in Salaries to record salary, advances, deductions and payments.",
-    "payrollTeamHint": "Use “Add to payroll” to include this person in Salaries and record salary, advances and payments."
+    "payrollTeamHint": "Use “Add to payroll” to include this person in Salaries and record salary, advances and payments.",
+    "removeFromPayroll": "Remove from payroll",
+    "removeFromPayrollDescription": "{name} will be hidden from Salaries. Payment, advance and deduction history is kept.",
+    "removedFromPayroll": "Worker removed from payroll"
   }
 }
