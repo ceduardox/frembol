@@ -144,16 +144,16 @@ export function SalariesClient({
     router.refresh()
   }
 
-  const removeFromPayroll = async () => {
-    if (!selected) return
+  const removeFromPayroll = async (profile: SalaryProfileView | null = selected) => {
+    if (!profile) return
     const ok = await confirm({
       title: t('removeFromPayroll'),
-      description: t('removeFromPayrollDescription', { name: selected.name }),
+      description: t('removeFromPayrollDescription', { name: profile.name }),
       confirmLabel: t('removeFromPayroll'),
       destructive: true,
     })
     if (!ok) return
-    const result = await deactivateSalaryProfile(selected.id)
+    const result = await deactivateSalaryProfile(profile.id)
     if (!result.success) {
       toast.error(result.error || t('saveFailed'))
       return
@@ -300,32 +300,45 @@ export function SalariesClient({
                   </button>
 
                   {expanded && (
-                    <div className="bg-muted/20 grid grid-cols-2 gap-2 border-t p-3 sm:grid-cols-4">
-                      <MiniStat
-                        icon={Wallet}
-                        tone="primary"
-                        label={t('baseSalary')}
-                        value={money(rowBalance.base)}
-                      />
-                      <MiniStat
-                        icon={ArrowUpCircle}
-                        tone="amber"
-                        label={t('advances')}
-                        value={money(rowBalance.advances)}
-                      />
-                      <MiniStat
-                        icon={ArrowDownCircle}
-                        tone="rose"
-                        label={t('deductions')}
-                        value={money(rowBalance.deductions)}
-                      />
-                      <MiniStat
-                        icon={CheckCircle2}
-                        tone="emerald"
-                        label={t('paid')}
-                        value={money(rowBalance.payments)}
-                      />
-                    </div>
+                    <>
+                      <div className="bg-muted/20 grid grid-cols-2 gap-2 border-t p-3 sm:grid-cols-4">
+                        <MiniStat
+                          icon={Wallet}
+                          tone="primary"
+                          label={t('baseSalary')}
+                          value={money(rowBalance.base)}
+                        />
+                        <MiniStat
+                          icon={ArrowUpCircle}
+                          tone="amber"
+                          label={t('advances')}
+                          value={money(rowBalance.advances)}
+                        />
+                        <MiniStat
+                          icon={ArrowDownCircle}
+                          tone="rose"
+                          label={t('deductions')}
+                          value={money(rowBalance.deductions)}
+                        />
+                        <MiniStat
+                          icon={CheckCircle2}
+                          tone="emerald"
+                          label={t('paid')}
+                          value={money(rowBalance.payments)}
+                        />
+                      </div>
+                      <div className="flex justify-end border-t px-3 py-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => void removeFromPayroll(profile)}
+                        >
+                          <Trash2 className="mr-1 h-3.5 w-3.5" />
+                          {t('removeFromPayroll')}
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </div>
               )
