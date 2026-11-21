@@ -308,10 +308,29 @@ export async function removeMember(memberId: string) {
       await setTechnicianStanding(organizationId, target.userId, false)
       await revokeTechnicianCredentials(organizationId, target.userId)
 
+      // Take them off the payroll list as well, but keep the profile and every
+      // advance, deduction and payment for the history. Re-adding them later
+      // and marking "En planilla" brings the same record back.
+      const linkedTechnicians = await db.technician.findMany({
+        where: { organizationId, userId: target.userId },
+        select: { id: true },
+      })
+      await db.salaryProfile.updateMany({
+        where: {
+          organizationId,
+          OR: [
+            { userId: target.userId },
+            { technicianId: { in: linkedTechnicians.map((technician) => technician.id) } },
+          ],
+        },
+        data: { isActive: false },
+      })
+
       await db.organizationMember.delete({ where: { id: memberId } })
 
       revalidatePath('/settings/team')
       revalidatePath('/work-board')
+      revalidatePath('/salaries')
       return { removed: true, memberId }
     },
     {

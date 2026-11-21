@@ -192,6 +192,13 @@ export async function deleteTechnician(id: string) {
       // somebody's pocket stops working here too.
       await revokeTechnicianCredentials(organizationId, target.userId)
 
+      // A board-only worker leaves the Salaries list when removed here. The
+      // profile and its payment history stay for the record.
+      await db.salaryProfile.updateMany({
+        where: { organizationId, technicianId: target.id },
+        data: { isActive: false },
+      })
+
       notificationBus.emit('workboard', {
         type: 'technician_removed',
         organizationId,
@@ -202,6 +209,7 @@ export async function deleteTechnician(id: string) {
       // Board-only technicians are listed on the team page too, and that is now
       // where they can be removed from.
       revalidatePath('/settings/team')
+      revalidatePath('/salaries')
       return { success: true, technicianId: id }
     },
     {
