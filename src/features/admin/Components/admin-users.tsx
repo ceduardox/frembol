@@ -213,14 +213,22 @@ export function AdminUsers({
           </div>
         ) : (
           data.users.map((user) => (
-            <div key={user.id} className="flex items-start gap-2 rounded-lg border bg-card p-3">
+            <div
+              key={user.id}
+              className="flex items-start gap-3 rounded-xl border bg-card p-3 shadow-sm"
+            >
+              <div className="bg-primary/10 text-primary ring-primary/15 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1">
+                {user.name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
               <button
                 type="button"
                 className="min-w-0 flex-1 text-left"
                 onClick={() => router.push(`/admin/users/${user.id}`)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="min-w-0 flex-1 truncate font-medium">{user.name}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="min-w-0 text-sm font-semibold leading-snug break-words">
+                    {user.name}
+                  </span>
                   {user.isSuperAdmin ? (
                     <Badge variant="default" className="shrink-0 gap-1">
                       <ShieldCheck className="h-3 w-3" />
@@ -232,11 +240,11 @@ export function AdminUsers({
                     </Badge>
                   )}
                 </div>
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="truncate">{user.email}</span>
+                <span className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <span className="min-w-0 break-all">{user.email}</span>
                   {user.emailVerified && (
                     <span title={t('users.emailVerified')}>
-                      <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                      <BadgeCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
                     </span>
                   )}
                 </span>
@@ -261,17 +269,20 @@ export function AdminUsers({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="-mr-1 h-9 w-9 shrink-0"
+                    className="h-11 w-11 shrink-0 rounded-full"
                     disabled={isPending}
                     aria-label={t('common.openMenu')}
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleToggleSuperAdmin(user)}>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    className="py-2.5"
+                    onClick={() => handleToggleSuperAdmin(user)}
+                  >
                     {user.isSuperAdmin ? (
                       <>
                         <ShieldOff className="mr-2 h-4 w-4" />
@@ -286,7 +297,7 @@ export function AdminUsers({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleDeleteUser(user)}
-                    className="text-destructive focus:text-destructive"
+                    className="text-destructive focus:text-destructive py-2.5"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     {t('users.deleteUser')}
